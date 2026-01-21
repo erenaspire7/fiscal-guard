@@ -1,0 +1,669 @@
+"""Strands tools for the decision agent."""
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+from strands.tools import tool
+
+from core.database.models import Budget, Goal, PurchaseDecision
+from core.observability.opik_config import track_tool
+
+
+class BudgetCheckInput(BaseModel):
+    """Input schema for budget check tool."""
+
+    user_id: str = Field(..., description="User ID")
+    category: str = Field(..., description="Budget category to check")
+    amount: float = Field(..., description="Purchase amount to check against budget")
+
+
+class BudgetCheckOutput(BaseModel):
+    """Output schema for budget check tool."""
+
+    category: str
+    has_budget: bool
+    current_spent: float
+    limit: float
+    remaining: float
+    percentage_used: float
+    would_exceed: bool
+    impact_description: str
+
+
+class GoalCheckInput(BaseModel):
+    """Input schema for goal check tool."""
+
+    user_id: str = Field(..., description="User ID")
+
+
+class GoalCheckOutput(BaseModel):
+    """Output schema for goal check tool."""
+
+    goals: list[dict]
+    total_goals: int
+    active_goals: int
+    total_target: float
+    total_current: float
+    total_remaining: float
+    impact_description: str
+
+
+class SpendingAnalysisInput(BaseModel):
+    """Input schema for spending analysis tool."""
+
+    user_id: str = Field(..., description="User ID")
+
+
+class SpendingAnalysisOutput(BaseModel):
+    """Output schema for spending analysis tool."""
+
+    total_budget: float
+    total_spent: float
+    total_remaining: float
+    percentage_spent: float
+    financial_health_score: float
+    analysis_description: str
+
+
+class PastDecisionsInput(BaseModel):
+    """Input schema for past decisions tool."""
+
+    user_id: str = Field(..., description="User ID")
+    category: Optional[str] = Field(None, description="Category to filter by")
+    min_amount: Optional[float] = Field(None, description="Minimum purchase amount")
+    max_amount: Optional[float] = Field(None, description="Maximum purchase amount")
+    limit: int = Field(10, description="Maximum number of past decisions to return")
+
+
+class PastDecisionsOutput(BaseModel):
+    """Output schema for past decisions tool."""
+
+    decisions: list[dict]
+    total_decisions: int
+    average_score: float
+    category_patterns: dict
+    insights: str
+
+
+class RegretAnalysisInput(BaseModel):
+    """Input schema for regret analysis tool."""
+
+    user_id: str = Field(..., description="User ID")
+    category: Optional[str] = Field(None, description="Category to analyze")
+
+
+class RegretAnalysisOutput(BaseModel):
+    """Output schema for regret analysis tool."""
+
+    total_purchases: int
+    purchases_with_feedback: int
+    regretted_purchases: int
+    regret_rate: float
+    average_regret_level: float
+    common_regret_patterns: list[str]
+    recommendations: str
+
+
+def create_decision_tools(db_session: Session):
+    """Create decision tools with database session."""
+
+    @tool(input_schema=BudgetCheckInput, output_schema=BudgetCheckOutput)
+    @track_tool(name="check_budget")
+    def check_budget(user_id: str, category: str, amount: float) -> dict:
+        """Check if a purchase fits within the budget for a specific category.
+
+        Args:
+            user_id: The user's ID
+            category: The budget category (e.g., 'groceries', 'entertainment')
+            amount: The purchase amount to check
+
+        Returns:
+            Budget analysis including current spending, limits, and impact
+        """
+        try:
+            user_uuid = UUID(user_id)
+        except ValueError:
+            return {
+                "category": category,
+                "has_budget": False,
+                "current_spent": 0.0,
+                "limit": 0.0,
+                "remaining": 0.0,
+                "percentage_used": 0.0,
+                "would_exceed": True,
+                "impact_description": "Invalid user ID format",
+            }
+
+        # Get current active budget (latest budget that includes today)
+        today = date.today()
+        budget = (
+            db_session.query(Budget)
+            .filter(
+                Budget.user_id == user_uuid,
+                Budget.period_start <= today,
+                Budget.period_end >= today,
+            )
+            .order_by(Budget.created_at.desc())
+            .first()
+        )
+
+        if not budget:
+            return {
+                "category": category,
+                "has_budget": False,
+                "current_spent": 0.0,
+                "limit": 0.0,
+                "remaining": 0.0,
+                "percentage_used": 0.0,
+                "would_exceed": True,
+                "impact_description": f"No active budget found for user. Cannot verify if purchase fits budget.",
+            }
+
+        # Check if category exists in budget
+        category_lower = category.lower()
+        category_data = budget.categories.get(category_lower)
+
+        if not category_data:
+            return {
+                "category": category,
+                "has_budget": False,
+                "current_spent": 0.0,
+                "limit": 0.0,
+                "remaining": 0.0,
+                "percentage_used": 0.0,
+                "would_exceed": True,
+                "impact_description": f"Category '{category}' not found in budget. User should add this category or use an existing one.",
+            }
+
+        # Calculate budget impact
+        limit = float(category_data.get("limit", 0))
+        spent = float(category_data.get("spent", 0))
+        remaining = limit - spent
+        new_spent = spent + amount
+        percentage_used = (new_spent / limit * 100) if limit > 0 else 0
+        would_exceed = new_spent > limit
+
+        if would_exceed:
+            overage = new_spent - limit
+            impact = f"This purchase would put you ${overage:.2f} over budget in {category}. "
+            impact += (
+                f"You've spent ${spent:.2f} of ${limit:.2f}, leaving ${remaining:.2f}. "
+            )
+            impact += f"After this purchase, you'd be at {percentage_used:.1f}% of your budget."
+        elif percentage_used > 80:
+            impact = f"This purchase is within budget but would use {percentage_used:.1f}% of your {category} budget. "
+            impact += f"You'd have ${limit - new_spent:.2f} remaining for the rest of the period."
+        else:
+            impact = f"This purchase fits comfortably within your {category} budget. "
+            impact += f"You'd be at {percentage_used:.1f}% of budget with ${limit - new_spent:.2f} remaining."
+
+        return {
+            "category": category,
+            "has_budget": True,
+            "current_spent": spent,
+            "limit": limit,
+            "remaining": remaining,
+            "percentage_used": round(percentage_used, 1),
+            "would_exceed": would_exceed,
+            "impact_description": impact,
+        }
+
+    @tool(input_schema=GoalCheckInput, output_schema=GoalCheckOutput)
+    @track_tool(name="check_goals")
+    def check_goals(user_id: str) -> dict:
+        """Check user's financial goals and how a purchase might impact them.
+
+        Args:
+            user_id: The user's ID
+
+        Returns:
+            Summary of all user goals and their status
+        """
+        try:
+            user_uuid = UUID(user_id)
+        except ValueError:
+            return {
+                "goals": [],
+                "total_goals": 0,
+                "active_goals": 0,
+                "total_target": 0.0,
+                "total_current": 0.0,
+                "total_remaining": 0.0,
+                "impact_description": "Invalid user ID format",
+            }
+
+        # Get all active goals
+        goals = (
+            db_session.query(Goal)
+            .filter(Goal.user_id == user_uuid, Goal.is_completed == False)
+            .order_by(Goal.deadline.asc(), Goal.priority.desc())
+            .all()
+        )
+
+        if not goals:
+            return {
+                "goals": [],
+                "total_goals": 0,
+                "active_goals": 0,
+                "total_target": 0.0,
+                "total_current": 0.0,
+                "total_remaining": 0.0,
+                "impact_description": "User has no active financial goals set.",
+            }
+
+        goals_data = []
+        total_target = 0.0
+        total_current = 0.0
+
+        for goal in goals:
+            target = float(goal.target_amount)
+            current = float(goal.current_amount)
+            remaining = target - current
+            percentage = (current / target * 100) if target > 0 else 0
+
+            total_target += target
+            total_current += current
+
+            goal_dict = {
+                "name": goal.goal_name,
+                "target": target,
+                "current": current,
+                "remaining": remaining,
+                "percentage": round(percentage, 1),
+                "priority": goal.priority,
+                "deadline": goal.deadline.isoformat() if goal.deadline else None,
+            }
+            goals_data.append(goal_dict)
+
+        total_remaining = total_target - total_current
+
+        # Build impact description
+        high_priority_goals = [g for g in goals_data if g["priority"] == "high"]
+        if high_priority_goals:
+            impact = f"User has {len(high_priority_goals)} high-priority goal(s): "
+            impact += ", ".join([g["name"] for g in high_priority_goals[:3]])
+            impact += f". Total remaining to reach all goals: ${total_remaining:.2f}. "
+            impact += "Consider if this purchase delays progress toward these goals."
+        else:
+            impact = f"User has {len(goals_data)} active goal(s) with ${total_remaining:.2f} remaining to reach them. "
+            impact += "Consider if this money could be better allocated toward goals."
+
+        return {
+            "goals": goals_data,
+            "total_goals": len(goals_data),
+            "active_goals": len(goals_data),
+            "total_target": round(total_target, 2),
+            "total_current": round(total_current, 2),
+            "total_remaining": round(total_remaining, 2),
+            "impact_description": impact,
+        }
+
+    @tool(input_schema=SpendingAnalysisInput, output_schema=SpendingAnalysisOutput)
+    @track_tool(name="analyze_spending")
+    def analyze_spending(user_id: str) -> dict:
+        """Analyze overall spending patterns and financial health.
+
+        Args:
+            user_id: The user's ID
+
+        Returns:
+            Overall financial health analysis
+        """
+        try:
+            user_uuid = UUID(user_id)
+        except ValueError:
+            return {
+                "total_budget": 0.0,
+                "total_spent": 0.0,
+                "total_remaining": 0.0,
+                "percentage_spent": 0.0,
+                "financial_health_score": 0.0,
+                "analysis_description": "Invalid user ID format",
+            }
+
+        # Get current active budget
+        today = date.today()
+        budget = (
+            db_session.query(Budget)
+            .filter(
+                Budget.user_id == user_uuid,
+                Budget.period_start <= today,
+                Budget.period_end >= today,
+            )
+            .order_by(Budget.created_at.desc())
+            .first()
+        )
+
+        if not budget:
+            return {
+                "total_budget": 0.0,
+                "total_spent": 0.0,
+                "total_remaining": 0.0,
+                "percentage_spent": 0.0,
+                "financial_health_score": 50.0,
+                "analysis_description": "No active budget found. Cannot analyze spending patterns.",
+            }
+
+        # Calculate totals
+        total_budget = float(budget.total_monthly)
+        total_spent = sum(
+            float(cat.get("spent", 0)) for cat in budget.categories.values()
+        )
+        total_remaining = total_budget - total_spent
+        percentage_spent = (total_spent / total_budget * 100) if total_budget > 0 else 0
+
+        # Calculate financial health score (0-100)
+        # Factors: budget adherence (50%), goal progress (30%), remaining budget (20%)
+        budget_score = max(0, 100 - percentage_spent) * 0.5
+
+        # Get goal progress
+        goals = (
+            db_session.query(Goal)
+            .filter(Goal.user_id == user_uuid, Goal.is_completed == False)
+            .all()
+        )
+
+        if goals:
+            goal_percentages = [
+                (float(g.current_amount) / float(g.target_amount) * 100)
+                if float(g.target_amount) > 0
+                else 0
+                for g in goals
+            ]
+            avg_goal_progress = sum(goal_percentages) / len(goal_percentages)
+            goal_score = avg_goal_progress * 0.3
+        else:
+            goal_score = 15  # Neutral score if no goals
+
+        remaining_score = min(100, (total_remaining / total_budget * 100)) * 0.2
+
+        financial_health_score = budget_score + goal_score + remaining_score
+
+        # Build description
+        if percentage_spent < 50:
+            health_status = "excellent"
+        elif percentage_spent < 75:
+            health_status = "good"
+        elif percentage_spent < 90:
+            health_status = "fair"
+        else:
+            health_status = "concerning"
+
+        description = f"Financial health is {health_status}. "
+        description += f"You've spent ${total_spent:.2f} of ${total_budget:.2f} ({percentage_spent:.1f}%) this period. "
+        description += f"${total_remaining:.2f} remaining. "
+
+        if percentage_spent > 80:
+            description += "You're using most of your budget, so be cautious with additional purchases."
+        elif percentage_spent < 50:
+            description += "You have plenty of budget flexibility."
+
+        return {
+            "total_budget": round(total_budget, 2),
+            "total_spent": round(total_spent, 2),
+            "total_remaining": round(total_remaining, 2),
+            "percentage_spent": round(percentage_spent, 1),
+            "financial_health_score": round(financial_health_score, 1),
+            "analysis_description": description,
+        }
+
+    @tool(input_schema=PastDecisionsInput, output_schema=PastDecisionsOutput)
+    @track_tool(name="check_past_decisions")
+    def check_past_decisions(
+        user_id: str,
+        category: Optional[str] = None,
+        min_amount: Optional[float] = None,
+        max_amount: Optional[float] = None,
+        limit: int = 10,
+    ) -> dict:
+        """Check user's past purchase decisions for patterns and learning.
+
+        Args:
+            user_id: The user's ID
+            category: Optional category to filter by
+            min_amount: Optional minimum amount filter
+            max_amount: Optional maximum amount filter
+            limit: Maximum number of decisions to return
+
+        Returns:
+            Past decisions with patterns and insights
+        """
+        try:
+            user_uuid = UUID(user_id)
+        except ValueError:
+            return {
+                "decisions": [],
+                "total_decisions": 0,
+                "average_score": 0.0,
+                "category_patterns": {},
+                "insights": "Invalid user ID format",
+            }
+
+        # Build query
+        query = db_session.query(PurchaseDecision).filter(
+            PurchaseDecision.user_id == user_uuid
+        )
+
+        if category:
+            query = query.filter(PurchaseDecision.category == category.lower())
+
+        if min_amount is not None:
+            query = query.filter(PurchaseDecision.amount >= min_amount)
+
+        if max_amount is not None:
+            query = query.filter(PurchaseDecision.amount <= max_amount)
+
+        # Get decisions
+        decisions = (
+            query.order_by(PurchaseDecision.created_at.desc()).limit(limit).all()
+        )
+
+        if not decisions:
+            return {
+                "decisions": [],
+                "total_decisions": 0,
+                "average_score": 0.0,
+                "category_patterns": {},
+                "insights": "No past decisions found matching criteria.",
+            }
+
+        # Extract decision data
+        decisions_data = []
+        total_score = 0
+        category_counts = {}
+        category_scores = {}
+
+        for d in decisions:
+            decisions_data.append(
+                {
+                    "item": d.item_name,
+                    "amount": float(d.amount),
+                    "category": d.category,
+                    "score": d.score,
+                    "decision": d.decision_category,
+                    "purchased": d.actual_purchase,
+                    "regret": d.regret_level,
+                    "date": d.created_at.isoformat() if d.created_at else None,
+                }
+            )
+
+            total_score += d.score
+
+            # Track category patterns
+            cat = d.category or "uncategorized"
+            category_counts[cat] = category_counts.get(cat, 0) + 1
+            if cat not in category_scores:
+                category_scores[cat] = []
+            category_scores[cat].append(d.score)
+
+        avg_score = total_score / len(decisions)
+
+        # Build insights
+        insights_parts = []
+
+        # Most common category
+        if category_counts:
+            most_common_cat = max(category_counts, key=category_counts.get)
+            insights_parts.append(
+                f"Most frequently considered: {most_common_cat} ({category_counts[most_common_cat]} times)"
+            )
+
+        # Score trends
+        if category_scores:
+            for cat, scores in category_scores.items():
+                avg_cat_score = sum(scores) / len(scores)
+                if avg_cat_score < 5:
+                    insights_parts.append(
+                        f"Historically low scores for {cat} purchases (avg {avg_cat_score:.1f}/10)"
+                    )
+                elif avg_cat_score > 7:
+                    insights_parts.append(
+                        f"Historically good scores for {cat} purchases (avg {avg_cat_score:.1f}/10)"
+                    )
+
+        # Regret tracking
+        with_feedback = [d for d in decisions if d.actual_purchase is not None]
+        if with_feedback:
+            purchased = [d for d in with_feedback if d.actual_purchase]
+            regretted = [d for d in purchased if d.regret_level and d.regret_level >= 6]
+            if regretted:
+                insights_parts.append(
+                    f"Warning: {len(regretted)} past purchases had regret levels ≥6"
+                )
+
+        insights = (
+            ". ".join(insights_parts) if insights_parts else "No clear patterns yet."
+        )
+
+        return {
+            "decisions": decisions_data,
+            "total_decisions": len(decisions),
+            "average_score": round(avg_score, 1),
+            "category_patterns": category_counts,
+            "insights": insights,
+        }
+
+    @tool(input_schema=RegretAnalysisInput, output_schema=RegretAnalysisOutput)
+    @track_tool(name="analyze_regrets")
+    def analyze_regrets(user_id: str, category: Optional[str] = None) -> dict:
+        """Analyze user's purchase regrets to identify patterns.
+
+        Args:
+            user_id: The user's ID
+            category: Optional category to filter analysis
+
+        Returns:
+            Regret analysis with patterns and recommendations
+        """
+        try:
+            user_uuid = UUID(user_id)
+        except ValueError:
+            return {
+                "total_purchases": 0,
+                "purchases_with_feedback": 0,
+                "regretted_purchases": 0,
+                "regret_rate": 0.0,
+                "average_regret_level": 0.0,
+                "common_regret_patterns": [],
+                "recommendations": "Invalid user ID format",
+            }
+
+        # Build query
+        query = db_session.query(PurchaseDecision).filter(
+            PurchaseDecision.user_id == user_uuid
+        )
+
+        if category:
+            query = query.filter(PurchaseDecision.category == category.lower())
+
+        all_decisions = query.all()
+
+        if not all_decisions:
+            return {
+                "total_purchases": 0,
+                "purchases_with_feedback": 0,
+                "regretted_purchases": 0,
+                "regret_rate": 0.0,
+                "average_regret_level": 0.0,
+                "common_regret_patterns": [],
+                "recommendations": "No purchase history found.",
+            }
+
+        # Analyze feedback
+        with_feedback = [d for d in all_decisions if d.actual_purchase is not None]
+        purchased = [d for d in with_feedback if d.actual_purchase]
+        regretted = [d for d in purchased if d.regret_level and d.regret_level >= 6]
+
+        regret_rate = (len(regretted) / len(purchased) * 100) if purchased else 0
+
+        # Calculate average regret for purchases
+        regret_levels = [d.regret_level for d in purchased if d.regret_level]
+        avg_regret = sum(regret_levels) / len(regret_levels) if regret_levels else 0
+
+        # Find patterns in regretted purchases
+        patterns = []
+
+        if regretted:
+            # Category patterns
+            regret_categories = {}
+            for d in regretted:
+                cat = d.category or "uncategorized"
+                regret_categories[cat] = regret_categories.get(cat, 0) + 1
+
+            if regret_categories:
+                most_regretted = max(regret_categories, key=regret_categories.get)
+                patterns.append(f"Most regrets in {most_regretted} category")
+
+            # Amount patterns
+            high_amount_regrets = [d for d in regretted if float(d.amount) > 100]
+            if len(high_amount_regrets) > len(regretted) * 0.6:
+                patterns.append("Tend to regret expensive purchases (>$100)")
+
+            # Low score purchases
+            ignored_warnings = [d for d in regretted if d.score <= 5]
+            if ignored_warnings:
+                patterns.append(
+                    f"Ignored {len(ignored_warnings)} low-score recommendations and regretted it"
+                )
+
+        # Build recommendations
+        if not purchased:
+            recommendations = (
+                "No purchase feedback yet. Add feedback to learn patterns."
+            )
+        elif not regretted:
+            recommendations = "Great job! No significant regrets so far. Keep following recommendations."
+        else:
+            rec_parts = []
+            if regret_rate > 30:
+                rec_parts.append("High regret rate detected")
+            if patterns:
+                rec_parts.append(f"Pay attention to: {', '.join(patterns[:2])}")
+            if any("ignored" in p.lower() for p in patterns):
+                rec_parts.append("Consider following low-score warnings more carefully")
+
+            recommendations = (
+                ". ".join(rec_parts) if rec_parts else "Review patterns above"
+            )
+
+        return {
+            "total_purchases": len(all_decisions),
+            "purchases_with_feedback": len(with_feedback),
+            "regretted_purchases": len(regretted),
+            "regret_rate": round(regret_rate, 1),
+            "average_regret_level": round(avg_regret, 1),
+            "common_regret_patterns": patterns,
+            "recommendations": recommendations,
+        }
+
+    return [
+        check_budget,
+        check_goals,
+        analyze_spending,
+        check_past_decisions,
+        analyze_regrets,
+    ]

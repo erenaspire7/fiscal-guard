@@ -1,0 +1,21 @@
+[project]
+name = "core"
+version = "0.1.0"
+description = "Core business logic for Fiscal Guard"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "opik>=1.9.80",
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.13.0",
+    "psycopg2-binary>=2.9.9",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.0",
+    "strands-agents[gemini]",
+    "strands-agents-tools",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.24,<0.10.0"]
+build-backend = "uv_build"

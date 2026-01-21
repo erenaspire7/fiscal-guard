@@ -1,0 +1,17 @@
+[project]
+name = "fiscal-guard"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.uv.workspace]
+members = [
+    "core",
+    "api",
+]
+
+[tool.uv.sources]
+core = {workspace = true}
+api = {workspace = true}
