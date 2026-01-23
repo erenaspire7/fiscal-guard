@@ -3,11 +3,11 @@
  * Runs before all tests to seed demo data
  */
 
-import { test as setup } from '@playwright/test';
-import { seedDemoData } from '../utils/seed-data';
+import { test as setup } from "@playwright/test";
+import { seedDemoData } from "../utils/seed-data";
 
-setup('seed demo data', async () => {
-  console.log('\n🌱 Setting up test data...\n');
+setup("seed demo data", async () => {
+  console.log("\n🌱 Setting up test data...\n");
   await seedDemoData();
-  console.log('✅ Test data ready\n');
+  console.log("✅ Test data ready\n");
 });

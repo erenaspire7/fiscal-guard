@@ -1,20 +1,11 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useInsightsData } from "@/hooks/useInsightsData";
 import { useAuth } from "@/contexts/AuthContext";
-import { AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
 import Navbar from "@/components/Navbar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Zap,
-  Calendar,
-  Leaf,
-  Smile,
-  Frown,
-  Meh,
-  CheckCircle2,
-} from "lucide-react";
+import Sidebar from "@/components/Sidebar";
+import { Zap, Calendar, Smile, Frown, Meh, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeBackgrounds, DEFAULT_THEME } from "@/lib/themes";
 
 export default function Insights() {
   const { data, isLoading, refresh } = useInsightsData();
@@ -22,15 +13,6 @@ export default function Insights() {
   const [submittingFeedback, setSubmittingFeedback] = useState<string | null>(
     null,
   );
-
-  const chartData = useMemo(() => {
-    return (data?.correlation_trend || [60, 85, 45, 90, 70, 100, 95, 88]).map(
-      (val, i) => ({
-        name: i + 1,
-        score: val,
-      }),
-    );
-  }, [data]);
 
   const handleFeedback = async (
     decisionId: string,
@@ -68,291 +50,149 @@ export default function Insights() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans pb-32">
-      {/* Header */}
-      <header className="px-6 py-8 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-primary opacity-80">
-            Regret Tracker
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight">Insights</h1>
-        </div>
-        <div className="flex gap-2">
-          <button className="w-10 h-10 bg-card/50 rounded-full flex items-center justify-center border border-white/5">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
-      </header>
+    <div
+      className={cn(
+        "min-h-screen text-foreground font-sans pb-32 md:pb-0 md:pl-64 transition-all duration-300",
+        ThemeBackgrounds[DEFAULT_THEME],
+      )}
+    >
+      <Sidebar />
 
-      <main className="px-6 space-y-8">
-        {/* Peace of Mind Score - Circular Gauge */}
-        <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
-          <div className="relative w-48 h-48">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="44"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="8"
-                className="text-card/50 opacity-20"
-              />
-              <circle
-                cx="50"
-                cy="50"
-                r="44"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="8"
-                strokeDasharray="276"
-                strokeDashoffset={276 - (276 * (data?.health_score || 0)) / 100}
-                strokeLinecap="round"
-                className="text-primary shadow-primary-glow transition-all duration-1000"
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-5xl font-black tracking-tighter">
-                {data?.health_score || (isLoading ? ".." : "0")}
-              </span>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Financial Health
-              </p>
-            </div>
-            <div className="absolute top-2 right-2 text-primary opacity-20">
-              <Leaf className="w-8 h-8" fill="currentColor" />
-            </div>
-          </div>
-          <div>
-            <h2 className="text-xl font-bold">Peace of Mind Score</h2>
-            <p className="text-primary text-xs font-bold mt-1 text-glow">
-              Your impulse control grew {data?.impulse_control_growth || 0}%
-              this month.
+      <main className="px-6 py-8 md:p-12 max-w-7xl mx-auto space-y-8">
+        {/* Desktop Header */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="md:hidden">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-primary opacity-80">
+              Regret Tracker
             </p>
+            <h1 className="text-3xl font-bold tracking-tight">Insights</h1>
           </div>
-        </div>
+          <h2 className="hidden md:block text-3xl font-bold tracking-tight text-white">
+            Reflections
+          </h2>
 
-        {/* Impact Stats - Retained Capital */}
-        <Card className="bg-card/50 border-none shadow-xl rounded-[32px] overflow-hidden group active:scale-[0.98] transition-transform">
-          <CardContent className="p-7 flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">
-                Total Capital Retained
-              </p>
-              <h3 className="text-3xl font-black text-primary text-glow">
-                ${data?.total_capital_retained.toLocaleString() || "0.00"}
-              </h3>
-              <p className="text-xs text-muted-foreground font-medium">
-                Saved from{" "}
-                <span className="text-foreground font-bold">
-                  {data?.intercepted_count || 0} impulsive
-                </span>{" "}
-                buy attempts.
-              </p>
-            </div>
-            <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center text-primary shadow-primary-glow">
-              <Zap className="w-7 h-7" fill="currentColor" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* AI Growth Correlation Chart */}
-        <section className="space-y-4">
-          <h3 className="text-xl font-bold tracking-tight px-1 flex items-center gap-2">
-            AI Growth Correlation{" "}
-            <CheckCircle2 className="w-4 h-4 text-primary opacity-40" />
-          </h3>
-          <div className="bg-card/40 p-6 rounded-[32px] h-48 overflow-hidden">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(10, 20, 15, 0.9)",
-                    border: "1px solid rgba(16, 185, 129, 0.2)",
-                    borderRadius: "16px",
-                    color: "#fff",
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                  }}
-                  itemStyle={{ color: "#10b981" }}
-                  labelStyle={{ display: "none" }}
-                  cursor={{ stroke: "#10b981", strokeWidth: 1, opacity: 0.2 }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="score"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  fillOpacity={1}
-                  fill="url(#colorScore)"
-                  animationDuration={2000}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
-
-        {/* Refined Reflections - High Density */}
-        <section className="space-y-4">
-          <div className="flex justify-between items-end px-1">
-            <h3 className="text-xl font-bold tracking-tight">Reflections</h3>
-            <span className="text-[10px] font-bold text-primary uppercase tracking-widest opacity-60">
+          <div className="flex items-center gap-2 self-end md:self-auto">
+            <button className="bg-[#10b981] text-[#020403] px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#10b981]/90 transition-colors">
               30-Day Window
-            </span>
+            </button>
+            <button className="text-muted-foreground hover:text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-colors">
+              All Time
+            </button>
+            <button className="w-9 h-9 bg-card/10 rounded-lg flex items-center justify-center border border-white/5 hover:bg-white/10 transition-colors">
+              <Calendar className="w-4 h-4 text-primary" />
+            </button>
           </div>
-          <div className="space-y-3">
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Reflections List */}
+          <div className="lg:col-span-2 space-y-4 order-2 lg:order-1">
             {data?.reflections.map((item) => (
               <div
                 key={item.decision_id}
-                className="bg-card/50 p-5 rounded-[28px] space-y-4"
+                className="bg-[#0A1210] border border-white/5 p-6 md:p-8 rounded-[32px] flex flex-col md:flex-row gap-6 md:gap-8 hover:bg-[#0F1A16] transition-colors group"
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-bold text-sm">{item.item_name}</h4>
-                    <p className="text-[10px] text-muted-foreground font-medium">
-                      Analyzed {new Date(item.created_at).toLocaleDateString()}{" "}
-                      • ${item.amount.toLocaleString()}
-                    </p>
+                <div className="flex-1 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-xl font-bold text-white mb-1">
+                        {item.item_name}
+                      </h4>
+                      <p className="text-xs text-primary font-medium tracking-wide">
+                        Analyzed{" "}
+                        {new Date(item.created_at).toLocaleDateString()}{" "}
+                        <span className="text-muted-foreground">•</span> $
+                        {item.amount.toLocaleString()}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "md:hidden text-[8px] font-black px-2 py-1 rounded-md tracking-tighter",
+                        item.score >= 7
+                          ? "bg-primary/20 text-primary"
+                          : "bg-orange-500/20 text-orange-400",
+                      )}
+                    >
+                      AI: {item.score >= 7 ? "LOW RISK" : "HIGH RISK"}
+                    </span>
                   </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-50">
+                      {item.regret_level === null
+                        ? "Rate Satisfaction"
+                        : "Satisfaction"}
+                    </p>
+                    <div className="flex gap-3">
+                      {[
+                        { val: 2, Icon: Smile, colorClass: "text-primary" },
+                        { val: 5, Icon: Smile, colorClass: "text-primary" },
+                        { val: 7, Icon: Meh, colorClass: "text-primary" },
+                        { val: 8, Icon: Meh, colorClass: "text-orange-400" },
+                        { val: 10, Icon: Frown, colorClass: "text-orange-400" },
+                      ].map(({ val, Icon, colorClass }) => (
+                        <button
+                          key={val}
+                          onClick={() =>
+                            handleFeedback(
+                              item.decision_id,
+                              item.actual_purchase ?? true,
+                              val,
+                            )
+                          }
+                          disabled={submittingFeedback === item.decision_id}
+                          className="focus:outline-none hover:scale-110 transition-transform disabled:opacity-50"
+                        >
+                          <Icon
+                            className={cn(
+                              "w-5 h-5 transition-colors",
+                              item.regret_level !== null &&
+                                ((item.regret_level <= 3 && val <= 3) ||
+                                  (item.regret_level > 3 &&
+                                    item.regret_level <= 5 &&
+                                    val === 5) ||
+                                  (item.regret_level > 5 &&
+                                    item.regret_level <= 7 &&
+                                    val === 7) ||
+                                  (item.regret_level > 7 &&
+                                    item.regret_level < 9 &&
+                                    val === 8) ||
+                                  (item.regret_level >= 9 && val === 10))
+                                ? colorClass
+                                : "text-muted-foreground opacity-20 hover:opacity-60",
+                            )}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop Right Side of Card */}
+                <div className="flex flex-col items-end justify-between min-w-[140px]">
                   <span
                     className={cn(
-                      "text-[8px] font-black px-2 py-1 rounded-md tracking-tighter",
+                      "hidden md:inline-flex text-[10px] font-black px-3 py-1.5 rounded-lg tracking-widest border border-white/5",
                       item.score >= 7
-                        ? "bg-primary/20 text-primary"
-                        : "bg-orange-500/20 text-orange-400",
+                        ? "bg-primary/10 text-primary border-primary/20"
+                        : "bg-orange-500/10 text-orange-400 border-orange-500/20",
                     )}
                   >
                     AI: {item.score >= 7 ? "LOW RISK" : "HIGH RISK"}
                   </span>
-                </div>
 
-                <div className="flex items-center justify-between border-t border-white/5 pt-3">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">
-                    {item.regret_level === null
-                      ? "Rate Satisfaction"
-                      : "Satisfaction"}
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() =>
-                        handleFeedback(
-                          item.decision_id,
-                          item.actual_purchase ?? true,
-                          2,
-                        )
-                      }
-                      disabled={submittingFeedback === item.decision_id}
-                      className="focus:outline-none hover:scale-110 transition-transform disabled:opacity-50"
-                    >
-                      <Smile
-                        className={cn(
-                          "w-4 h-4 transition-colors",
-                          item.regret_level !== null && item.regret_level <= 3
-                            ? "text-primary"
-                            : "text-muted-foreground opacity-20 hover:opacity-60",
-                        )}
-                      />
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleFeedback(
-                          item.decision_id,
-                          item.actual_purchase ?? true,
-                          5,
-                        )
-                      }
-                      disabled={submittingFeedback === item.decision_id}
-                      className="focus:outline-none hover:scale-110 transition-transform disabled:opacity-50"
-                    >
-                      <Smile
-                        className={cn(
-                          "w-4 h-4 transition-colors",
-                          item.regret_level !== null &&
-                            item.regret_level > 3 &&
-                            item.regret_level <= 5
-                            ? "text-primary"
-                            : "text-muted-foreground opacity-20 hover:opacity-60",
-                        )}
-                      />
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleFeedback(
-                          item.decision_id,
-                          item.actual_purchase ?? true,
-                          7,
-                        )
-                      }
-                      disabled={submittingFeedback === item.decision_id}
-                      className="focus:outline-none hover:scale-110 transition-transform disabled:opacity-50"
-                    >
-                      <Meh
-                        className={cn(
-                          "w-4 h-4 transition-colors",
-                          item.regret_level !== null &&
-                            item.regret_level > 5 &&
-                            item.regret_level <= 7
-                            ? "text-primary"
-                            : "text-muted-foreground opacity-20 hover:opacity-60",
-                        )}
-                      />
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleFeedback(
-                          item.decision_id,
-                          item.actual_purchase ?? true,
-                          8,
-                        )
-                      }
-                      disabled={submittingFeedback === item.decision_id}
-                      className="focus:outline-none hover:scale-110 transition-transform disabled:opacity-50"
-                    >
-                      <Meh
-                        className={cn(
-                          "w-4 h-4 transition-colors",
-                          item.regret_level !== null &&
-                            item.regret_level > 7 &&
-                            item.regret_level < 9
-                            ? "text-orange-400"
-                            : "text-muted-foreground opacity-20 hover:opacity-60",
-                        )}
-                      />
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleFeedback(
-                          item.decision_id,
-                          item.actual_purchase ?? true,
-                          10,
-                        )
-                      }
-                      disabled={submittingFeedback === item.decision_id}
-                      className="focus:outline-none hover:scale-110 transition-transform disabled:opacity-50"
-                    >
-                      <Frown
-                        className={cn(
-                          "w-4 h-4 transition-colors",
-                          item.regret_level !== null && item.regret_level >= 9
-                            ? "text-orange-400"
-                            : "text-muted-foreground opacity-20 hover:opacity-60",
-                        )}
-                      />
-                    </button>
-                  </div>
+                  {item.user_feedback ? (
+                    <div className="mt-4 md:mt-0 pl-4 border-l-2 border-primary/30 w-full">
+                      <p className="text-sm italic text-muted-foreground/80">
+                        "{item.user_feedback}"
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="hidden md:block text-xs italic text-muted-foreground opacity-30 mt-auto">
+                      No reflection added yet...
+                    </p>
+                  )}
                 </div>
-
-                {item.user_feedback && (
-                  <p className="text-[11px] italic text-muted-foreground/70 bg-background/40 p-3 rounded-xl border-l-2 border-primary/30">
-                    "{item.user_feedback}"
-                  </p>
-                )}
               </div>
             ))}
             {(!data || data.reflections.length === 0) && !isLoading && (
@@ -361,10 +201,108 @@ export default function Insights() {
               </p>
             )}
           </div>
-        </section>
+
+          {/* Right Column: Stats Widgets */}
+          <div className="space-y-6 order-1 lg:order-2">
+            {/* Financial Health Gauge */}
+            <div className="bg-[#0A1210] border border-white/5 rounded-[40px] p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-32 bg-primary/5 blur-3xl rounded-full translate-y-[-50%]" />
+              <div className="relative w-48 h-48 mb-6">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="44"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="6"
+                    className="text-white/5"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="44"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="6"
+                    strokeDasharray="276"
+                    strokeDashoffset={
+                      276 - (276 * (data?.health_score || 0)) / 100
+                    }
+                    strokeLinecap="round"
+                    className="text-primary shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-1000"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-6xl font-black tracking-tighter text-white">
+                    {data?.health_score || (isLoading ? ".." : "0")}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2">
+                  Financial Health
+                </p>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  Peace of Mind Score
+                </h3>
+                <p className="text-primary text-xs font-bold">
+                  Your impulse control grew {data?.impulse_control_growth || 0}%
+                  this month.
+                </p>
+              </div>
+            </div>
+
+            {/* Total Capital Retained */}
+            <div className="bg-[#0A1210] border border-white/5 rounded-[40px] p-8 flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="space-y-2 relative z-10">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                  Total Capital Retained
+                </p>
+                <h3 className="text-4xl font-black text-primary drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                  ${data?.total_capital_retained.toLocaleString() || "0,000"}
+                </h3>
+                <p className="text-xs text-muted-foreground font-medium max-w-[150px]">
+                  Saved from{" "}
+                  <span className="text-white font-bold">
+                    {data?.intercepted_count || 0} impulsive
+                  </span>{" "}
+                  buy attempts.
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-[#0F2922] rounded-full flex items-center justify-center text-primary shadow-[0_0_15px_rgba(16,185,129,0.3)] relative z-10">
+                <Zap className="w-6 h-6" fill="currentColor" />
+              </div>
+            </div>
+
+            {/* Insight Summary */}
+            <div className="bg-[#0A1210] border border-white/5 rounded-[40px] p-8">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-4">
+                Insight Summary
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-8">
+                Your financial guardian has intercepted several high-risk
+                purchases recently. By maintaining this level of discipline, you
+                are on track to reach your savings goals{" "}
+                <span className="text-primary font-bold">15% faster</span>.
+              </p>
+
+              <div className="bg-[#0F1A16] rounded-2xl p-4 flex items-center justify-between border border-white/5">
+                <CheckCircle2 className="w-5 h-5 text-primary" />
+                <span className="text-xs font-bold text-white">
+                  Growth Correlation
+                </span>
+                <CheckCircle2 className="w-5 h-5 text-primary" />
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
 
-      <Navbar />
+      <div className="md:hidden">
+        <Navbar />
+      </div>
     </div>
   );
 }

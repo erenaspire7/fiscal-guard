@@ -2,8 +2,9 @@
 
 **Your AI Financial Companion - Prevent Buyer's Remorse Before It Happens**
 
-[![Status](https://img.shields.io/badge/status-MVP_Complete-success)](https://github.com/yourusername/fiscal-guard)
+[![Status](https://img.shields.io/badge/status-MVP_Complete-success)](https://github.com/erenaspire7/fiscal-guard)
 [![Python](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org)
+[![React](https://img.shields.io/badge/react-19+-61DAFB)](https://react.dev)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)](https://fastapi.tiangolo.com)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -13,363 +14,143 @@
 
 Fiscal Guard is an AI-powered financial decision assistant that helps you make smarter purchasing decisions by analyzing your budget, goals, and spending patterns **before** you buy.
 
-Unlike traditional budgeting apps that show you what you overspent *after the fact*, Fiscal Guard intervenes at the moment of decision with personalized insights powered by:
-
-- **Multi-Agent AI System** built with [Strands](https://strands.ai) + Google Gemini
-- **Pattern Learning** that gets smarter from your feedback
-- **Full Observability** with [Opik](https://www.opik.ai) tracing and evaluation
-- **Privacy-First Design** with automatic PII redaction
+Unlike traditional budgeting apps that show you what you overspent *after the fact*, Fiscal Guard intervenes at the moment of decision with personalized insights powered by a **Multi-Agent System** (Strands + Gemini 2.0) and **Real-Time Observability** (Opik).
 
 ### The Problem
 
-Americans spend an average of **$21,000/year** on impulse purchases they later regret. Traditional budgeting tools are passive—they tell you after you've blown your budget.
+Americans spend an average of **$21,000/year** on impulse purchases they later regret. Traditional budgeting tools are passive—they tell you the bad news after the money is gone.
 
 ### Our Solution
 
-**Active intervention:** Chat with AI before making a purchase. Get a Decision Score (1-10) with reasoning that considers:
-- Your current budget status
-- Impact on your financial goals
-- Your historical spending patterns
-- Your past regrets in similar categories
+**Active intervention:** Chat with AI before making a purchase. The agent adopts a persona (e.g., "Financial Monk") to guide you based on your strictness settings, checking your budget, goals, and emotional history in real-time.
 
 ---
 
 ## ✨ Key Features
 
-### 🤖 Intelligent Decision Agent
+### 🛡️ Shield (Agent Chat)
+Direct chat interface for real-time purchase analysis.
+- **5-Tool Analysis**: Checks Budget, Goals, Financial Health, Past Decisions, and Regret Patterns.
+- **Persona Adaptation**: Choose from **Gentle**, **Balanced**, or **Financial Monk** personas.
+- **Responsive UI**: Fully optimized for both Desktop and Mobile experiences.
 
-Ask: *"Should I buy this $200 jacket?"*
+### 📊 Command (Dashboard)
+Real-time discipline hub.
+- **Guard Score**: A dynamic score (0-100) reflecting your recent financial discipline.
+- **Growth Analysis**: Rich trend graph showing your decision quality over time with "Danger Zone" indicators.
+- **Budget Health**: Visual indicators for category utilization.
 
-Get a comprehensive analysis that includes:
-- **Decision Score** (1-10 scale)
-- **Budget Impact** - How this affects your spending limits
-- **Goal Analysis** - Delays to your financial goals
-- **Pattern Insights** - Learns from your past decisions and regrets
-- **Personalized Recommendation** - Clear, actionable advice
+### 🧠 Insights (Regret Tracker)
+Close the loop on your decisions.
+- **Feedback Loop**: Rate your satisfaction with past purchases to train the AI.
+- **Pattern Recognition**: The system learns triggers (e.g., *"You often regret clothing purchases over $100"*).
+- **Peace of Mind Score**: Tracks your impulse control growth.
 
-### 🧠 Pattern Learning System
+### 🏦 Vault (Budgets & Goals)
+Asset security management.
+- **Goal Progress**: Contribute to goals directly from the UI with an interactive modal.
+- **Smart Budgets**: Category-based tracking with visual progress bars.
 
-The AI learns from every decision you make:
-- Tracks which purchases you later regret
-- Identifies spending triggers (expensive clothing, late-night shopping)
-- Warns you about repeated mistakes
-- Celebrates proven good decisions
-
-**Example:** *"WARNING: You've regretted 4 out of 5 expensive clothing purchases. Last time you bought designer jeans for $250, you rated your regret 8/10."*
-
-### 📊 Budget & Goals Management
-
-- Create budgets with category-based limits
-- Track multiple financial goals with priorities
-- Monitor progress toward goals
-- Get alerts when approaching limits
-- AI-powered chat import using natural language
-
-### 🔒 Privacy & Observability
-
-- **Automatic PII Redaction** - User IDs, emails, exact amounts protected
-- **Full Tracing** - Every decision generates 7+ Opik traces
-- **GDPR Compliant** - Privacy built-in from day one
-- **Performance Monitoring** - Track latency, token usage, decision quality
+### 🔒 Enterprise-Grade Security & Observability
+- **Dual Auth**: Login with Google OAuth or Email/Password (Bcrypt).
+- **Opik Tracing**: Full visibility into agent reasoning with automatic PII redaction.
+- **Privacy First**: User IDs, emails, and exact amounts are redacted in traces.
 
 ---
 
 ## 🏗️ Architecture
 
+The system uses a modern decoupled architecture:
+
 ```
-User Request (POST /decisions)
-    ↓
-[JWT Authentication]
-    ↓
-Decision Service + Opik Tracing
-    ↓
-Decision Agent (Strands + Gemini 2.0 Flash)
-    ↓
-┌─────────────────────────────────────────────┐
-│  Tool 1: check_budget          ~150ms      │
-│  Tool 2: check_goals           ~200ms      │
-│  Tool 3: analyze_spending      ~180ms      │
-│  Tool 4: check_past_decisions  ~350ms      │
-│  Tool 5: analyze_regrets       ~280ms      │
-└─────────────────────────────────────────────┘
-    ↓
-Agent Synthesizes Decision
-    ↓
-Decision Score (1-10) + Reasoning
-    ↓
-PostgreSQL + Opik Cloud
+[React 19 Frontend]
+    ↓ (REST API)
+[FastAPI Backend]
+    ↓ (Auth via JWT)
+[Decision Service]
+    ↓ (Opik Tracing)
+[Decision Agent (Strands + Gemini 2.0 Flash)]
+    ↓ ⟷ [Tools: check_budget, check_goals, analyze_history, analyze_regret]
+[PostgreSQL Database]
 ```
-
-### Tech Stack
-
-**Backend:**
-- Python 3.11+ with [uv](https://github.com/astral-sh/uv) package manager
-- FastAPI web framework
-- PostgreSQL 15 database
-- Alembic migrations
-
-**AI/ML:**
-- [Strands](https://strands.ai) - Multi-agent orchestration
-- Google Gemini 2.0 Flash - LLM reasoning
-- [Opik](https://www.opik.ai) - Tracing, evaluation, PII redaction
-
-**Authentication:**
-- Google OAuth 2.0
-- JWT token management
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
-- Python 3.11 or higher
+- Python 3.11+ & Node.js 18+
 - Docker (for PostgreSQL)
-- Google Cloud project (for OAuth + Gemini API)
-- [uv](https://github.com/astral-sh/uv) package manager
+- Google Cloud API Key (Gemini)
 
-### Installation
-
-1. **Clone the repository**
+### 1. Setup & Install
 ```bash
+# Clone repo
 git clone https://github.com/yourusername/fiscal-guard.git
 cd fiscal-guard
-```
 
-2. **Install uv (if not already installed)**
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-3. **Set up environment variables**
-```bash
+# Setup environment
 cp .env.example .env
-# Edit .env with your credentials
+# Edit .env with your keys (DATABASE_URL, GOOGLE_API_KEY, etc.)
 ```
 
-Required variables:
+### 2. Start Database & Backend
 ```bash
-# Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/fiscal_guard
-
-# Authentication
-GOOGLE_CLIENT_ID=your-google-oauth-client-id
-GOOGLE_CLIENT_SECRET=your-google-oauth-secret
-JWT_SECRET_KEY=your-secret-key-min-32-chars
-
-# AI
-GOOGLE_API_KEY=your-google-gemini-api-key
-STRANDS_DEFAULT_MODEL=gemini-3-flash
-
-# Optional: Opik (for tracing)
-OPIK_API_KEY=your-opik-api-key  # Optional
-OPIK_WORKSPACE=default
-```
-
-4. **Start the database**
-```bash
+# Start DB
 ./scripts/docker-db-start.sh
-```
 
-5. **Run database migrations**
-```bash
+# Run Migrations & Seed Demo Data
 cd core
 uv run alembic upgrade head
-cd ..
-```
+uv run python -m core.scripts.seed_demo_data
 
-6. **Start the API server**
-```bash
-cd api
+# Start API
+cd ../api
 uv run uvicorn src.api.main:app --reload --port 8000
 ```
 
-7. **Open your browser**
-```
-http://localhost:8000/docs
+### 3. Start Frontend
+```bash
+cd ../ui
+npm install
+npm run dev
 ```
 
-You'll see the interactive API documentation powered by Swagger UI.
+Visit **http://localhost:5173** to launch the application.
 
 ---
 
-## 📖 Usage Examples
+## 👤 Demo Accounts
 
-### 1. Authenticate
+We have pre-seeded 3 distinct user personas for testing:
 
-Visit the authentication endpoint to get a JWT token:
-```
-http://localhost:8000/auth/google/login
-```
-
-### 2. Create a Budget
-
-```bash
-curl -X POST http://localhost:8000/budgets \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "total_monthly": 3000,
-    "categories": {
-      "groceries": {"limit": 500, "spent": 120},
-      "clothing": {"limit": 200, "spent": 180},
-      "entertainment": {"limit": 150, "spent": 40}
-    }
-  }'
-```
-
-### 3. Set Financial Goals
-
-```bash
-curl -X POST http://localhost:8000/goals \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "goal_name": "Emergency Fund",
-    "target_amount": 10000,
-    "current_amount": 2500,
-    "priority": "high",
-    "deadline": "2026-12-31"
-  }'
-```
-
-### 4. Get a Purchase Decision
-
-```bash
-curl -X POST http://localhost:8000/decisions \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "item_name": "Designer jacket",
-    "amount": 250,
-    "category": "clothing",
-    "reason": "Saw it on sale",
-    "urgency": "low"
-  }'
-```
-
-**Response:**
-```json
-{
-  "decision_id": "uuid-here",
-  "score": 3,
-  "recommendation": "strong_no",
-  "reasoning": "Score 3/10 (Strong No). You're at 90% of your $200 clothing budget with 12 days left in the month. This purchase would put you $230 over budget (215% over limit).\n\nGoal Impact: This delays your Emergency Fund by 2.1 weeks...",
-  "alternatives": ["Wait until next month", "Set aside $50/month for 5 months"],
-  "conditions": ["If it's still on sale next month", "If you get unexpected income"],
-  "timestamp": "2026-01-21T10:30:00Z"
-}
-```
-
-### 5. Provide Feedback
-
-After making (or not making) the purchase:
-
-```bash
-curl -X PUT http://localhost:8000/decisions/{decision_id}/feedback \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_followed": true,
-    "actually_purchased": false,
-    "regret_level": 0
-  }'
-```
-
-This feedback trains the AI to give you better recommendations over time!
+| User | Email | Password | Persona | Focus |
+|------|-------|----------|---------|-------|
+| **Sarah Chen** | `demo+sarah@fiscalguard.app` | `demo123` | **Financial Monk** | Impulsive shopping correction |
+| **Alex Sterling** | `demo+alex@fiscalguard.app` | `demo123` | **Balanced** | Healthy habits maintenance |
+| **Marcus Wu** | `demo+marcus@fiscalguard.app` | `demo123` | **Gentle** | Extreme frugality support |
 
 ---
 
-## 📊 API Endpoints
+## 🧪 Demo Scenarios
 
-### Authentication
-- `GET /auth/google/login` - Initiate Google OAuth flow
-- `GET /auth/google/callback` - OAuth callback
-- `POST /auth/refresh` - Refresh JWT token
+### Scenario A: Sarah's Shopping Addiction
+1. **Login** as Sarah (Financial Monk).
+2. **Dashboard**: Note the "At Risk" status and recent low scores.
+3. **Chat**: Ask *"I want to buy $450 designer boots."*
+4. **Result**: The agent will strongly deny based on her history of regretting luxury fashion purchases, citing her budget limits.
 
-### Budgets
-- `POST /budgets` - Create budget
-- `GET /budgets` - Get all budgets
-- `GET /budgets/{budget_id}` - Get specific budget
-- `PUT /budgets/{budget_id}` - Update budget
-- `DELETE /budgets/{budget_id}` - Delete budget
-- `POST /budgets/chat-import` - Import via natural language
-- `GET /budgets/current` - Get current active budget
+### Scenario B: Alex's Balanced Lifestyle
+1. **Login** as Alex (Balanced).
+2. **Chat**: Ask *"Can I buy concert tickets for $150?"*
+3. **Result**: Agent checks the "Vacation Fund" goal. It approves but suggests adding $50 to the goal to stay on track.
+4. **Vault**: Go to Vault and add the contribution to show progress.
 
-### Goals
-- `POST /goals` - Create goal
-- `GET /goals` - Get all goals
-- `GET /goals/{goal_id}` - Get specific goal
-- `PUT /goals/{goal_id}` - Update goal
-- `DELETE /goals/{goal_id}` - Delete goal
-- `GET /goals/active` - Get active goals only
-
-### Decisions
-- `POST /decisions` - Get purchase decision
-- `GET /decisions` - List decision history
-- `GET /decisions/{decision_id}` - Get specific decision
-- `PUT /decisions/{decision_id}/feedback` - Provide feedback
-- `GET /decisions/stats` - Get decision statistics
-
-### Health
-- `GET /health` - Health check
-- `GET /health/db` - Database health check
-
-**Full Documentation:** http://localhost:8000/docs
-
----
-
-## 🧪 Testing
-
-### Manual Testing
-
-Use the provided test scripts:
-
-```bash
-# Test the decision agent
-python test_decision_agent.py
-
-# Test pattern detection
-python test_pattern_detection.py
-
-# Test Strands integration
-python test_strands.py
-```
-
-### Demo Scenarios
-
-1. **Expensive discretionary purchase** (should score low)
-```json
-{
-  "item_name": "Designer handbag",
-  "amount": 800,
-  "category": "clothing",
-  "reason": "I like it",
-  "urgency": "low"
-}
-```
-
-2. **Essential purchase within budget** (should score high)
-```json
-{
-  "item_name": "Weekly groceries",
-  "amount": 75,
-  "category": "groceries",
-  "reason": "Need food",
-  "urgency": "high"
-}
-```
-
-3. **Borderline purchase** (nuanced response)
-```json
-{
-  "item_name": "Concert ticket",
-  "amount": 60,
-  "category": "entertainment",
-  "reason": "Friends are going",
-  "urgency": "medium"
-}
-```
+### Scenario C: Marcus's Investment Focus
+1. **Login** as Marcus (Gentle).
+2. **Insights**: Review high Guard Score and capital retained.
+3. **Chat**: Ask *"Should I buy this $300 investment course?"*
+4. **Result**: Agent encourages the purchase as it aligns with his long-term wealth goals.
 
 ---
 
@@ -377,186 +158,25 @@ python test_strands.py
 
 ```
 fiscal-guard/
-├── api/                      # FastAPI application
-│   ├── src/
-│   │   ├── api/             # API endpoints
-│   │   ├── auth/            # Authentication
-│   │   ├── services/        # Business logic
-│   │   └── agents/          # AI agent implementations
-│   └── pyproject.toml
-├── core/                     # Core models & database
-│   ├── src/
-│   │   ├── models/          # SQLAlchemy models
-│   │   └── database.py      # Database configuration
-│   ├── alembic/             # Database migrations
-│   └── pyproject.toml
-├── scripts/                  # Utility scripts
-│   └── docker-db-start.sh   # Database startup
-├── tmp/                      # Documentation
-│   ├── SETUP.md
-│   ├── DECISION_AGENT.md
-│   ├── OPIK_INTEGRATION.md
-│   └── PROJECT_STATUS.md
-├── .env.example              # Environment template
-├── docker-compose.yml        # Docker configuration (future)
-└── README.md                 # This file
+├── api/              # FastAPI Backend Application
+├── core/             # Database Models, Migrations & Business Logic
+├── ui/               # React + Tailwind + Shadcn UI Frontend
+├── scripts/          # Utility scripts (Docker, Seeding)
+└── tmp/              # Documentation & Status Tracking
 ```
 
 ---
 
-## 🔬 Opik Integration
+## 🏆 Tech Stack
 
-Fiscal Guard includes comprehensive observability with Opik:
-
-### Automatic Tracing
-
-Every decision request generates 7+ traces:
-1. Service layer entry
-2. Agent analysis
-3. Budget check tool
-4. Goals analysis tool
-5. Spending analysis tool
-6. Past decisions lookup
-7. Regret pattern analysis
-
-### PII Redaction
-
-All sensitive data is automatically redacted:
-- User UUIDs → `[UUID_REDACTED]`
-- Email addresses → `[EMAIL_REDACTED]`
-- Exact amounts → Rounded to nearest $10
-- Sensitive fields → `[REDACTED]`
-
-### Performance Monitoring
-
-Track:
-- Decision latency (target: <5s)
-- Tool execution times
-- Token usage
-- Error rates
-- Decision quality scores
-
-**See full guide:** [tmp/OPIK_INTEGRATION.md](tmp/OPIK_INTEGRATION.md)
-
----
-
-## 🛣️ Roadmap
-
-### ✅ MVP Complete (Current)
-- Multi-agent decision system
-- 5 intelligent tools
-- Pattern learning from feedback
-- Opik observability
-- PII redaction
-- Complete API
-
-### 🔄 Next Steps
-- [ ] Comprehensive test coverage
-- [ ] Demo data generation script
-- [ ] Frontend web application
-- [ ] Mobile app
-- [ ] Bank integration (Plaid)
-- [ ] RAG system with pgvector
-- [ ] Predictive analytics
-
-**See detailed roadmap:** [tmp/PROJECT_STATUS.md](tmp/PROJECT_STATUS.md)
-
----
-
-## 📚 Documentation
-
-- **[Setup Guide](tmp/SETUP.md)** - Detailed installation instructions
-- **[Decision Agent API](tmp/DECISION_AGENT.md)** - Complete API reference
-- **[Opik Integration](tmp/OPIK_INTEGRATION.md)** - Observability setup
-- **[Project Status](tmp/PROJECT_STATUS.md)** - Current state & roadmap
-- **[API Docs](http://localhost:8000/docs)** - Interactive Swagger UI
-
----
-
-## 🧪 Testing
-
-### E2E Tests with Playwright
-
-Run end-to-end tests for all three demo scenarios (Sarah, Alex, Marcus):
-
-```bash
-# Run all E2E tests
-./scripts/test-e2e.sh
-
-# Run specific scenario
-./scripts/test-e2e.sh sarah
-./scripts/test-e2e.sh alex
-./scripts/test-e2e.sh marcus
-
-# Reset database and run tests (clean slate)
-./scripts/test-e2e.sh --reset-db
-./scripts/test-e2e.sh --reset-db sarah
-```
-
-The test script automatically:
-- Starts API and UI servers
-- Runs database migrations
-- Seeds demo data
-- Executes tests
-- Cleans up on exit
-
-**Requirements:**
-- `GOOGLE_API_KEY` must be set in `.env`
-- See [e2e-tests/README.md](e2e-tests/README.md) for detailed documentation
-
-### Unit Tests
-
-```bash
-# Core tests
-cd core
-uv run pytest
-
-# API tests
-cd api
-uv run pytest
-```
-
----
-
-## 🤝 Contributing
-
-This is currently a hackathon project. Contributions, issues, and feature requests are welcome!
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- **Frontend**: React 19, TailwindCSS, Radix UI, Recharts, Framer Motion
+- **Backend**: FastAPI, Python 3.11, Pydantic
+- **AI**: Strands (Orchestration), Google Gemini 2.0 Flash (Reasoning)
+- **Observability**: Opik (Comet.ml) for Tracing & Evaluation
+- **Database**: PostgreSQL, SQLAlchemy, Alembic
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🏆 Acknowledgments
-
-Built for the Strands + Opik Hackathon 2026
-
-**Technologies:**
-- [Strands](https://strands.ai) - Multi-agent orchestration framework
-- [Opik](https://www.opik.ai) - LLM observability and evaluation
-- [Google Gemini](https://ai.google.dev) - LLM reasoning
-- [FastAPI](https://fastapi.tiangolo.com) - Modern Python web framework
-- [uv](https://github.com/astral-sh/uv) - Fast Python package manager
-
----
-
-## 📞 Support
-
-- **Documentation:** Check the `tmp/` directory
-- **Issues:** [GitHub Issues](https://github.com/yourusername/fiscal-guard/issues)
-- **API Docs:** http://localhost:8000/docs
-
----
-
-**Built with ❤️ to help people make better financial decisions**
-
-*Last Updated: January 21, 2026*
+MIT License. Built for the Strands + Opik Hackathon 2026.

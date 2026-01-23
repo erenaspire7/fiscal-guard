@@ -11,6 +11,8 @@ interface User {
   email: string;
   name: string | null;
   picture?: string;
+  strictness_level?: number;
+  persona_tone?: string;
 }
 
 interface AuthContextType {

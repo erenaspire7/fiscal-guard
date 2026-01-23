@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import {
   User,
@@ -13,8 +14,10 @@ import {
   Moon,
   Smartphone,
   Info,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeBackgrounds, DEFAULT_THEME } from "@/lib/themes";
 
 export default function Setup() {
   const { user, logout } = useAuth();
@@ -52,70 +55,102 @@ export default function Setup() {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans pb-32">
-      {/* Header */}
-      <header className="px-6 py-8">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-primary opacity-80">
-          Preferences
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight">Setup</h1>
-      </header>
+    <div
+      className={cn(
+        "min-h-screen text-foreground font-sans pb-32 md:pb-0 md:pl-64 transition-all duration-300",
+        ThemeBackgrounds[DEFAULT_THEME],
+      )}
+    >
+      <Sidebar />
 
-      <main className="px-6 space-y-8">
-        {/* User Profile Summary - Refined horizontal style */}
-        <section className="flex items-center gap-5 p-2 mb-4">
-          <div className="relative shrink-0">
-            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
-            <img
-              src={
-                user?.picture ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || user?.email?.split("@")[0] || "user"}`
-              }
-              alt="Profile"
-              className="relative w-16 h-16 rounded-2xl border-2 border-background shadow-xl"
-            />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-bold leading-tight">
-              {user?.name || user?.email?.split("@")[0] || "User"}
-            </h2>
-            <p className="text-xs text-muted-foreground font-medium opacity-60">
-              Premium Guard Member
+      <main className="px-6 py-8 md:p-12 max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <header className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-primary opacity-80">
+              Preferences
             </p>
+            <h1 className="text-3xl font-bold tracking-tight text-white">
+              Setup
+            </h1>
           </div>
-          <Button variant="ghost" size="icon" className="opacity-40">
-            <ChevronRight className="w-5 h-5" />
-          </Button>
+        </header>
+
+        {/* User Profile Summary Card */}
+        <section className="bg-[#0A1210] border border-white/5 rounded-[32px] p-6 md:p-8 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-6 relative z-10">
+            <div className="relative shrink-0">
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+              <img
+                src={
+                  user?.picture ||
+                  `https://api.dicebear.com/7.x/notionists-neutral/svg?seed=${
+                    user?.name || user?.email?.split("@")[0] || "user"
+                  }`
+                }
+                alt="Profile"
+                className="relative w-20 h-20 md:w-24 md:h-24 rounded-3xl border-2 border-white/10 shadow-2xl object-cover"
+              />
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full border-[3px] border-[#0A1210] flex items-center justify-center">
+                <CheckCircle2 className="w-3 h-3 text-[#020403]" />
+              </div>
+            </div>
+
+            <div className="flex-1 space-y-2">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold leading-tight text-white">
+                  {user?.name || user?.email?.split("@")[0] || "User"}
+                </h2>
+                <p className="text-sm text-primary font-bold opacity-90 flex items-center gap-2">
+                  Premium Guard Member
+                  <span className="w-1 h-1 rounded-full bg-white/30" />
+                  <span className="text-muted-foreground font-normal">
+                    Since 2024
+                  </span>
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button className="px-4 py-2 bg-[#0F2922] hover:bg-[#0F2922]/80 text-white text-xs font-bold rounded-xl border border-white/5 transition-colors">
+                  Edit Profile
+                </button>
+                <button className="px-4 py-2 bg-transparent hover:bg-white/5 text-muted-foreground text-xs font-bold rounded-xl border border-white/5 transition-colors">
+                  View Public Profile
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* Settings Groups */}
-        <div className="space-y-8">
+        {/* Settings Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {menuGroups.map((group, i) => (
-            <section key={i} className="space-y-3">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground px-1 opacity-50">
+            <section key={i} className="space-y-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground px-1 opacity-50 ml-2">
                 {group.label}
               </h3>
-              <div className="bg-card/40 rounded-[28px] overflow-hidden divide-y divide-white/5">
+              <div className="bg-[#0A1210] border border-white/5 rounded-[32px] overflow-hidden">
                 {group.items.map((item, j) => (
                   <button
                     key={j}
                     onClick={item.onClick}
                     className={cn(
-                      "w-full flex items-center gap-4 p-5 hover:bg-white/5 active:bg-white/10 transition-colors text-left outline-none",
+                      "w-full flex items-center gap-5 p-6 hover:bg-[#0F1A16] transition-all text-left outline-none group border-b border-white/5 last:border-0",
                     )}
                   >
-                    <div className="w-10 h-10 bg-background/40 rounded-xl flex items-center justify-center shrink-0">
-                      <item.icon className="w-5 h-5 text-primary/70" />
+                    <div className="w-12 h-12 bg-[#0F2922] rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                      <item.icon className="w-6 h-6 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-bold text-sm leading-none">
+                      <p className="font-bold text-base text-white group-hover:text-primary transition-colors">
                         {item.label}
                       </p>
-                      <p className="text-[11px] text-muted-foreground font-medium mt-1.5 opacity-70">
+                      <p className="text-xs text-muted-foreground font-medium mt-1 opacity-60">
                         {item.value}
                       </p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground opacity-40" />
+                    <ChevronRight className="w-5 h-5 text-muted-foreground opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                   </button>
                 ))}
               </div>
@@ -123,8 +158,8 @@ export default function Setup() {
           ))}
         </div>
 
-        {/* Danger Zone */}
-        <div className="pt-4">
+        {/* Danger Zone / Mobile Sign Out */}
+        <div className="pt-8 md:hidden">
           <Button
             onClick={logout}
             variant="outline"
@@ -137,9 +172,18 @@ export default function Setup() {
             Powered by Strands & Opik
           </p>
         </div>
+
+        {/* Desktop Footer */}
+        <footer className="hidden md:block pt-12 pb-4 text-center">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">
+            Powered by Strands & Opik
+          </p>
+        </footer>
       </main>
 
-      <Navbar />
+      <div className="md:hidden">
+        <Navbar />
+      </div>
     </div>
   );
 }

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { X, Wallet, Plus, Trash2, Calendar, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 interface CategoryEntry {
   id: string;
@@ -111,14 +110,14 @@ export default function AddBudgetModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <Card className="w-full max-w-xl bg-card/90 border-white/10 shadow-2xl rounded-[32px] overflow-hidden max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-8 duration-500">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+      <Card className="w-full max-w-xl bg-[#0A1210] border-white/5 shadow-2xl rounded-[32px] overflow-hidden max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-8 duration-500 text-foreground">
         <div className="absolute top-6 right-6 z-10">
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="rounded-full hover:bg-white/5"
+            className="rounded-full hover:bg-white/5 text-muted-foreground hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </Button>
@@ -126,10 +125,10 @@ export default function AddBudgetModal({
 
         <CardContent className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
           <div className="space-y-2">
-            <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center mb-4">
-              <Wallet className="w-6 h-6 text-primary shadow-primary-glow" />
+            <div className="w-12 h-12 bg-[#0F2922] rounded-2xl flex items-center justify-center mb-4 border border-primary/20">
+              <Wallet className="w-6 h-6 text-primary shadow-[0_0_10px_rgba(16,185,129,0.4)]" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="text-2xl font-bold tracking-tight text-white">
               Establish Budget
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -149,7 +148,7 @@ export default function AddBudgetModal({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Q1 2026 Strategic Plan"
-                  className="w-full bg-background/50 border border-white/5 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
+                  className="w-full bg-[#020403] border border-white/10 rounded-2xl px-4 py-4 focus:outline-none focus:border-primary/50 transition-all font-medium text-white placeholder:text-muted-foreground/50"
                 />
               </div>
 
@@ -168,7 +167,7 @@ export default function AddBudgetModal({
                     value={totalMonthly}
                     onChange={(e) => setTotalMonthly(e.target.value)}
                     placeholder="4000"
-                    className="w-full bg-background/50 border border-white/5 rounded-2xl pl-8 pr-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-bold text-xl"
+                    className="w-full bg-[#020403] border border-white/10 rounded-2xl pl-8 pr-4 py-4 focus:outline-none focus:border-primary/50 transition-all font-bold text-xl text-white placeholder:text-muted-foreground/50"
                   />
                 </div>
               </div>
@@ -185,7 +184,7 @@ export default function AddBudgetModal({
                     type="date"
                     value={periodStart}
                     onChange={(e) => setPeriodStart(e.target.value)}
-                    className="w-full bg-background/50 border border-white/5 rounded-2xl pl-10 pr-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all text-xs font-bold"
+                    className="w-full bg-[#020403] border border-white/10 rounded-2xl pl-10 pr-4 py-4 focus:outline-none focus:border-primary/50 transition-all text-xs font-bold text-white placeholder:text-muted-foreground/50"
                   />
                 </div>
               </div>
@@ -202,7 +201,7 @@ export default function AddBudgetModal({
                     type="date"
                     value={periodEnd}
                     onChange={(e) => setPeriodEnd(e.target.value)}
-                    className="w-full bg-background/50 border border-white/5 rounded-2xl pl-10 pr-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all text-xs font-bold"
+                    className="w-full bg-[#020403] border border-white/10 rounded-2xl pl-10 pr-4 py-4 focus:outline-none focus:border-primary/50 transition-all text-xs font-bold text-white placeholder:text-muted-foreground/50"
                   />
                 </div>
               </div>
@@ -236,7 +235,7 @@ export default function AddBudgetModal({
                       onChange={(e) =>
                         updateCategory(category.id, "name", e.target.value)
                       }
-                      className="flex-1 bg-background/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      className="flex-1 bg-[#020403] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 text-white placeholder:text-muted-foreground/50"
                     />
                     <div className="relative w-32">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-primary/60">
@@ -250,7 +249,7 @@ export default function AddBudgetModal({
                         onChange={(e) =>
                           updateCategory(category.id, "limit", e.target.value)
                         }
-                        className="w-full bg-background/40 border border-white/5 rounded-xl pl-6 pr-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 font-bold"
+                        className="w-full bg-[#020403] border border-white/10 rounded-xl pl-6 pr-3 py-3 text-sm focus:outline-none focus:border-primary/50 font-bold text-white placeholder:text-muted-foreground/50"
                       />
                     </div>
                     <Button
@@ -259,7 +258,7 @@ export default function AddBudgetModal({
                       size="icon"
                       onClick={() => removeCategory(category.id)}
                       disabled={categories.length <= 1}
-                      className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                      className="rounded-xl text-muted-foreground hover:text-red-400 hover:bg-red-500/10 shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -271,7 +270,7 @@ export default function AddBudgetModal({
             <Button
               disabled={isSubmitting}
               type="submit"
-              className="w-full h-14 rounded-2xl bg-primary text-background font-black uppercase tracking-widest hover:bg-primary/90 shadow-primary-glow transition-all disabled:opacity-50 gap-2 mt-4"
+              className="w-full h-14 rounded-2xl bg-primary text-[#020403] font-black uppercase tracking-widest hover:bg-primary/90 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50 gap-2 mt-4"
             >
               {isSubmitting ? (
                 "Deploying Guard..."

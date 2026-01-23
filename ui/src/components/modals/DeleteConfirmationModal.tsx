@@ -24,14 +24,14 @@ export default function DeleteConfirmationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <Card className="w-full max-w-sm bg-card/90 border-white/10 shadow-2xl rounded-[32px] overflow-hidden animate-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+      <Card className="w-full max-w-sm bg-[#0A1210] border-white/5 shadow-2xl rounded-[32px] overflow-hidden animate-in zoom-in-95 duration-300 text-foreground">
         <div className="absolute top-4 right-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="rounded-full hover:bg-white/5"
+            className="rounded-full hover:bg-white/5 text-muted-foreground hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </Button>
@@ -43,7 +43,9 @@ export default function DeleteConfirmationModal({
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-xl font-bold tracking-tight">{title}</h2>
+            <h2 className="text-xl font-bold tracking-tight text-white">
+              {title}
+            </h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
               {description}
             </p>
@@ -55,7 +57,7 @@ export default function DeleteConfirmationModal({
               onClick={onConfirm}
               className={cn(
                 "w-full h-12 rounded-2xl bg-destructive text-white font-bold uppercase tracking-widest hover:bg-destructive/90 transition-all",
-                isDeleting && "opacity-50"
+                isDeleting && "opacity-50",
               )}
             >
               {isDeleting ? "Deauthorizing..." : "Confirm Deletion"}
@@ -63,7 +65,7 @@ export default function DeleteConfirmationModal({
             <Button
               variant="ghost"
               onClick={onClose}
-              className="w-full h-12 rounded-2xl font-bold uppercase tracking-widest text-muted-foreground hover:bg-white/5"
+              className="w-full h-12 rounded-2xl font-bold uppercase tracking-widest text-muted-foreground hover:bg-white/5 hover:text-white transition-colors"
             >
               Cancel
             </Button>

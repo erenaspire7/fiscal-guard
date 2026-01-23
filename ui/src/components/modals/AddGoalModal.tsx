@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { X, Target, Calendar, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 interface AddGoalModalProps {
   isOpen: boolean;
@@ -45,7 +44,7 @@ export default function AddGoalModal({
             priority,
             deadline: deadline || null,
           }),
-        }
+        },
       );
 
       if (response.ok) {
@@ -63,14 +62,14 @@ export default function AddGoalModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <Card className="w-full max-w-md bg-card/90 border-white/10 shadow-2xl rounded-[32px] overflow-hidden animate-in slide-in-from-bottom-8 duration-500">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+      <Card className="w-full max-w-md bg-[#0A1210] border-white/5 shadow-2xl rounded-[32px] overflow-hidden animate-in slide-in-from-bottom-8 duration-500 text-foreground">
         <div className="absolute top-4 right-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="rounded-full hover:bg-white/5"
+            className="rounded-full hover:bg-white/5 text-muted-foreground hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </Button>
@@ -78,10 +77,12 @@ export default function AddGoalModal({
 
         <CardContent className="p-8 space-y-8">
           <div className="space-y-2">
-            <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center mb-4">
-              <Target className="w-6 h-6 text-primary shadow-primary-glow" />
+            <div className="w-12 h-12 bg-[#0F2922] rounded-2xl flex items-center justify-center mb-4 border border-primary/20">
+              <Target className="w-6 h-6 text-primary shadow-[0_0_10px_rgba(16,185,129,0.4)]" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight">New Asset Goal</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-white">
+              New Asset Goal
+            </h2>
             <p className="text-sm text-muted-foreground">
               Define a new target for the Fiscal Guard to protect.
             </p>
@@ -99,7 +100,7 @@ export default function AddGoalModal({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Home Downpayment"
-                  className="w-full bg-background/50 border border-white/5 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
+                  className="w-full bg-[#020403] border border-white/10 rounded-2xl px-4 py-4 focus:outline-none focus:border-primary/50 transition-all font-medium text-white placeholder:text-muted-foreground/50"
                 />
               </div>
 
@@ -118,7 +119,7 @@ export default function AddGoalModal({
                     value={target}
                     onChange={(e) => setTarget(e.target.value)}
                     placeholder="5000"
-                    className="w-full bg-background/50 border border-white/5 rounded-2xl pl-8 pr-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-bold"
+                    className="w-full bg-[#020403] border border-white/10 rounded-2xl pl-8 pr-4 py-4 focus:outline-none focus:border-primary/50 transition-all font-bold text-white placeholder:text-muted-foreground/50"
                   />
                 </div>
               </div>
@@ -135,7 +136,7 @@ export default function AddGoalModal({
                       type="date"
                       value={deadline}
                       onChange={(e) => setDeadline(e.target.value)}
-                      className="w-full bg-background/50 border border-white/5 rounded-2xl pl-10 pr-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all text-xs font-bold"
+                      className="w-full bg-[#020403] border border-white/10 rounded-2xl pl-10 pr-4 py-4 focus:outline-none focus:border-primary/50 transition-all text-xs font-bold text-white placeholder:text-muted-foreground/50"
                     />
                   </div>
                 </div>
@@ -150,7 +151,7 @@ export default function AddGoalModal({
                     onChange={(e) =>
                       setPriority(e.target.value as "low" | "medium" | "high")
                     }
-                    className="w-full bg-background/50 border border-white/5 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all text-xs font-bold appearance-none"
+                    className="w-full bg-[#020403] border border-white/10 rounded-2xl px-4 py-4 focus:outline-none focus:border-primary/50 transition-all text-xs font-bold appearance-none text-white"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -163,7 +164,7 @@ export default function AddGoalModal({
             <Button
               disabled={isSubmitting}
               type="submit"
-              className="w-full h-14 rounded-2xl bg-primary text-background font-black uppercase tracking-widest hover:bg-primary/90 shadow-primary-glow transition-all disabled:opacity-50 gap-2"
+              className="w-full h-14 rounded-2xl bg-primary text-[#020403] font-black uppercase tracking-widest hover:bg-primary/90 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50 gap-2"
             >
               {isSubmitting ? (
                 "Initializing..."

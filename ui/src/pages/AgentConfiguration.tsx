@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -11,8 +12,10 @@ import {
   MessageSquare,
   Shield,
   ChevronRight,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeBackgrounds, DEFAULT_THEME } from "@/lib/themes";
 
 export default function AgentConfiguration() {
   const navigate = useNavigate();
@@ -23,8 +26,8 @@ export default function AgentConfiguration() {
   useEffect(() => {
     if (user) {
       // Map backend values back to UI strictness (0-100)
-      const level = (user as any).strictness_level || 5;
-      const persona = (user as any).persona_tone || "balanced";
+      const level = user.strictness_level || 5;
+      const persona = user.persona_tone || "balanced";
 
       if (persona === "financial_monk") {
         setStrictness(level >= 9 ? 100 : 75);
@@ -89,183 +92,234 @@ export default function AgentConfiguration() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans pb-32">
-      {/* Header */}
-      <header className="px-6 py-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <div
+      className={cn(
+        "min-h-screen text-foreground font-sans pb-32 md:pb-0 md:pl-64 transition-all duration-300",
+        ThemeBackgrounds[DEFAULT_THEME],
+      )}
+    >
+      <Sidebar />
+
+      <main className="px-6 py-8 md:p-12 max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="rounded-full hover:bg-white/10 -ml-2 text-muted-foreground hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </Button>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-primary opacity-80">
+                AI Tuning
+              </p>
+              <h1 className="text-3xl font-bold tracking-tight text-white">
+                Agent Config
+              </h1>
+            </div>
+          </div>
           <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="rounded-full hover:bg-white/5 -ml-2"
+            onClick={handleSave}
+            disabled={isSaving}
+            className={cn(
+              "rounded-xl bg-primary text-[#020403] hover:bg-primary/90 shadow-[0_0_15px_rgba(16,185,129,0.4)] px-6 transition-all font-bold gap-2",
+              isSaving && "opacity-50",
+            )}
           >
-            <ArrowLeft className="w-5 h-5" />
+            <Save className={cn("w-4 h-4", isSaving && "animate-pulse")} />
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-primary opacity-80">
-              AI Tuning
-            </p>
-            <h1 className="text-2xl font-bold tracking-tight">Agent Config</h1>
-          </div>
-        </div>
-        <Button
-          size="icon"
-          onClick={handleSave}
-          disabled={isSaving}
-          className={cn(
-            "rounded-xl bg-card border border-white/5 text-primary shadow-lg w-10 h-10 transition-all",
-            isSaving && "opacity-50",
-          )}
-        >
-          <Save className={cn("w-5 h-5", isSaving && "animate-pulse")} />
-        </Button>
-      </header>
+        </header>
 
-      <main className="px-6 space-y-10">
-        {/* Persuasion Tone */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3 px-1">
-            <Megaphone className="w-5 h-5 text-primary" />
-            <h3 className="text-xl font-bold tracking-tight">
-              Persuasion Tone
-            </h3>
-          </div>
-
-          <Card className="bg-card/40 border-none rounded-[32px] overflow-hidden">
-            <CardContent className="p-6 space-y-8">
-              <div className="flex justify-between items-end">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">
-                    Selected Mode
-                  </p>
-                  <p className="text-lg font-bold">
-                    {getIntensityLabel(strictness)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-primary font-bold text-glow">
-                    {strictness}% Intensity
-                  </p>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {/* Left/Top Column: Persuasion Tone (Takes up more space) */}
+          <section className="lg:col-span-3 space-y-6">
+            <div className="flex items-center gap-3 px-1">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Megaphone className="w-4 h-4 text-primary" />
               </div>
+              <h3 className="text-xl font-bold tracking-tight text-white">
+                Persuasion Tone
+              </h3>
+            </div>
 
-              {/* Custom Slider */}
-              <div className="relative py-4">
-                <div className="h-1.5 w-full bg-background rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary shadow-primary-glow transition-all duration-300"
-                    style={{ width: `${strictness}%` }}
-                  />
+            <Card className="bg-[#0A1210] border border-white/5 rounded-[32px] overflow-hidden shadow-xl">
+              <CardContent className="p-8 space-y-10">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">
+                      Selected Mode
+                    </p>
+                    <p className="text-2xl font-bold text-white">
+                      {getIntensityLabel(strictness)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-primary font-bold text-xl drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]">
+                      {strictness}% Intensity
+                    </p>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="25"
-                  value={strictness}
-                  onChange={(e) => setStrictness(parseInt(e.target.value))}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-                {/* Ticks */}
-                <div className="flex justify-between mt-6 px-1">
-                  {[0, 25, 50, 75, 100].map((val) => (
+
+                {/* Custom Slider */}
+                <div className="relative py-6 px-2">
+                  {/* Track Background */}
+                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                     <div
-                      key={val}
-                      className={cn(
-                        "w-1.5 h-1.5 rounded-full transition-colors",
-                        strictness >= val
-                          ? "bg-primary shadow-primary-glow"
-                          : "bg-muted",
-                      )}
+                      className="h-full bg-primary shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-300"
+                      style={{ width: `${strictness}%` }}
                     />
-                  ))}
-                </div>
-                <div className="flex justify-between mt-3 -mx-2">
-                  {[
-                    { val: 0, label: "Gentle" },
-                    { val: 25, label: "Balanced" },
-                    { val: 50, label: "Strict" },
-                    { val: 75, label: "Monk" },
-                    { val: 100, label: "Zenith" },
-                  ].map((item) => (
-                    <span
-                      key={item.val}
-                      className={cn(
-                        "text-[7px] font-black uppercase tracking-widest w-12 text-center transition-colors duration-300",
-                        strictness === item.val
-                          ? "text-primary text-glow opacity-100"
-                          : "text-muted-foreground opacity-30",
-                      )}
-                    >
-                      {item.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Agent Preview Box */}
-              <div className="bg-background/60 rounded-[24px] p-5 border border-white/5 relative">
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare
-                    className="w-3 h-3 text-primary"
-                    fill="currentColor"
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="25"
+                    value={strictness}
+                    onChange={(e) => setStrictness(parseInt(e.target.value))}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
-                    Agent Preview: $200 Purchase
-                  </span>
+                  {/* Ticks */}
+                  <div className="flex justify-between mt-8 -mx-1.5">
+                    {[0, 25, 50, 75, 100].map((val) => (
+                      <div
+                        key={val}
+                        className="flex flex-col items-center gap-3 group"
+                      >
+                        <div
+                          className={cn(
+                            "w-3 h-3 rounded-full transition-all duration-300 border border-transparent",
+                            strictness >= val
+                              ? "bg-primary shadow-[0_0_10px_rgba(16,185,129,0.8)] scale-110"
+                              : "bg-[#1A2521] border-white/10 group-hover:bg-white/10",
+                          )}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-2 -mx-4">
+                    {[
+                      { val: 0, label: "Gentle" },
+                      { val: 25, label: "Balanced" },
+                      { val: 50, label: "Strict" },
+                      { val: 75, label: "Monk" },
+                      { val: 100, label: "Zenith" },
+                    ].map((item) => (
+                      <span
+                        key={item.val}
+                        className={cn(
+                          "text-[9px] font-black uppercase tracking-widest w-16 text-center transition-colors duration-300",
+                          strictness === item.val
+                            ? "text-primary opacity-100"
+                            : "text-muted-foreground opacity-30",
+                        )}
+                      >
+                        {item.label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-sm italic leading-relaxed text-foreground/90 font-medium">
-                  "{getAgentPreview(strictness)}"
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
 
-        {/* Guardrail Rules */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-3 px-1">
-            <Shield className="w-5 h-5 text-primary" />
-            <h3 className="text-xl font-bold tracking-tight">
-              Guardrail Rules
-            </h3>
-          </div>
+                {/* Agent Preview Box */}
+                <div className="bg-[#0F1A16] rounded-[24px] p-6 border border-white/5 relative group hover:border-white/10 transition-colors">
+                  <div className="absolute top-0 right-0 p-20 bg-primary/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                  <div className="flex items-center gap-3 mb-4 relative z-10">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Bot className="w-4 h-4 text-primary" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
+                      Agent Preview: $200 Purchase
+                    </span>
+                  </div>
+                  <div className="relative z-10 pl-11">
+                    <div className="relative">
+                      <MessageSquare
+                        className="w-4 h-4 text-primary absolute -left-6 top-1 opacity-50"
+                        fill="currentColor"
+                      />
+                      <p className="text-base italic leading-relaxed text-white/90 font-medium">
+                        "{getAgentPreview(strictness)}"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
 
-          <div className="bg-card/40 rounded-[28px] overflow-hidden divide-y divide-white/5">
-            <button className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors text-left outline-none">
-              <div className="space-y-1">
-                <p className="font-bold text-sm">Flag large purchases</p>
-                <p className="text-[11px] text-muted-foreground font-medium opacity-60">
-                  Threshold for mandatory interception
-                </p>
+          {/* Right Column: Guardrail Rules */}
+          <section className="lg:col-span-2 space-y-6">
+            <div className="flex items-center gap-3 px-1">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-primary" />
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-primary font-bold text-sm text-glow">
-                  $500
-                </span>
-                <ChevronRight className="w-4 h-4 text-muted-foreground opacity-40" />
-              </div>
-            </button>
+              <h3 className="text-xl font-bold tracking-tight text-white">
+                Guardrail Rules
+              </h3>
+            </div>
 
-            <button className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors text-left outline-none">
-              <div className="space-y-1">
-                <p className="font-bold text-sm">Daily spending cap</p>
-                <p className="text-[11px] text-muted-foreground font-medium opacity-60">
-                  Daily alert trigger point
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-primary font-bold text-sm text-glow">
-                  $150
-                </span>
-                <ChevronRight className="w-4 h-4 text-muted-foreground opacity-40" />
-              </div>
-            </button>
-          </div>
-        </section>
+            <div className="bg-[#0A1210] border border-white/5 rounded-[28px] overflow-hidden divide-y divide-white/5 shadow-xl h-full flex flex-col">
+              <button className="w-full flex items-center justify-between p-6 hover:bg-[#0F1A16] transition-colors text-left outline-none group flex-1">
+                <div className="space-y-1">
+                  <p className="font-bold text-white group-hover:text-primary transition-colors">
+                    Flag large purchases
+                  </p>
+                  <p className="text-xs text-muted-foreground font-medium opacity-60">
+                    Threshold for mandatory interception
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-primary font-bold text-base drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
+                    $500
+                  </span>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </div>
+              </button>
+
+              <button className="w-full flex items-center justify-between p-6 hover:bg-[#0F1A16] transition-colors text-left outline-none group flex-1">
+                <div className="space-y-1">
+                  <p className="font-bold text-white group-hover:text-primary transition-colors">
+                    Daily spending cap
+                  </p>
+                  <p className="text-xs text-muted-foreground font-medium opacity-60">
+                    Daily alert trigger point
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-primary font-bold text-base drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
+                    $150
+                  </span>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </div>
+              </button>
+
+              <button className="w-full flex items-center justify-between p-6 hover:bg-[#0F1A16] transition-colors text-left outline-none group flex-1">
+                <div className="space-y-1">
+                  <p className="font-bold text-white group-hover:text-primary transition-colors">
+                    Recurring Audit
+                  </p>
+                  <p className="text-xs text-muted-foreground font-medium opacity-60">
+                    Review subscription charges
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-primary font-bold text-xs uppercase tracking-wider bg-primary/10 px-2 py-1 rounded">
+                    Monthly
+                  </span>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </div>
+              </button>
+            </div>
+          </section>
+        </div>
       </main>
 
-      <Navbar />
+      <div className="md:hidden">
+        <Navbar />
+      </div>
     </div>
   );
 }

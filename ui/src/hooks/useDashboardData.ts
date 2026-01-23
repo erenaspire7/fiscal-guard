@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface AllocationHealthItem {
   label: string;
   utilized: number;
   limit: number;
   percentage: number;
-  status: 'Healthy' | 'Near Capacity' | 'Over Budget';
+  status: "Healthy" | "Near Capacity" | "Over Budget";
 }
 
 export interface RecentIntercept {
@@ -18,10 +18,16 @@ export interface RecentIntercept {
   created_at: string;
 }
 
+export interface TrendItem {
+  score: number;
+  date: string;
+  item_name: string;
+}
+
 export interface DashboardData {
   guard_score: number;
   status: string;
-  trend: number[];
+  trend: (TrendItem | number)[];
   allocation_health: AllocationHealthItem[];
   recent_intercepts: RecentIntercept[];
 }
@@ -37,23 +43,28 @@ export function useDashboardData() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/dashboard`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/dashboard`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch dashboard intelligence');
+        throw new Error("Failed to fetch dashboard intelligence");
       }
 
       const result = await response.json();
       setData(result);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      console.error('Dashboard fetch error:', err);
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred",
+      );
+      console.error("Dashboard fetch error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -67,6 +78,6 @@ export function useDashboardData() {
     data,
     isLoading,
     error,
-    refresh: fetchDashboardData
+    refresh: fetchDashboardData,
   };
 }

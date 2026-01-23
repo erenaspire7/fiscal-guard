@@ -239,7 +239,14 @@ class DecisionService:
         guard_score = int(avg_score * 10)
 
         # Trend data (reverse to chronological order for sparkline)
-        trend = [d.score for d in reversed(recent_decisions)]
+        trend = [
+            {
+                "score": d.score,
+                "date": d.created_at.isoformat(),
+                "item_name": d.item_name,
+            }
+            for d in reversed(recent_decisions)
+        ]
 
         # Determine status
         if guard_score >= 80:
