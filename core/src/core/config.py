@@ -6,9 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings."""
 
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file_encoding="utf-8", extra="ignore")
 
     # Database
     database_url: str = "postgresql://postgres:postgres@localhost:5432/fiscal_guard"
@@ -23,16 +21,19 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
 
+    # Frontend
+    frontend_url: str = "http://localhost:5173"
+
     # Strands AI Configuration
-    strands_api_key: str = ""
-    strands_default_model: str = "gemini-2.0-flash-exp"
+    strands_default_model: str = "gemini-3-flash-preview"
 
     # Google AI (for Gemini)
     google_api_key: str = ""
 
-    # Opik
-    opik_api_key: str = ""
-    opik_workspace: str = "default"
+    # Opik (via OpenTelemetry)
+    # Note: OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS
+    # are handled directly by OpenTelemetry and don't need to be in this config
+    opik_tracing_enabled: bool = False
 
 
 settings = Settings()

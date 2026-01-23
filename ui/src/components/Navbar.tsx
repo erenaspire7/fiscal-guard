@@ -1,0 +1,92 @@
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  LayoutGrid,
+  BarChart3,
+  Shield,
+  Wallet,
+  Settings,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export default function Navbar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path: string) => location.pathname === path;
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-xl border-t border-white/5 px-6 py-4 flex justify-between items-center z-50">
+      <NavItem
+        icon={LayoutGrid}
+        label="Command"
+        active={isActive("/dashboard")}
+        onClick={() => navigate("/dashboard")}
+      />
+      <NavItem
+        icon={BarChart3}
+        label="Insights"
+        active={isActive("/insights")}
+        onClick={() => navigate("/insights")}
+      />
+
+      <div className="relative -mt-12">
+        <div className={cn(
+          "absolute inset-0 blur-2xl rounded-full scale-150 transition-colors duration-500",
+          isActive("/chat") ? "bg-primary/40" : "bg-primary/20"
+        )} />
+        <button
+          onClick={() => navigate("/chat")}
+          className={cn(
+            "relative w-16 h-16 rounded-full flex items-center justify-center shadow-primary-glow border-[6px] border-background transition-all hover:scale-105 active:scale-95",
+            isActive("/chat") ? "bg-primary text-background" : "bg-card text-primary border-white/5"
+          )}
+        >
+          <Shield className="w-8 h-8" fill="currentColor" />
+        </button>
+      </div>
+
+      <NavItem
+        icon={Wallet}
+        label="Vault"
+        active={isActive("/vault")}
+        onClick={() => navigate("/vault")}
+      />
+      <NavItem
+        icon={Settings}
+        label="Setup"
+        active={isActive("/setup")}
+        onClick={() => navigate("/setup")}
+      />
+    </nav>
+  );
+}
+
+function NavItem({
+  icon: Icon,
+  label,
+  active = false,
+  onClick,
+}: {
+  icon: any;
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-center gap-1.5 transition-all relative outline-none",
+        active ? "opacity-100 text-primary" : "opacity-40 text-foreground hover:opacity-70"
+      )}
+    >
+      <Icon className={cn("w-5 h-5 transition-transform", active && "scale-110")} />
+      <span className="text-[9px] font-bold uppercase tracking-widest">
+        {label}
+      </span>
+      {active && (
+        <div className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full shadow-primary-glow" />
+      )}
+    </button>
+  );
+}

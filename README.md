@@ -159,7 +159,7 @@ JWT_SECRET_KEY=your-secret-key-min-32-chars
 
 # AI
 GOOGLE_API_KEY=your-google-gemini-api-key
-STRANDS_DEFAULT_MODEL=gemini-2.0-flash-exp
+STRANDS_DEFAULT_MODEL=gemini-3-flash
 
 # Optional: Opik (for tracing)
 OPIK_API_KEY=your-opik-api-key  # Optional
@@ -470,6 +470,51 @@ Track:
 - **[Opik Integration](tmp/OPIK_INTEGRATION.md)** - Observability setup
 - **[Project Status](tmp/PROJECT_STATUS.md)** - Current state & roadmap
 - **[API Docs](http://localhost:8000/docs)** - Interactive Swagger UI
+
+---
+
+## 🧪 Testing
+
+### E2E Tests with Playwright
+
+Run end-to-end tests for all three demo scenarios (Sarah, Alex, Marcus):
+
+```bash
+# Run all E2E tests
+./scripts/test-e2e.sh
+
+# Run specific scenario
+./scripts/test-e2e.sh sarah
+./scripts/test-e2e.sh alex
+./scripts/test-e2e.sh marcus
+
+# Reset database and run tests (clean slate)
+./scripts/test-e2e.sh --reset-db
+./scripts/test-e2e.sh --reset-db sarah
+```
+
+The test script automatically:
+- Starts API and UI servers
+- Runs database migrations
+- Seeds demo data
+- Executes tests
+- Cleans up on exit
+
+**Requirements:**
+- `GOOGLE_API_KEY` must be set in `.env`
+- See [e2e-tests/README.md](e2e-tests/README.md) for detailed documentation
+
+### Unit Tests
+
+```bash
+# Core tests
+cd core
+uv run pytest
+
+# API tests
+cd api
+uv run pytest
+```
 
 ---
 

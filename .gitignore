@@ -10,7 +10,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -53,8 +52,18 @@ Thumbs.db
 .coverage
 htmlcov/
 
+# Playwright / E2E Testing
+e2e-tests/test-results/
+e2e-tests/playwright-report/
+e2e-tests/playwright/.cache/
+e2e-tests/.env
+e2e-tests/results.xml
+
 # Alembic
 # Keep alembic/ directory but ignore generated files if needed
 
 
 tmp/
+
+
+node_modules/

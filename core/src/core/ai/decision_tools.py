@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 from strands.tools import tool
 
 from core.database.models import Budget, Goal, PurchaseDecision
-from core.observability.opik_config import track_tool
 
 
 class BudgetCheckInput(BaseModel):
@@ -111,8 +110,7 @@ class RegretAnalysisOutput(BaseModel):
 def create_decision_tools(db_session: Session):
     """Create decision tools with database session."""
 
-    @tool(input_schema=BudgetCheckInput, output_schema=BudgetCheckOutput)
-    @track_tool(name="check_budget")
+    @tool
     def check_budget(user_id: str, category: str, amount: float) -> dict:
         """Check if a purchase fits within the budget for a specific category.
 
@@ -160,7 +158,7 @@ def create_decision_tools(db_session: Session):
                 "remaining": 0.0,
                 "percentage_used": 0.0,
                 "would_exceed": True,
-                "impact_description": f"No active budget found for user. Cannot verify if purchase fits budget.",
+                "impact_description": "No active budget found for user. Cannot verify if purchase fits budget.",
             }
 
         # Check if category exists in budget
@@ -212,8 +210,7 @@ def create_decision_tools(db_session: Session):
             "impact_description": impact,
         }
 
-    @tool(input_schema=GoalCheckInput, output_schema=GoalCheckOutput)
-    @track_tool(name="check_goals")
+    @tool
     def check_goals(user_id: str) -> dict:
         """Check user's financial goals and how a purchase might impact them.
 
@@ -302,8 +299,7 @@ def create_decision_tools(db_session: Session):
             "impact_description": impact,
         }
 
-    @tool(input_schema=SpendingAnalysisInput, output_schema=SpendingAnalysisOutput)
-    @track_tool(name="analyze_spending")
+    @tool
     def analyze_spending(user_id: str) -> dict:
         """Analyze overall spending patterns and financial health.
 
@@ -411,8 +407,7 @@ def create_decision_tools(db_session: Session):
             "analysis_description": description,
         }
 
-    @tool(input_schema=PastDecisionsInput, output_schema=PastDecisionsOutput)
-    @track_tool(name="check_past_decisions")
+    @tool
     def check_past_decisions(
         user_id: str,
         category: Optional[str] = None,
@@ -547,8 +542,7 @@ def create_decision_tools(db_session: Session):
             "insights": insights,
         }
 
-    @tool(input_schema=RegretAnalysisInput, output_schema=RegretAnalysisOutput)
-    @track_tool(name="analyze_regrets")
+    @tool
     def analyze_regrets(user_id: str, category: Optional[str] = None) -> dict:
         """Analyze user's purchase regrets to identify patterns.
 

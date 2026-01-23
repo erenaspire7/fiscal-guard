@@ -1,16 +1,17 @@
 """AI-powered purchase decision agent using Strands."""
 
-import json
 from decimal import Decimal
 from typing import Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from strands import Agent
 from strands.models.gemini import GeminiModel
 
 from core.ai.decision_tools import create_decision_tools
 from core.config import settings
+from core.database.models import User
 from core.models.decision import (
     BudgetAnalysis,
     DecisionAnalysis,
@@ -20,7 +21,56 @@ from core.models.decision import (
     PurchaseDecision,
     PurchaseDecisionRequest,
 )
-from core.observability.opik_config import opik_config, track_decision
+from core.observability.pii_redaction import create_trace_attributes
+
+
+class StructuredPurchaseDecision(BaseModel):
+    """Structured output model for purchase decisions.
+
+    This is used by Strands to enforce structured outputs from the LLM.
+    """
+
+    score: int = Field(..., description="Decision score from 1-10", ge=1, le=10)
+    decision_category: str = Field(
+        ...,
+        description="Decision category: strong_no, mild_no, neutral, mild_yes, or strong_yes",
+    )
+    reasoning: str = Field(
+        ...,
+        description="Detailed reasoning for the decision, referencing budget, goals, and patterns",
+    )
+    purchase_category: str = Field(
+        ...,
+        description="Category of purchase: essential, discretionary, investment, or impulse",
+    )
+    financial_health_score: float = Field(
+        ..., description="Overall financial health score (0-100)", ge=0, le=100
+    )
+
+    # Budget analysis
+    budget_category: Optional[str] = Field(None, description="Budget category")
+    budget_current_spent: Optional[float] = Field(None, description="Current spending")
+    budget_limit: Optional[float] = Field(None, description="Category limit")
+    budget_remaining: Optional[float] = Field(None, description="Remaining budget")
+    budget_percentage_used: Optional[float] = Field(None, description="Percentage used")
+    budget_would_exceed: Optional[bool] = Field(None, description="Would exceed limit")
+    budget_impact: Optional[str] = Field(None, description="Budget impact description")
+
+    # Goals (simplified for structured output)
+    affected_goal_names: list[str] = Field(
+        default_factory=list, description="Names of affected goals"
+    )
+    goal_impact_description: Optional[str] = Field(
+        None, description="Overall impact on financial goals"
+    )
+
+    # Recommendations
+    alternatives: list[str] = Field(
+        default_factory=list, description="Alternative suggestions"
+    )
+    conditions: list[str] = Field(
+        default_factory=list, description="Conditions under which this might be better"
+    )
 
 
 class DecisionAgent:
@@ -51,8 +101,9 @@ class DecisionAgent:
         # Create decision tools with database session
         tools = create_decision_tools(db_session)
 
-        # Initialize Agent with model and tools
-        self.agent = Agent(model=model, tools=tools)
+        # Store for per-request agent creation
+        self.model = model
+        self.tools = tools
 
         self.system_prompt = """You are an expert financial advisor helping users make smart purchase decisions.
 
@@ -65,14 +116,19 @@ Your role:
    - analyze_regrets: Identify patterns in past regrets
 
 2. Analyze the purchase request comprehensively
-3. Provide a decision score from 1-10 where:
-   - 1-3: Strong No (would significantly harm financial health)
-   - 4-5: Mild No (not recommended but not catastrophic)
-   - 6: Neutral (neither good nor bad)
-   - 7-8: Mild Yes (reasonable purchase)
-   - 9-10: Strong Yes (excellent decision)
 
-4. Categorize the purchase type: essential, discretionary, investment, or impulse
+3. Provide a decision score from 1-10 where:
+   - 1-3: Strong No (strong_no) - would significantly harm financial health
+   - 4-5: Mild No (mild_no) - not recommended but not catastrophic
+   - 6: Neutral (neutral) - neither good nor bad
+   - 7-8: Mild Yes (mild_yes) - reasonable purchase
+   - 9-10: Strong Yes (strong_yes) - excellent decision
+
+4. Categorize the purchase type:
+   - essential: Necessary for basic needs
+   - discretionary: Nice to have but not necessary
+   - investment: Will provide future value
+   - impulse: Emotional or unplanned purchase
 
 5. Provide detailed reasoning that considers:
    - Budget impact (will it exceed category limits?)
@@ -82,45 +138,15 @@ Your role:
    - Regret patterns from similar purchases
    - Value vs cost
    - Urgency and necessity
-   - Alternatives
 
 6. Suggest alternatives when appropriate
-7. Provide conditions under which this purchase might make more sense
-8. Reference past patterns when relevant (e.g., "You've regretted similar purchases before")
 
-IMPORTANT: You must respond ONLY with valid JSON in this exact format:
-{
-    "score": 7,
-    "decision_category": "mild_yes",
-    "reasoning": "Detailed explanation of your decision...",
-    "purchase_category": "discretionary",
-    "financial_health_score": 75.5,
-    "budget_analysis": {
-        "category": "groceries",
-        "current_spent": 250.00,
-        "limit": 500.00,
-        "remaining": 250.00,
-        "percentage_used": 50.0,
-        "would_exceed": false,
-        "impact_description": "This fits within budget..."
-    },
-    "affected_goals": [
-        {
-            "goal_name": "Emergency Fund",
-            "target_amount": 5000.00,
-            "current_amount": 2000.00,
-            "remaining": 3000.00,
-            "deadline": "2026-12-31T00:00:00",
-            "impact_description": "This purchase might slightly delay reaching this goal..."
-        }
-    ],
-    "alternatives": ["Wait until next pay period", "Consider a cheaper option"],
-    "conditions": ["If this is urgent", "If you can cut spending elsewhere"]
-}
+7. Provide conditions under which this purchase might make more sense
+
+8. Reference past patterns when relevant (e.g., "You've regretted similar purchases before")
 
 Be honest, practical, and empathetic. Consider the user's context and help them make decisions that align with their financial goals."""
 
-    @track_decision(name="analyze_purchase")
     def analyze_purchase(
         self, user_id: UUID, request: PurchaseDecisionRequest
     ) -> PurchaseDecision:
@@ -133,16 +159,64 @@ Be honest, practical, and empathetic. Consider the user's context and help them 
         Returns:
             Purchase decision with score and reasoning
         """
-        # Create trace metadata with PII redaction
-        metadata = opik_config.create_trace_metadata(
-            user_id=str(user_id),
+        # Fetch user persona and strictness
+        user = self.db_session.query(User).filter(User.user_id == user_id).first()
+        persona = user.persona_tone if user and user.persona_tone else "balanced"
+        strictness = (
+            user.strictness_level if user and user.strictness_level is not None else 5
+        )
+
+        # Generate a unique session ID for this decision
+        session_id = str(uuid4())
+
+        # Create trace attributes with PII redaction
+        # This is passed to the Agent and automatically sent to Opik via OpenTelemetry
+        trace_attributes = create_trace_attributes(
+            user_id=str(user_id),  # Will be redacted to "[USER_REDACTED]"
+            session_id=session_id,
             category=request.category,
             amount=float(request.amount),
             item_type=request.item_name[:50],  # Truncate for privacy
             urgency=request.urgency,
         )
+        # Add persona info to trace for evaluation purposes
+        trace_attributes["user.persona"] = persona
+        trace_attributes["user.strictness"] = strictness
+
+        # Customize instructions based on persona and strictness
+        custom_instructions = f"\n\nUSER PREFERENCES:\n- Persona: {persona}\n- Strictness Level: {strictness}/10\n"
+
+        if persona == "financial_monk":
+            custom_instructions += "ADVICE STYLE: You are a Financial Monk. Be extremely frugal, ascetic, and prioritize savings above all else. Use a disciplined, minimalist tone.\n"
+        elif persona == "gentle":
+            custom_instructions += "ADVICE STYLE: You are a Gentle Guide. Be empathetic, encouraging, and focus on mindful balance. Avoid harsh judgment.\n"
+        else:
+            custom_instructions += (
+                "ADVICE STYLE: Be a balanced, objective financial advisor.\n"
+            )
+
+        custom_instructions += (
+            f"STRICTNESS: On a scale of 1-10, your strictness is {strictness}. "
+        )
+        if strictness >= 8:
+            custom_instructions += (
+                "Be very firm and hold a high bar for any discretionary spending."
+            )
+        elif strictness <= 3:
+            custom_instructions += "Be more flexible and prioritize the user's immediate happiness more than usual."
+
+        # Create agent for this request with trace attributes and structured output
+        # OpenTelemetry will automatically trace all interactions
+        agent = Agent(
+            model=self.model,
+            tools=self.tools,
+            system_prompt=self.system_prompt + custom_instructions,
+            structured_output_model=StructuredPurchaseDecision,  # Enforce structured output!
+            trace_attributes=trace_attributes,
+        )
+
         # Build the prompt with purchase details
-        prompt = f"""{self.system_prompt}
+        prompt = f"""Analyze this purchase decision:
 
 PURCHASE REQUEST:
 User ID: {str(user_id)}
@@ -156,106 +230,111 @@ INSTRUCTIONS:
 1. Use check_budget tool to analyze budget impact for the category
 2. Use check_goals tool to see how this affects the user's financial goals
 3. Use analyze_spending tool to understand overall financial health
-4. Use check_past_decisions tool to see if user has made similar purchases (filter by category and amount range)
+4. Use check_past_decisions tool to see if user has made similar purchases
 5. Use analyze_regrets tool to check if user has regret patterns in this category
-6. Based on all tool results and patterns, make your decision
+6. Based on all tool results and patterns, provide your decision
 7. Reference past behavior in your reasoning if patterns are found
-8. Respond with ONLY the JSON decision format (no other text)
+8. REMEMBER: You must act as a {persona} advisor with a strictness of {strictness}/10.
 
-Make your decision now:"""
+Provide your complete analysis with a decision score, reasoning, and recommendations."""
 
         # Call the agent (it will use tools automatically)
-        response = self.agent(prompt)
-        response_text = str(response)
+        # The response will be an AgentResult with JSON string output
+        # OpenTelemetry will trace:
+        # - The agent invocation
+        # - All tool calls (check_budget, check_goals, etc.)
+        # - The model calls
+        # - Token usage, latency, etc.
+        response = agent(prompt)
 
-        # Parse the JSON response
+        # Extract the JSON output from AgentResult
+        # The agent returns JSON as a string in response.output
+        import json
+
+        if hasattr(response, "output"):
+            json_str = response.output
+        else:
+            # Fallback: convert response to string
+            json_str = str(response)
+
+        # Parse JSON string into StructuredPurchaseDecision model
+        json_data = json.loads(json_str)
+        structured_response = StructuredPurchaseDecision(**json_data)
+
+        # Convert structured response to our domain model
+        return self._convert_to_purchase_decision(structured_response)
+
+    def _convert_to_purchase_decision(
+        self, structured: StructuredPurchaseDecision
+    ) -> PurchaseDecision:
+        """Convert structured output to PurchaseDecision domain model.
+
+        Args:
+            structured: Structured output from the agent
+
+        Returns:
+            PurchaseDecision domain model
+        """
+        # Map score to decision category
+        score = structured.score
         try:
-            # Try to extract JSON if there's extra text
-            if "```json" in response_text:
-                response_text = (
-                    response_text.split("```json")[1].split("```")[0].strip()
-                )
-            elif "```" in response_text:
-                response_text = response_text.split("```")[1].split("```")[0].strip()
-
-            data = json.loads(response_text)
-
-            # Map score to decision category if not provided
-            score = data["score"]
-            if "decision_category" not in data:
-                if score <= 3:
-                    decision_category = DecisionScore.STRONG_NO
-                elif score <= 5:
-                    decision_category = DecisionScore.MILD_NO
-                elif score == 6:
-                    decision_category = DecisionScore.NEUTRAL
-                elif score <= 8:
-                    decision_category = DecisionScore.MILD_YES
-                else:
-                    decision_category = DecisionScore.STRONG_YES
+            decision_category = DecisionScore(structured.decision_category)
+        except ValueError:
+            # Fallback to score-based mapping if invalid category
+            if score <= 3:
+                decision_category = DecisionScore.STRONG_NO
+            elif score <= 5:
+                decision_category = DecisionScore.MILD_NO
+            elif score == 6:
+                decision_category = DecisionScore.NEUTRAL
+            elif score <= 8:
+                decision_category = DecisionScore.MILD_YES
             else:
-                decision_category = DecisionScore(data["decision_category"])
+                decision_category = DecisionScore.STRONG_YES
 
-            # Parse budget analysis if present
-            budget_analysis = None
-            if "budget_analysis" in data and data["budget_analysis"]:
-                ba = data["budget_analysis"]
-                budget_analysis = BudgetAnalysis(
-                    category=ba.get("category"),
-                    current_spent=Decimal(str(ba.get("current_spent", 0))),
-                    limit=Decimal(str(ba.get("limit", 0))),
-                    remaining=Decimal(str(ba.get("remaining", 0))),
-                    percentage_used=float(ba.get("percentage_used", 0)),
-                    would_exceed=bool(ba.get("would_exceed", False)),
-                    impact_description=ba.get("impact_description", ""),
-                )
-
-            # Parse affected goals
-            affected_goals = []
-            if "affected_goals" in data:
-                for goal_data in data["affected_goals"]:
-                    goal = GoalAnalysis(
-                        goal_name=goal_data["goal_name"],
-                        target_amount=Decimal(str(goal_data["target_amount"])),
-                        current_amount=Decimal(str(goal_data["current_amount"])),
-                        remaining=Decimal(str(goal_data["remaining"])),
-                        deadline=goal_data.get("deadline"),
-                        impact_description=goal_data.get("impact_description", ""),
-                    )
-                    affected_goals.append(goal)
-
-            # Build analysis
-            analysis = DecisionAnalysis(
-                budget_analysis=budget_analysis,
-                affected_goals=affected_goals,
-                purchase_category=PurchaseCategory(
-                    data.get("purchase_category", "discretionary")
-                ),
-                financial_health_score=float(data.get("financial_health_score", 50.0)),
+        # Build budget analysis if available
+        budget_analysis = None
+        if structured.budget_category and structured.budget_limit is not None:
+            budget_analysis = BudgetAnalysis(
+                category=structured.budget_category,
+                current_spent=Decimal(str(structured.budget_current_spent or 0)),
+                limit=Decimal(str(structured.budget_limit)),
+                remaining=Decimal(str(structured.budget_remaining or 0)),
+                percentage_used=float(structured.budget_percentage_used or 0),
+                would_exceed=bool(structured.budget_would_exceed or False),
+                impact_description=structured.budget_impact or "",
             )
 
-            # Build decision
-            decision = PurchaseDecision(
-                score=score,
-                decision_category=decision_category,
-                reasoning=data["reasoning"],
-                analysis=analysis,
-                alternatives=data.get("alternatives"),
-                conditions=data.get("conditions"),
-            )
+        # Build goal analysis (simplified - we don't have full goal details in structured output)
+        affected_goals = []
+        if structured.affected_goal_names:
+            # For now, we just track the names
+            # Full goal details would require querying the database
+            # Or we could enhance the structured output to include more details
+            pass
 
-            return decision
+        # Parse purchase category
+        try:
+            purchase_category = PurchaseCategory(structured.purchase_category)
+        except ValueError:
+            purchase_category = PurchaseCategory.DISCRETIONARY
 
-        except (json.JSONDecodeError, KeyError, ValueError) as e:
-            # Fallback if parsing fails
-            return PurchaseDecision(
-                score=5,
-                decision_category=DecisionScore.NEUTRAL,
-                reasoning=f"Unable to analyze purchase properly. Agent response: {response_text[:500]}",
-                analysis=DecisionAnalysis(
-                    purchase_category=PurchaseCategory.DISCRETIONARY,
-                    financial_health_score=50.0,
-                ),
-                alternatives=["Try again with more details"],
-                conditions=None,
-            )
+        # Build analysis
+        analysis = DecisionAnalysis(
+            budget_analysis=budget_analysis,
+            affected_goals=affected_goals,
+            purchase_category=purchase_category,
+            financial_health_score=float(structured.financial_health_score),
+        )
+
+        # Build decision
+        decision = PurchaseDecision(
+            score=structured.score,
+            decision_category=decision_category,
+            reasoning=structured.reasoning,
+            analysis=analysis,
+            alternatives=structured.alternatives if structured.alternatives else None,
+            conditions=structured.conditions if structured.conditions else None,
+        )
+
+        return decision

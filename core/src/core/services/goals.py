@@ -1,11 +1,13 @@
 """Goals management service."""
+
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
+from sqlalchemy.orm import Session
+
 from core.database.models import Goal
 from core.models.goal import GoalCreate, GoalResponse, GoalUpdate
-from sqlalchemy.orm import Session
 
 
 class GoalService:
@@ -51,12 +53,7 @@ class GoalService:
         if not include_completed:
             query = query.filter(Goal.is_completed == False)
 
-        return (
-            query.order_by(Goal.created_at.desc())
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+        return query.order_by(Goal.created_at.desc()).offset(skip).limit(limit).all()
 
     def update_goal(
         self, goal_id: UUID, user_id: UUID, goal_update: GoalUpdate
@@ -90,13 +87,17 @@ class GoalService:
         self.db.commit()
         return True
 
-    def add_progress(self, goal_id: UUID, user_id: UUID, amount: float) -> Optional[Goal]:
+    def add_progress(
+        self, goal_id: UUID, user_id: UUID, amount: float
+    ) -> Optional[Goal]:
         """Add progress to a goal."""
+        from decimal import Decimal
+
         goal = self.get_goal(goal_id, user_id)
         if not goal:
             return None
 
-        goal.current_amount += amount
+        goal.current_amount += Decimal(str(amount))
 
         # Auto-complete if target reached
         if goal.current_amount >= goal.target_amount:

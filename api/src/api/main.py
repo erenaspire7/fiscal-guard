@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from api.routers import auth, budgets, decisions, goals
+from api.routers import auth, budgets, dashboard, decisions, goals, users
 
 # Create FastAPI app
 app = FastAPI(
@@ -31,6 +31,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(dashboard.router)
 app.include_router(budgets.router)
 app.include_router(goals.router)
 app.include_router(decisions.router)

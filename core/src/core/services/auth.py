@@ -1,13 +1,16 @@
 """Authentication service for Google OAuth and JWT."""
+
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import UUID
 
+import bcrypt
+from jose import JWTError, jwt
+from sqlalchemy.orm import Session
+
 from core.config import settings
 from core.database.models import User
 from core.models.user import UserCreate, UserResponse
-from jose import JWTError, jwt
-from sqlalchemy.orm import Session
 
 
 class AuthService:
@@ -87,3 +90,55 @@ class AuthService:
     def get_user_by_id(self, user_id: UUID) -> Optional[User]:
         """Get user by ID."""
         return self.db.query(User).filter(User.user_id == user_id).first()
+
+    def hash_password(self, password: str) -> str:
+        """Hash a password using bcrypt."""
+        # Ensure password is truncated to 72 bytes for bcrypt
+        password_bytes = password.encode("utf-8")
+        if len(password_bytes) > 72:
+            password_bytes = password_bytes[:72]
+
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password_bytes, salt)
+        return hashed.decode("utf-8")
+
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+        """Verify a password against a hash."""
+        password_bytes = plain_password.encode("utf-8")
+        if len(password_bytes) > 72:
+            password_bytes = password_bytes[:72]
+
+        return bcrypt.checkpw(password_bytes, hashed_password.encode("utf-8"))
+
+    def create_user_with_password(
+        self, email: str, password: str, full_name: Optional[str] = None
+    ) -> User:
+        """Create a new user with email and password."""
+        # Check if user already exists
+        existing = self.db.query(User).filter(User.email == email).first()
+        if existing:
+            raise ValueError("User with this email already exists")
+
+        # Validate password length (bcrypt has 72 byte limit)
+        if len(password.encode("utf-8")) > 72:
+            raise ValueError("Password cannot be longer than 72 bytes")
+
+        # Create new user
+        user = User(
+            email=email,
+            password_hash=self.hash_password(password),
+            full_name=full_name,
+        )
+        self.db.add(user)
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def authenticate_user(self, email: str, password: str) -> Optional[User]:
+        """Authenticate user with email and password."""
+        user = self.db.query(User).filter(User.email == email).first()
+        if not user or not user.password_hash:
+            return None
+        if not self.verify_password(password, user.password_hash):
+            return None
+        return user

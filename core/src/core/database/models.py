@@ -31,8 +31,11 @@ class User(Base):
     user_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), unique=True, nullable=False, index=True)
     google_id = Column(String(255), unique=True, nullable=True, index=True)
+    password_hash = Column(String(255), nullable=True)  # For email/password auth
     full_name = Column(String(255), nullable=True)
     profile_picture = Column(Text, nullable=True)
+    persona_tone = Column(String(50), default="balanced", nullable=True)
+    strictness_level = Column(Integer, default=5, nullable=True)  # 1-10
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

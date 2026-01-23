@@ -16,11 +16,14 @@ from core.models.decision import (
 from core.models.decision import (
     PurchaseDecisionDB as PurchaseDecisionDBModel,
 )
-from core.observability.opik_config import track_decision
 
 
 class DecisionService:
-    """Service for managing purchase decisions."""
+    """Service for managing purchase decisions.
+
+    Note: Tracing is handled automatically by Strands Agent via OpenTelemetry.
+    No manual @track decorators needed.
+    """
 
     def __init__(self, db: Session):
         """Initialize decision service.
@@ -31,11 +34,13 @@ class DecisionService:
         self.db = db
         self.agent = DecisionAgent(db)
 
-    @track_decision(name="create_decision_service")
     def create_decision(
         self, user_id: UUID, request: PurchaseDecisionRequest
     ) -> PurchaseDecisionResponse:
         """Create a new purchase decision.
+
+        The DecisionAgent automatically traces this flow via OpenTelemetry,
+        including all tool calls and model interactions.
 
         Args:
             user_id: User making the purchase request
@@ -45,9 +50,11 @@ class DecisionService:
             Purchase decision response with decision and ID
         """
         # Use the AI agent to analyze the purchase
+        # This is automatically traced via OpenTelemetry
         decision = self.agent.analyze_purchase(user_id, request)
 
         # Save to database
+        # Use mode='json' to properly serialize Decimal fields
         db_decision = PurchaseDecisionDB(
             user_id=user_id,
             item_name=request.item_name,
@@ -58,7 +65,7 @@ class DecisionService:
             score=decision.score,
             decision_category=decision.decision_category.value,
             reasoning=decision.reasoning,
-            analysis=decision.analysis.model_dump(),
+            analysis=decision.analysis.model_dump(mode="json"),
             alternatives=decision.alternatives,
             conditions=decision.conditions,
         )
@@ -200,4 +207,61 @@ class DecisionService:
             "total_requested": round(total_requested, 2),
             "decisions_by_category": category_counts,
             "feedback_rate": round(feedback_rate, 1),
+        }
+
+    def get_dashboard_summary(self, user_id: UUID) -> dict:
+        """Get summary data for the dashboard.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            Dictionary containing guard score, trend, and recent decisions.
+        """
+        # Get recent decisions to calculate performance
+        recent_decisions = (
+            self.db.query(PurchaseDecisionDB)
+            .filter(PurchaseDecisionDB.user_id == user_id)
+            .order_by(PurchaseDecisionDB.created_at.desc())
+            .limit(20)
+            .all()
+        )
+
+        if not recent_decisions:
+            return {
+                "guard_score": 0,
+                "score_status": "New",
+                "score_trend": [],
+                "recent_decisions": [],
+            }
+
+        avg_score = sum(d.score for d in recent_decisions) / len(recent_decisions)
+        guard_score = int(avg_score * 10)
+
+        # Trend data (reverse to chronological order for sparkline)
+        trend = [d.score for d in reversed(recent_decisions)]
+
+        # Determine status
+        if guard_score >= 80:
+            status = "Thriving"
+        elif guard_score >= 60:
+            status = "Stable"
+        else:
+            status = "At Risk"
+
+        return {
+            "guard_score": guard_score,
+            "score_status": status,
+            "score_trend": trend,
+            "recent_decisions": [
+                {
+                    "decision_id": d.decision_id,
+                    "item_name": d.item_name,
+                    "amount": float(d.amount),
+                    "score": d.score,
+                    "category": d.category,
+                    "created_at": d.created_at,
+                }
+                for d in recent_decisions[:5]
+            ],
         }

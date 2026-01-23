@@ -1,7 +1,10 @@
 """Budget management service."""
+
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
+
+from sqlalchemy.orm import Session
 
 from core.database.models import Budget
 from core.models.budget import (
@@ -10,7 +13,6 @@ from core.models.budget import (
     BudgetUpdate,
     CategoryBudget,
 )
-from sqlalchemy.orm import Session
 
 
 class BudgetService:
@@ -23,8 +25,10 @@ class BudgetService:
     def create_budget(self, user_id: UUID, budget_data: BudgetCreate) -> Budget:
         """Create a new budget."""
         # Convert Pydantic models to dict for JSON storage
+        # Convert Decimals to floats for JSON compatibility
         categories_dict = {
-            key: value.model_dump() for key, value in budget_data.categories.items()
+            key: {"limit": float(value.limit), "spent": float(value.spent)}
+            for key, value in budget_data.categories.items()
         }
 
         budget = Budget(
@@ -48,7 +52,9 @@ class BudgetService:
             .first()
         )
 
-    def list_budgets(self, user_id: UUID, skip: int = 0, limit: int = 100) -> List[Budget]:
+    def list_budgets(
+        self, user_id: UUID, skip: int = 0, limit: int = 100
+    ) -> List[Budget]:
         """List all budgets for a user."""
         return (
             self.db.query(Budget)
@@ -69,11 +75,23 @@ class BudgetService:
 
         update_data = budget_update.model_dump(exclude_unset=True)
 
-        # Convert categories if present
+        # Convert categories if present (they're already dicts after model_dump)
         if "categories" in update_data and update_data["categories"]:
-            update_data["categories"] = {
-                key: value.model_dump() for key, value in update_data["categories"].items()
-            }
+            categories_dict = {}
+            for key, value in update_data["categories"].items():
+                if isinstance(value, dict):
+                    # Already a dict from model_dump, ensure floats
+                    categories_dict[key] = {
+                        "limit": float(value.get("limit", 0)),
+                        "spent": float(value.get("spent", 0)),
+                    }
+                else:
+                    # Pydantic model (shouldn't happen but handle it)
+                    categories_dict[key] = {
+                        "limit": float(value.limit),
+                        "spent": float(value.spent),
+                    }
+            update_data["categories"] = categories_dict
 
         for key, value in update_data.items():
             setattr(budget, key, value)
@@ -101,7 +119,16 @@ class BudgetService:
         if not budget or category not in budget.categories:
             return None
 
-        budget.categories[category]["spent"] = float(amount)
+        # Update the spending amount
+        categories_copy = budget.categories.copy()
+        categories_copy[category]["spent"] = float(amount)
+        budget.categories = categories_copy
+
+        # Flag as modified for SQLAlchemy to detect the change
+        from sqlalchemy.orm.attributes import flag_modified
+
+        flag_modified(budget, "categories")
+
         budget.updated_at = datetime.utcnow()
         self.db.commit()
         self.db.refresh(budget)

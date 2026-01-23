@@ -120,7 +120,7 @@ class PurchaseDecisionCreate(BaseModel):
 class PurchaseDecisionDB(BaseModel):
     """Purchase decision from database."""
 
-    id: UUID
+    id: UUID = Field(alias="decision_id")  # Maps decision_id from DB to id in model
     user_id: UUID
     item_name: str
     amount: Decimal
@@ -138,7 +138,7 @@ class PurchaseDecisionDB(BaseModel):
     actual_purchase: Optional[bool] = None
     regret_level: Optional[int] = None
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 class DecisionFeedback(BaseModel):
