@@ -1,7 +1,9 @@
-export enum AppTheme {
-  DarkGreen = "dark_green",
-  Light = "light",
-}
+export const AppTheme = {
+  DarkGreen: "dark_green",
+  Light: "light",
+} as const;
+
+export type AppTheme = (typeof AppTheme)[keyof typeof AppTheme];
 
 export const ThemeBackgrounds: Record<AppTheme, string> = {
   [AppTheme.DarkGreen]:

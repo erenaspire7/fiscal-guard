@@ -1,0 +1,30 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL
+      - JWT_SECRET_KEY
+      - JWT_ALGORITHM
+      - JWT_EXPIRATION_MINUTES
+      - GOOGLE_CLIENT_ID
+      - GOOGLE_CLIENT_SECRET
+      - GOOGLE_CALLBACK_URL
+      - FRONTEND_URL
+      - STRANDS_DEFAULT_MODEL
+      - GOOGLE_API_KEY
+      - OTEL_EXPORTER_OTLP_ENDPOINT
+      - OTEL_EXPORTER_OTLP_HEADERS
+      - OPIK_TRACING_ENABLED
+
+  ui:
+    build:
+      context: .
+      dockerfile: ./ui/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL

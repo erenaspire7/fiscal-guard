@@ -25,13 +25,11 @@ import {
 import {
   Plus,
   ShieldCheck,
-  History,
   Wallet,
   Utensils,
   Film,
   ShoppingBag,
   ShoppingCart,
-  CheckCircle2,
   Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
