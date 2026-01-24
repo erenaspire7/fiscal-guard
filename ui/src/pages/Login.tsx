@@ -23,6 +23,7 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { useAuth } from "@/contexts/AuthContext";
+import { env } from "@/config/env";
 
 export default function Login() {
   const { login } = useAuth();
@@ -33,7 +34,7 @@ export default function Login() {
 
   const handleGoogleLogin = () => {
     // Redirect to backend Google OAuth endpoint
-    window.location.href = "http://localhost:8000/auth/google/login";
+    window.location.href = `${env.apiUrl}/auth/google/login`;
   };
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
@@ -42,7 +43,7 @@ export default function Login() {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:8000/auth/login", {
+      const response = await fetch(`${env.apiUrl}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

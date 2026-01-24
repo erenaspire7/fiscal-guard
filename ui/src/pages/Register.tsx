@@ -23,6 +23,7 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { useAuth } from "@/contexts/AuthContext";
+import { env } from "@/config/env";
 
 export default function Register() {
   const { login } = useAuth();
@@ -33,7 +34,7 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:8000/auth/google/login";
+    window.location.href = `${env.apiUrl}/auth/google/login`;
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -42,7 +43,7 @@ export default function Register() {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:8000/auth/register", {
+      const response = await fetch(`${env.apiUrl}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

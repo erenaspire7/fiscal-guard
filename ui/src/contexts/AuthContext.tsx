@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
+import { env } from "@/config/env";
 
 interface User {
   id: string;
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (authToken: string) => {
     try {
-      const response = await fetch("http://localhost:8000/auth/me", {
+      const response = await fetch(`${env.apiUrl}/auth/me`, {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },

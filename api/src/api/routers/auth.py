@@ -51,7 +51,6 @@ class LoginRequest(BaseModel):
 @router.get("/google/login")
 async def google_login(request: Request):
     """Redirect to Google OAuth login page."""
-    print(settings)
     redirect_uri = settings.google_redirect_uri
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
