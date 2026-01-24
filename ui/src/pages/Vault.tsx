@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { env } from "@/config/env";
 import {
   Plus,
   Wallet,
@@ -68,9 +69,7 @@ export default function Vault() {
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/${
-          itemToDelete.type
-        }/${itemToDelete.id}`,
+        `${env.apiUrl}/${itemToDelete.type}/${itemToDelete.id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -103,7 +102,7 @@ export default function Vault() {
     setIsSubmittingProgress(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/goals/${selectedGoal.id}/progress`,
+        `${env.apiUrl}/goals/${selectedGoal.id}/progress`,
         {
           method: "POST",
           headers: {

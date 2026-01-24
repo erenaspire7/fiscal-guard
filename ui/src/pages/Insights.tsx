@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import { Zap, Calendar, Smile, Frown, Meh, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeBackgrounds, DEFAULT_THEME } from "@/lib/themes";
+import { env } from "@/config/env";
 
 export default function Insights() {
   const { data, isLoading, refresh } = useInsightsData();
@@ -24,7 +25,7 @@ export default function Insights() {
     setSubmittingFeedback(decisionId);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/decisions/${decisionId}/feedback`,
+        `${env.apiUrl}/decisions/${decisionId}/feedback`,
         {
           method: "POST",
           headers: {

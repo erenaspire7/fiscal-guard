@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { env } from "@/config/env";
 
 export interface Message {
   role: "user" | "assistant";
@@ -34,23 +35,20 @@ export function useChat() {
         const amount = parseAmount(content);
         const itemName = content.split(" ").slice(0, 5).join(" ");
 
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/decisions`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              item_name: itemName,
-              amount: amount,
-              category: "General",
-              reason: content,
-              urgency: "Normal",
-            }),
+        const response = await fetch(`${env.apiUrl}/decisions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-        );
+          body: JSON.stringify({
+            item_name: itemName,
+            amount: amount,
+            category: "General",
+            reason: content,
+            urgency: "Normal",
+          }),
+        });
 
         if (!response.ok) throw new Error("Failed to reach the Fiscal Guard");
 

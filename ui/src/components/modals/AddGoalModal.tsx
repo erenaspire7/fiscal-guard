@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X, Target, Calendar, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { env } from "@/config/env";
 
 interface AddGoalModalProps {
   isOpen: boolean;
@@ -30,22 +31,19 @@ export default function AddGoalModal({
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/goals`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            goal_name: name,
-            target_amount: parseFloat(target),
-            priority,
-            deadline: deadline || null,
-          }),
+      const response = await fetch(`${env.apiUrl}/goals`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          goal_name: name,
+          target_amount: parseFloat(target),
+          priority,
+          deadline: deadline || null,
+        }),
+      });
 
       if (response.ok) {
         onSuccess();

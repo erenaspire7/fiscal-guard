@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X, Wallet, Plus, Trash2, Calendar, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { env } from "@/config/env";
 
 interface CategoryEntry {
   id: string;
@@ -80,23 +81,20 @@ export default function AddBudgetModal({
         }
       });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/budgets`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name,
-            total_monthly: parseFloat(totalMonthly),
-            period_start: periodStart,
-            period_end: periodEnd,
-            categories: categoriesMap,
-          }),
+      const response = await fetch(`${env.apiUrl}/budgets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          name,
+          total_monthly: parseFloat(totalMonthly),
+          period_start: periodStart,
+          period_end: periodEnd,
+          categories: categoriesMap,
+        }),
+      });
 
       if (response.ok) {
         onSuccess();

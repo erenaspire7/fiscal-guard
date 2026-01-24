@@ -1,34 +1,36 @@
 #!/bin/bash
 
-# Script to build and push Docker images to Docker Hub
-# Usage: ./scripts/docker-push.sh <docker-username>
+# Script to build and push Docker images to Docker Hub using buildx
+# Usage: ./scripts/docker-push.sh <docker-username> [version]
 
 set -e
 
 # Check if Docker username is provided
 if [ -z "$1" ]; then
   echo "Error: Docker Hub username is required"
-  echo "Usage: ./scripts/docker-push.sh <docker-username>"
+  echo "Usage: ./scripts/docker-push.sh <docker-username> [version]"
+  echo "Example: ./scripts/docker-push.sh myuser latest"
   exit 1
 fi
 
 DOCKER_USERNAME=$1
 IMAGE_NAME="fiscal-guard"
 VERSION=${2:-latest}
+PLATFORM="linux/amd64,linux/arm64"
 
-echo "Building images with docker compose..."
-docker compose build
+echo "Setting up buildx builder..."
+docker buildx create --name fiscal-guard-builder --use 2>/dev/null || docker buildx use fiscal-guard-builder
 
-# Tag and push API image
-echo "Tagging and pushing API image..."
-docker tag fiscal-guard-api ${DOCKER_USERNAME}/${IMAGE_NAME}-api:${VERSION}
-docker push ${DOCKER_USERNAME}/${IMAGE_NAME}-api:${VERSION}
+# Build and push API image
+echo "Building and pushing API image for ${PLATFORM}..."
+docker buildx build \
+  --platform ${PLATFORM} \
+  --file api/Dockerfile \
+  --tag ${DOCKER_USERNAME}/${IMAGE_NAME}-api:${VERSION} \
+  --push \
+  .
 
-# Tag and push UI image
-echo "Tagging and pushing UI image..."
-docker tag fiscal-guard-ui ${DOCKER_USERNAME}/${IMAGE_NAME}-ui:${VERSION}
-docker push ${DOCKER_USERNAME}/${IMAGE_NAME}-ui:${VERSION}
 
-echo "Successfully pushed images:"
+echo "Successfully pushed multi-platform images:"
 echo "  - ${DOCKER_USERNAME}/${IMAGE_NAME}-api:${VERSION}"
-echo "  - ${DOCKER_USERNAME}/${IMAGE_NAME}-ui:${VERSION}"
+echo "  Platforms: ${PLATFORM}"

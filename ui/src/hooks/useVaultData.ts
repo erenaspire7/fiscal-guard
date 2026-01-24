@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { env } from "@/config/env";
 
 export interface BudgetCategory {
   limit: number;
@@ -20,7 +21,7 @@ export interface Goal {
   goal_name: string;
   target_amount: number;
   current_amount: number;
-  priority: 'high' | 'medium' | 'low';
+  priority: "high" | "medium" | "low";
   deadline: string | null;
   is_completed: boolean;
 }
@@ -37,19 +38,17 @@ export function useVaultData() {
 
     setIsLoading(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
       const [budgetsRes, goalsRes] = await Promise.all([
-        fetch(`${baseUrl}/budgets`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        fetch(`${env.apiUrl}/budgets`, {
+          headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${baseUrl}/goals`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+        fetch(`${env.apiUrl}/goals`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
 
       if (!budgetsRes.ok || !goalsRes.ok) {
-        throw new Error('Failed to fetch vault data');
+        throw new Error("Failed to fetch vault data");
       }
 
       const budgetsData = await budgetsRes.json();
@@ -59,8 +58,10 @@ export function useVaultData() {
       setGoals(goalsData);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      console.error('Vault fetch error:', err);
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred",
+      );
+      console.error("Vault fetch error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -75,6 +76,6 @@ export function useVaultData() {
     goals,
     isLoading,
     error,
-    refresh: fetchData
+    refresh: fetchData,
   };
 }

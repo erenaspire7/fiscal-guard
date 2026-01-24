@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { env } from "@/config/env";
 import {
   ArrowLeft,
   Megaphone,
@@ -51,20 +52,17 @@ export default function AgentConfiguration() {
         Math.min(10, Math.round(strictness / 10) + 1),
       );
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/users/me`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            persona_tone,
-            strictness_level,
-          }),
+      const response = await fetch(`${env.apiUrl}/users/me`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          persona_tone,
+          strictness_level,
+        }),
+      });
 
       if (!response.ok) throw new Error("Failed to save settings");
     } catch (error) {

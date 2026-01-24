@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { env } from "@/config/env";
 
 export interface ReflectionItem {
   decision_id: string;
@@ -32,15 +33,12 @@ export function useInsightsData() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/decisions/stats`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetch(`${env.apiUrl}/decisions/stats`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch strategic intelligence");
@@ -49,12 +47,9 @@ export function useInsightsData() {
       const stats = await response.json();
 
       // We'll augment the stats with full decision history for reflections
-      const historyRes = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/decisions?limit=20`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const historyRes = await fetch(`${env.apiUrl}/decisions?limit=20`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const history = await historyRes.json();
 
       setData({
@@ -63,11 +58,13 @@ export function useInsightsData() {
         total_capital_retained: stats.total_requested, // Simplified for now: sum of all intercepted
         intercepted_count: stats.total_decisions,
         correlation_trend: [60, 85, 45, 90, 70, 100, 95, 88], // Placeholder
-        reflections: history
+        reflections: history,
       });
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred",
+      );
       console.error("Insights fetch error:", err);
     } finally {
       setIsLoading(false);
