@@ -1,5 +1,6 @@
 """AI-powered purchase decision agent using Strands."""
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID, uuid4
@@ -14,6 +15,7 @@ from core.config import settings
 from core.database.models import User
 from core.models.decision import (
     BudgetAnalysis,
+    BudgetCategory,
     DecisionAnalysis,
     DecisionScore,
     GoalAnalysis,
@@ -22,6 +24,25 @@ from core.models.decision import (
     PurchaseDecisionRequest,
 )
 from core.observability.pii_redaction import create_trace_attributes
+
+
+class ExtractedPurchaseInfo(BaseModel):
+    """Extracted information from natural language purchase request."""
+
+    item_name: str = Field(..., description="Name of the item the user wants to buy")
+    amount: float = Field(
+        ..., description="Estimated or explicit purchase amount in dollars"
+    )
+    category: Optional[str] = Field(
+        None,
+        description="Budget category: shopping, dining, entertainment, groceries, transport, or general",
+    )
+    urgency: Optional[str] = Field(
+        None, description="Urgency level (urgent, normal, can_wait)"
+    )
+    reason: Optional[str] = Field(
+        None, description="User's reason for wanting to buy this"
+    )
 
 
 class StructuredPurchaseDecision(BaseModel):
@@ -130,7 +151,7 @@ Your role:
    - investment: Will provide future value
    - impulse: Emotional or unplanned purchase
 
-5. Provide detailed reasoning that considers:
+5. Provide concise reasoning (keep it short and punchy) that considers:
    - Budget impact (will it exceed category limits?)
    - Goal impact (will it delay financial goals?)
    - Overall financial health
@@ -145,11 +166,64 @@ Your role:
 
 8. Reference past patterns when relevant (e.g., "You've regretted similar purchases before")
 
-Be honest, practical, and empathetic. Consider the user's context and help them make decisions that align with their financial goals."""
+Be honest, practical, and empathetic. Consider the user's context and help them make decisions that align with their financial goals.
+
+CRITICAL: Keep your reasoning and analysis extremely concise. Avoid fluff. Get straight to the point."""
+
+    def _extract_purchase_info(self, user_message: str) -> ExtractedPurchaseInfo:
+        """Extract structured purchase information from natural language.
+
+        Args:
+            user_message: Natural language purchase request from user
+
+        Returns:
+            Extracted purchase information
+        """
+        # Create a simple extraction agent
+        extraction_agent = Agent(
+            model=self.model,
+            system_prompt="""You are a helpful assistant that extracts purchase information from natural language.
+
+Extract the following from the user's message:
+- item_name: What they want to buy
+- amount: How much it costs (if mentioned, otherwise estimate based on the item)
+- category: Budget category - must be one of: shopping, dining, entertainment, groceries, transport, general
+  * shopping: clothes, electronics, home goods, furniture, etc.
+  * dining: restaurants, takeout, food delivery
+  * entertainment: movies, games, concerts, subscriptions
+  * groceries: supermarket shopping, food ingredients
+  * transport: gas, car maintenance, uber, public transit
+  * general: anything that doesn't fit the above
+- urgency: How urgent is it (urgent, normal, can_wait)
+- reason: Why they want to buy it (infer from context if not explicitly stated)
+
+If amount is not mentioned, provide a reasonable estimate based on typical prices.""",
+            structured_output_model=ExtractedPurchaseInfo,
+        )
+
+        try:
+            response = extraction_agent(f"Extract purchase info from: {user_message}")
+
+            # Parse the response
+            import json
+
+            json_str = response.output if hasattr(response, "output") else str(response)
+            json_data = json.loads(json_str)
+            return ExtractedPurchaseInfo(**json_data)
+        except Exception as e:
+            # If extraction fails (e.g., "I bought it" without context), return minimal info
+            # This will cause the main flow to ask for clarification
+            return ExtractedPurchaseInfo(
+                item_name="Unknown",
+                amount=0.0,
+                category="general",
+                urgency="normal",
+                reason=user_message,
+            )
 
     def analyze_purchase(
         self, user_id: UUID, request: PurchaseDecisionRequest
-    ) -> PurchaseDecision:
+    ) -> tuple[PurchaseDecision, Optional[str], Optional[UUID]]:
         """Analyze a purchase decision request.
 
         Args:
@@ -159,6 +233,25 @@ Be honest, practical, and empathetic. Consider the user's context and help them 
         Returns:
             Purchase decision with score and reasoning
         """
+        # If user_message is provided, extract structured info from it
+        if request.user_message:
+            extracted = self._extract_purchase_info(request.user_message)
+            # Update request with extracted info (only if not already provided)
+            if not request.item_name:
+                request.item_name = extracted.item_name
+            if not request.amount:
+                request.amount = Decimal(str(extracted.amount))
+            if not request.category and extracted.category:
+                # Convert string to BudgetCategory enum
+                try:
+                    request.category = BudgetCategory(extracted.category.lower())
+                except ValueError:
+                    # Default to general if invalid category
+                    request.category = BudgetCategory.GENERAL
+            if not request.urgency:
+                request.urgency = extracted.urgency
+            if not request.reason:
+                request.reason = extracted.reason or request.user_message
         # Fetch user persona and strictness
         user = self.db_session.query(User).filter(User.user_id == user_id).first()
         persona = user.persona_tone if user and user.persona_tone else "balanced"
@@ -261,8 +354,48 @@ Provide your complete analysis with a decision score, reasoning, and recommendat
         json_data = json.loads(json_str)
         structured_response = StructuredPurchaseDecision(**json_data)
 
+        # Check if we need clarification about a similar recent purchase
+        clarification_question = None
+        related_decision_id = None
+
+        if not request.is_follow_up and request.item_name:
+            # Query recent decisions directly
+            from datetime import timedelta
+
+            from core.database.models import PurchaseDecision as PurchaseDecisionDB
+
+            twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+
+            # Find recent decisions with similar item names
+            recent_decisions = (
+                self.db_session.query(PurchaseDecisionDB)
+                .filter(
+                    PurchaseDecisionDB.user_id == user_id,
+                    PurchaseDecisionDB.created_at > twenty_four_hours_ago,
+                )
+                .order_by(PurchaseDecisionDB.created_at.desc())
+                .limit(10)
+                .all()
+            )
+
+            # Check for similar item names
+            for past_decision in recent_decisions:
+                # Simple similarity check - if the new item name contains the old one or vice versa
+                item_lower = request.item_name.lower()
+                past_item_lower = past_decision.item_name.lower()
+
+                if (
+                    item_lower in past_item_lower or past_item_lower in item_lower
+                ) and len(item_lower) > 3:
+                    # Found a recent similar item - ask for clarification
+                    clarification_question = f"I see you were considering '{past_decision.item_name}' for ${past_decision.amount} earlier. Is this the same item, or something different?"
+                    related_decision_id = past_decision.decision_id
+                    break
+
         # Convert structured response to our domain model
-        return self._convert_to_purchase_decision(structured_response)
+        decision = self._convert_to_purchase_decision(structured_response)
+
+        return decision, clarification_question, related_decision_id
 
     def _convert_to_purchase_decision(
         self, structured: StructuredPurchaseDecision
@@ -295,8 +428,14 @@ Provide your complete analysis with a decision score, reasoning, and recommendat
         # Build budget analysis if available
         budget_analysis = None
         if structured.budget_category and structured.budget_limit is not None:
+            # Convert string to BudgetCategory enum
+            try:
+                category_enum = BudgetCategory(structured.budget_category.lower())
+            except ValueError:
+                category_enum = BudgetCategory.GENERAL
+
             budget_analysis = BudgetAnalysis(
-                category=structured.budget_category,
+                category=category_enum,
                 current_spent=Decimal(str(structured.budget_current_spent or 0)),
                 limit=Decimal(str(structured.budget_limit)),
                 remaining=Decimal(str(structured.budget_remaining or 0)),

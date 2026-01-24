@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 
 from core.config import settings
 from core.database.models import User
-from core.models.user import UserCreate, UserResponse
 
 
 class AuthService:
@@ -39,9 +38,8 @@ class AuthService:
             payload = jwt.decode(
                 token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
             )
-            user_id: str = payload.get("sub")
-            if user_id is None:
-                return None
+            user_id = payload.get("sub")
+
             return user_id
         except JWTError:
             return None

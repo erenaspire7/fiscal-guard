@@ -1,19 +1,75 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useInsightsData } from "@/hooks/useInsightsData";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
-import { Zap, Calendar, Smile, Frown, Meh, CheckCircle2 } from "lucide-react";
+import {
+  Zap,
+  Calendar,
+  Smile,
+  Frown,
+  Meh,
+  CheckCircle2,
+  HelpCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeBackgrounds, DEFAULT_THEME } from "@/lib/themes";
 import { env } from "@/config/env";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
+type TimeWindow = "30day" | "all";
 
 export default function Insights() {
-  const { data, isLoading, refresh } = useInsightsData();
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>("30day");
+
+  const startDate = useMemo(() => {
+    if (timeWindow === "30day") {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return date;
+    }
+    return null;
+  }, [timeWindow]);
+
+  const itemsPerPage = 5;
   const { token } = useAuth();
   const [submittingFeedback, setSubmittingFeedback] = useState<string | null>(
     null,
   );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [editingFeedback, setEditingFeedback] = useState<string | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+
+  const offset = (currentPage - 1) * itemsPerPage;
+  const { data, isLoading, refresh } = useInsightsData({
+    startDate,
+    limit: itemsPerPage,
+    offset,
+  });
+
+  const paginatedReflections = data?.reflections || [];
+  const totalItems = data?.total_reflections || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  // Reset to page 1 when time window changes
+  const handleTimeWindowChange = (window: TimeWindow) => {
+    setTimeWindow(window);
+    setCurrentPage(1);
+  };
 
   const handleFeedback = async (
     decisionId: string,
@@ -50,6 +106,44 @@ export default function Insights() {
     }
   };
 
+  const handleUpdateFeedback = async (
+    decisionId: string,
+    actualPurchase: boolean,
+    regretLevel: number,
+    feedback: string,
+  ) => {
+    if (!token || submittingFeedback) return;
+
+    setSubmittingFeedback(decisionId);
+    try {
+      const response = await fetch(
+        `${env.apiUrl}/decisions/${decisionId}/feedback`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            actual_purchase: actualPurchase,
+            regret_level: regretLevel,
+            feedback: feedback || null,
+          }),
+        },
+      );
+
+      if (response.ok) {
+        setEditingFeedback(null);
+        setFeedbackText("");
+        refresh();
+      }
+    } catch (error) {
+      console.error("Failed to update feedback:", error);
+    } finally {
+      setSubmittingFeedback(null);
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -73,10 +167,26 @@ export default function Insights() {
           </h2>
 
           <div className="flex items-center gap-2 self-end md:self-auto">
-            <button className="bg-[#10b981] text-[#020403] px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#10b981]/90 transition-colors">
+            <button
+              onClick={() => handleTimeWindowChange("30day")}
+              className={cn(
+                "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors",
+                timeWindow === "30day"
+                  ? "bg-[#10b981] text-[#020403] hover:bg-[#10b981]/90"
+                  : "text-muted-foreground hover:text-white",
+              )}
+            >
               30-Day Window
             </button>
-            <button className="text-muted-foreground hover:text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-colors">
+            <button
+              onClick={() => handleTimeWindowChange("all")}
+              className={cn(
+                "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors",
+                timeWindow === "all"
+                  ? "bg-[#10b981] text-[#020403] hover:bg-[#10b981]/90"
+                  : "text-muted-foreground hover:text-white",
+              )}
+            >
               All Time
             </button>
             <button className="w-9 h-9 bg-card/10 rounded-lg flex items-center justify-center border border-white/5 hover:bg-white/10 transition-colors">
@@ -88,7 +198,7 @@ export default function Insights() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Reflections List */}
           <div className="lg:col-span-2 space-y-4 order-2 lg:order-1">
-            {data?.reflections.map((item) => (
+            {paginatedReflections.map((item) => (
               <div
                 key={item.decision_id}
                 className="bg-[#0A1210] border border-white/5 p-6 md:p-8 rounded-[32px] flex flex-col md:flex-row gap-6 md:gap-8 hover:bg-[#0F1A16] transition-colors group"
@@ -182,24 +292,149 @@ export default function Insights() {
                     AI: {item.score >= 7 ? "LOW RISK" : "HIGH RISK"}
                   </span>
 
-                  {item.user_feedback ? (
-                    <div className="mt-4 md:mt-0 pl-4 border-l-2 border-primary/30 w-full">
+                  {editingFeedback === item.decision_id ? (
+                    <div className="mt-4 md:mt-0 w-full space-y-2">
+                      <textarea
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        placeholder="Add your reflection..."
+                        className="w-full bg-[#0F1A16] border border-white/10 rounded-lg p-2 text-sm text-white placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 resize-none"
+                        rows={3}
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => {
+                            setEditingFeedback(null);
+                            setFeedbackText("");
+                          }}
+                          className="px-3 py-1 text-xs text-muted-foreground hover:text-white transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleUpdateFeedback(
+                              item.decision_id,
+                              item.actual_purchase ?? true,
+                              item.regret_level ?? 5,
+                              feedbackText,
+                            )
+                          }
+                          disabled={submittingFeedback === item.decision_id}
+                          className="px-3 py-1 text-xs bg-primary text-[#020403] rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : item.user_feedback ? (
+                    <div className="mt-4 md:mt-0 pl-4 border-l-2 border-primary/30 w-full group/feedback">
                       <p className="text-sm italic text-muted-foreground/80">
                         "{item.user_feedback}"
                       </p>
+                      <button
+                        onClick={() => {
+                          setEditingFeedback(item.decision_id);
+                          setFeedbackText(item.user_feedback || "");
+                        }}
+                        className="mt-2 text-[10px] text-primary/60 hover:text-primary transition-colors opacity-0 group-hover/feedback:opacity-100"
+                      >
+                        Edit
+                      </button>
                     </div>
                   ) : (
-                    <p className="hidden md:block text-xs italic text-muted-foreground opacity-30 mt-auto">
-                      No reflection added yet...
-                    </p>
+                    <button
+                      onClick={() => {
+                        setEditingFeedback(item.decision_id);
+                        setFeedbackText("");
+                      }}
+                      className="hidden md:block text-xs italic text-muted-foreground opacity-30 hover:opacity-60 hover:text-primary transition-all mt-auto text-left"
+                    >
+                      + Add reflection...
+                    </button>
                   )}
                 </div>
               </div>
             ))}
-            {(!data || data.reflections.length === 0) && !isLoading && (
+            {paginatedReflections.length === 0 && !isLoading && (
               <p className="text-center text-muted-foreground text-sm py-10">
-                No reflections found in your history.
+                No reflections found
+                {timeWindow === "30day"
+                  ? " in the last 30 days"
+                  : " in your history"}
+                .
               </p>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="pt-6">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
+                        className={cn(
+                          "cursor-pointer bg-[#0A1210] border border-white/5 text-white hover:bg-[#0F1A16] hover:text-primary",
+                          currentPage === 1 && "opacity-50 cursor-not-allowed",
+                        )}
+                      />
+                    </PaginationItem>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => {
+                        // Show first page, last page, current page, and pages around current
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => setCurrentPage(page)}
+                                isActive={currentPage === page}
+                                className={cn(
+                                  "cursor-pointer bg-[#0A1210] border border-white/5 text-white hover:bg-[#0F1A16] hover:text-primary",
+                                  currentPage === page &&
+                                    "bg-primary/20 text-primary border-primary/20",
+                                )}
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        } else if (
+                          page === currentPage - 2 ||
+                          page === currentPage + 2
+                        ) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationEllipsis className="text-muted-foreground" />
+                            </PaginationItem>
+                          );
+                        }
+                        return null;
+                      },
+                    )}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() =>
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        className={cn(
+                          "cursor-pointer bg-[#0A1210] border border-white/5 text-white hover:bg-[#0F1A16] hover:text-primary",
+                          currentPage === totalPages &&
+                            "opacity-50 cursor-not-allowed",
+                        )}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
             )}
           </div>
 
@@ -244,9 +479,33 @@ export default function Insights() {
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2">
                   Financial Health
                 </p>
-                <h3 className="text-xl font-bold text-white mb-2">
-                  Peace of Mind Score
-                </h3>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <h3 className="text-xl font-bold text-white">
+                    Peace of Mind Score
+                  </h3>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-muted-foreground hover:text-primary transition-colors">
+                          <HelpCircle className="w-4 h-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs bg-[#0F1A16] border-white/10 text-white p-4">
+                        <p className="text-xs leading-relaxed">
+                          <span className="font-bold text-primary">
+                            How it's calculated:
+                          </span>
+                          <br />
+                          Your score is based on the average AI risk assessment
+                          of your purchase decisions. Higher scores indicate
+                          better financial discipline and lower impulsive buying
+                          tendencies. The score considers factors like budget
+                          alignment, necessity, and emotional purchase triggers.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <p className="text-primary text-xs font-bold">
                   Your impulse control grew {data?.impulse_control_growth || 0}%
                   this month.
@@ -262,7 +521,7 @@ export default function Insights() {
                   Total Capital Retained
                 </p>
                 <h3 className="text-4xl font-black text-primary drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
-                  ${data?.total_capital_retained.toLocaleString() || "0,000"}
+                  ${data?.total_capital_retained.toLocaleString() || "0"}
                 </h3>
                 <p className="text-xs text-muted-foreground font-medium max-w-[150px]">
                   Saved from{" "}

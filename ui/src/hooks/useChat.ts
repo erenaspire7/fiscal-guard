@@ -7,17 +7,13 @@ export interface Message {
   content: string;
   id: string;
   timestamp: Date;
+  metadata?: Record<string, any>;
 }
 
 export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { token } = useAuth();
-
-  const parseAmount = (text: string): number => {
-    const match = text.match(/\$?(\d+(?:\.\d{2})?)/);
-    return match ? parseFloat(match[1]) : 0;
-  };
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -32,21 +28,24 @@ export function useChat() {
       setIsLoading(true);
 
       try {
-        const amount = parseAmount(content);
-        const itemName = content.split(" ").slice(0, 5).join(" ");
+        // Build conversation history (last 10 messages for context)
+        const conversationHistory = messages.slice(-10).map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp.toISOString(),
+          metadata: msg.metadata,
+        }));
 
-        const response = await fetch(`${env.apiUrl}/decisions`, {
+        // Use the new conversation endpoint
+        const response = await fetch(`${env.apiUrl}/chat/message`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            item_name: itemName,
-            amount: amount,
-            category: "General",
-            reason: content,
-            urgency: "Normal",
+            message: content,
+            conversation_history: conversationHistory,
           }),
         });
 
@@ -54,13 +53,13 @@ export function useChat() {
 
         const data = await response.json();
 
+        // Create assistant message from response
         const assistantMessage: Message = {
           role: "assistant",
-          content:
-            data.reasoning ||
-            "I've analyzed your request. Here's my recommendation.",
+          content: data.message,
           id: Math.random().toString(36).substring(7),
           timestamp: new Date(),
+          metadata: data.metadata,
         };
 
         setMessages((prev) => [...prev, assistantMessage]);
@@ -77,7 +76,7 @@ export function useChat() {
         setIsLoading(false);
       }
     },
-    [token],
+    [token, messages],
   );
 
   return {

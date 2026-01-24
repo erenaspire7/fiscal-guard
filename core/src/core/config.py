@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
 
     # Strands AI Configuration
-    strands_default_model: str = "gemini-3-flash-preview"
+    strands_default_model: str = "gemini-2.5-flash"
 
     # Google AI (for Gemini)
     google_api_key: str = ""

@@ -1,0 +1,282 @@
+"""Main conversation service for routing messages to appropriate handlers."""
+
+from datetime import datetime
+from typing import List
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from core.ai.intent_classifier import IntentClassifier
+from core.models.conversation import (
+    ConversationIntent,
+    ConversationMessage,
+    ConversationRequest,
+    ConversationResponse,
+)
+from core.models.decision import PurchaseDecisionRequest
+from core.services.budget_modification_handler import BudgetModificationHandler
+from core.services.budget_query_handler import BudgetQueryHandler
+from core.services.decision import DecisionService
+from core.services.expense_handler import ExpenseHandler
+from core.services.feedback_handler import PurchaseFeedbackHandler
+from core.services.general_assistant_handler import GeneralAssistantHandler
+from core.services.goal_update_handler import GoalUpdateHandler
+
+
+class ConversationService:
+    """Main service for routing conversational messages to appropriate handlers."""
+
+    def __init__(self, db: Session):
+        """Initialize conversation service.
+
+        Args:
+            db: Database session
+        """
+        self.db = db
+        self.intent_classifier = IntentClassifier(db)
+        self.decision_service = DecisionService(db)
+        self.feedback_handler = PurchaseFeedbackHandler(db)
+        self.budget_handler = BudgetQueryHandler(db)
+        self.goal_handler = GoalUpdateHandler(db)
+        self.expense_handler = ExpenseHandler(db)
+        self.budget_modifier = BudgetModificationHandler(db)
+        self.assistant = GeneralAssistantHandler(db)
+
+    def handle_message(
+        self, user_id: UUID, request: ConversationRequest
+    ) -> ConversationResponse:
+        """Route message based on classified intent.
+
+        Args:
+            user_id: User ID
+            request: Conversation request with message and history
+
+        Returns:
+            Conversation response
+        """
+        # Classify intent
+        intent = self.intent_classifier.classify(
+            request.message, request.conversation_history, user_id
+        )
+
+        # Check if we need clarification
+        if intent.confidence < 0.7 and intent.suggested_clarification:
+            return ConversationResponse(
+                message=intent.suggested_clarification, requires_clarification=True
+            )
+
+        # Route to appropriate handler based on intent
+        if intent.intent == "purchase_decision":
+            return self._handle_purchase_decision(user_id, intent, request.message)
+
+        elif intent.intent == "purchase_feedback":
+            return self._handle_purchase_feedback(
+                user_id, intent, request.conversation_history
+            )
+
+        elif intent.intent == "budget_query":
+            return self._handle_budget_query(user_id, intent)
+
+        elif intent.intent == "goal_update":
+            return self._handle_goal_update(user_id, intent)
+
+        elif intent.intent == "log_expense":
+            return self._handle_log_expense(
+                user_id, intent, request.conversation_history
+            )
+
+        elif intent.intent == "budget_modification":
+            return self._handle_budget_modification(
+                user_id, intent, request.conversation_history
+            )
+
+        elif intent.intent == "general_question":
+            return self._handle_general_question(
+                user_id, intent, request.conversation_history
+            )
+
+        else:
+            return ConversationResponse(
+                message="I'm not sure what you're asking. Could you rephrase that?",
+                requires_clarification=True,
+            )
+
+    def _handle_purchase_decision(
+        self, user_id: UUID, intent: ConversationIntent, original_message: str
+    ) -> ConversationResponse:
+        """Handle purchase decision request.
+
+        Args:
+            user_id: User ID
+            intent: Classified intent
+            original_message: Original user message
+
+        Returns:
+            Conversation response
+        """
+        # Build purchase decision request from extracted entities
+        entities = intent.extracted_entities
+
+        decision_request = PurchaseDecisionRequest(
+            item_name=entities.get("item_name"),
+            amount=entities.get("amount"),
+            category=entities.get("category"),
+            urgency=entities.get("urgency"),
+            reason=entities.get("reason"),
+            user_message=original_message,  # Pass original message for extraction if needed
+        )
+
+        # Use existing decision service
+        decision_response = self.decision_service.create_decision(
+            user_id, decision_request
+        )
+
+        # Convert to conversation response
+        decision = decision_response.decision
+
+        # Build user-friendly message
+        message_parts = [
+            f"**Decision Score: {decision.score}/10** ({decision.decision_category.value.replace('_', ' ').title()})",
+            "",
+            f"**Reasoning:**",
+            decision.reasoning,
+        ]
+
+        # Add budget analysis if available
+        if decision.analysis.budget_analysis:
+            budget = decision.analysis.budget_analysis
+            message_parts.append("")
+            message_parts.append(f"**Budget Impact ({budget.category.value}):**")
+            message_parts.append(budget.impact_description)
+
+        # Add alternatives if available
+        if decision.alternatives:
+            message_parts.append("")
+            message_parts.append("**Alternatives:**")
+            for alt in decision.alternatives:
+                message_parts.append(f"- {alt}")
+
+        # Add conditions if available
+        if decision.conditions:
+            message_parts.append("")
+            message_parts.append("**This might make more sense if:**")
+            for cond in decision.conditions:
+                message_parts.append(f"- {cond}")
+
+        return ConversationResponse(
+            message="\n".join(message_parts),
+            metadata={
+                "decision_id": str(decision_response.decision_id),
+                "score": decision.score,
+                "category": decision.decision_category.value,
+            },
+            requires_clarification=decision_response.requires_clarification,
+        )
+
+    def _handle_purchase_feedback(
+        self,
+        user_id: UUID,
+        intent: ConversationIntent,
+        conversation_history: List[ConversationMessage],
+    ) -> ConversationResponse:
+        """Handle purchase feedback.
+
+        Args:
+            user_id: User ID
+            intent: Classified intent
+            conversation_history: Recent messages
+
+        Returns:
+            Conversation response
+        """
+        response = self.feedback_handler.handle(user_id, intent, conversation_history)
+
+        # Merge context into metadata so it's passed back to the frontend
+        if response.context:
+            if response.metadata is None:
+                response.metadata = {}
+            response.metadata["context"] = response.context
+
+        return response
+
+    def _handle_budget_query(
+        self, user_id: UUID, intent: ConversationIntent
+    ) -> ConversationResponse:
+        """Handle budget query.
+
+        Args:
+            user_id: User ID
+            intent: Classified intent
+
+        Returns:
+            Conversation response
+        """
+        return self.budget_handler.handle(user_id, intent)
+
+    def _handle_goal_update(
+        self, user_id: UUID, intent: ConversationIntent
+    ) -> ConversationResponse:
+        """Handle goal update.
+
+        Args:
+            user_id: User ID
+            intent: Classified intent
+
+        Returns:
+            Conversation response
+        """
+        return self.goal_handler.handle(user_id, intent)
+
+    def _handle_log_expense(
+        self,
+        user_id: UUID,
+        intent: ConversationIntent,
+        conversation_history: List[ConversationMessage],
+    ) -> ConversationResponse:
+        """Handle expense logging.
+
+        Args:
+            user_id: User ID
+            intent: Classified intent
+            conversation_history: Recent messages
+
+        Returns:
+            Conversation response
+        """
+        return self.expense_handler.handle(user_id, intent, conversation_history)
+
+    def _handle_budget_modification(
+        self,
+        user_id: UUID,
+        intent: ConversationIntent,
+        conversation_history: List[ConversationMessage],
+    ) -> ConversationResponse:
+        """Handle budget modification.
+
+        Args:
+            user_id: User ID
+            intent: Classified intent
+            conversation_history: Recent messages
+
+        Returns:
+            Conversation response
+        """
+        return self.budget_modifier.handle(user_id, intent, conversation_history)
+
+    def _handle_general_question(
+        self,
+        user_id: UUID,
+        intent: ConversationIntent,
+        conversation_history: List[ConversationMessage],
+    ) -> ConversationResponse:
+        """Handle general financial question.
+
+        Args:
+            user_id: User ID
+            intent: Classified intent
+            conversation_history: Recent messages
+
+        Returns:
+            Conversation response
+        """
+        return self.assistant.handle(user_id, intent, conversation_history)

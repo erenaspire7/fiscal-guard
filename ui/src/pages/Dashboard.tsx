@@ -55,29 +55,36 @@ export default function Dashboard() {
       const it = item as any;
       const score = typeof it === "number" ? it : it.score;
       const name = typeof it === "object" ? it.item_name : "Decision";
-      let dateLabel = `Day ${i + 1}`;
-
-      if (typeof it === "object" && it?.date) {
-        try {
-          const d = new Date(it.date);
-          if (!isNaN(d.getTime())) {
-            dateLabel = d.toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            });
-          }
-        } catch {
-          // Fallback
-        }
-      }
+      const date = typeof it === "object" ? it.date : `Day ${i + 1}`;
 
       return {
-        date: dateLabel,
+        index: i, // Unique identifier for each entry
+        date: date,
         score: score,
         item: name,
       };
     });
   }, [data]);
+
+  // Calculate trend velocity (average change between consecutive scores)
+  const trendAnalysis = useMemo(() => {
+    if (sparklineData.length < 2) {
+      return { velocity: "stable", avgChange: 0, direction: "neutral" };
+    }
+
+    let totalChange = 0;
+    for (let i = 1; i < sparklineData.length; i++) {
+      totalChange += sparklineData[i].score - sparklineData[i - 1].score;
+    }
+    const avgChange = totalChange / (sparklineData.length - 1);
+
+    if (avgChange > 0.3) {
+      return { velocity: "improving", avgChange, direction: "up" };
+    } else if (avgChange < -0.3) {
+      return { velocity: "declining", avgChange, direction: "down" };
+    }
+    return { velocity: "stable", avgChange, direction: "neutral" };
+  }, [sparklineData]);
 
   // Helper to get category icon
   const getCategoryIcon = (label: string) => {
@@ -172,26 +179,59 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-7xl font-black tracking-tighter text-primary drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                    {data?.guard_score || (isLoading ? "..." : "0")}
-                  </span>
-                  <span className="text-primary/80 font-bold text-2xl tracking-tight">
-                    {data && data.trend.length > 1
-                      ? ((data.trend[data.trend.length - 1] as any).score ??
-                          (data.trend[data.trend.length - 1] as any)) >=
-                        ((data.trend[data.trend.length - 2] as any).score ??
-                          (data.trend[data.trend.length - 2] as any))
-                        ? "+"
-                        : ""
-                      : "+"}
-                    0%
-                  </span>
+                <div className="flex items-end gap-3 mb-4">
+                  <div className="flex items-baseline">
+                    <span className="text-7xl font-black tracking-tighter text-primary drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                      {data?.guard_score || (isLoading ? "..." : "0")}
+                    </span>
+                    <span className="text-2xl font-bold text-muted-foreground/40 ml-2">
+                      / 100
+                    </span>
+                  </div>
+                  <div className="mb-2">
+                    <span
+                      className={cn(
+                        "font-bold text-lg px-2 py-1 rounded-md border",
+                        trendAnalysis.avgChange >= 0
+                          ? "text-primary border-primary/20 bg-primary/5"
+                          : "text-red-400 border-red-400/20 bg-red-400/5",
+                      )}
+                    >
+                      {trendAnalysis.avgChange > 0 ? "+" : ""}
+                      {Math.round(trendAnalysis.avgChange * 10)}%
+                    </span>
+                  </div>
                 </div>
                 <p className="text-muted-foreground text-sm font-medium mb-6">
-                  {data?.status === "Thriving"
-                    ? "Financial health is optimal • Keep it up"
-                    : "Vigilance required • Multiple categories at risk"}
+                  {(() => {
+                    if (!data) return "Loading financial status...";
+
+                    const overBudgetCount = data.allocation_health.filter(
+                      (item) => item.status === "Over Budget",
+                    ).length;
+                    const nearCapacityCount = data.allocation_health.filter(
+                      (item) => item.status === "Near Capacity",
+                    ).length;
+
+                    // Critical: Over budget categories exist
+                    if (overBudgetCount > 0) {
+                      return `Vigilance required • ${overBudgetCount} ${overBudgetCount === 1 ? "category" : "categories"} over budget`;
+                    }
+
+                    // Warning: Near capacity
+                    if (nearCapacityCount > 0) {
+                      return `Attention needed • ${nearCapacityCount} ${nearCapacityCount === 1 ? "category" : "categories"} near capacity`;
+                    }
+
+                    // Guard score based messages
+                    if (data.guard_score >= 80) {
+                      return "Financial health is optimal • Keep it up";
+                    } else if (data.guard_score >= 60) {
+                      return "Financial health is stable • Stay consistent";
+                    } else {
+                      return "Vigilance required • Decision quality needs improvement";
+                    }
+                  })()}
                 </p>
 
                 <div className="flex flex-wrap gap-2">
@@ -218,7 +258,7 @@ export default function Dashboard() {
             </Card>
 
             {/* Growth Analysis Card */}
-            <Card className="bg-[#0A1210] border border-white/5 shadow-xl rounded-[24px] overflow-hidden flex flex-col h-70">
+            <Card className="bg-[#0A1210] border border-white/5 shadow-xl rounded-[24px] overflow-hidden flex flex-col">
               <CardContent className="p-8 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -242,25 +282,26 @@ export default function Dashboard() {
                       </h2>
                     </div>
                     <p className="text-primary text-xs font-medium mt-1 italic opacity-80">
-                      {data?.trend.length || 0} checkpoints active • Spending
-                      velocity increasing
+                      {data?.trend.length || 0} checkpoints active •{" "}
+                      {trendAnalysis.velocity === "improving"
+                        ? "Decision quality improving"
+                        : trendAnalysis.velocity === "declining"
+                          ? "Decision quality declining"
+                          : "Decision quality stable"}
                     </p>
                   </div>
-                  <div className="bg-[#020403] border border-white/5 p-1 rounded-lg flex text-[10px] font-bold">
-                    <span className="px-3 py-1.5 bg-[#0F2922] text-primary rounded-md uppercase cursor-pointer">
-                      Week
-                    </span>
-                    <span className="px-3 py-1.5 text-muted-foreground uppercase opacity-50 cursor-pointer hover:text-white transition-colors">
-                      Month
+                  <div className="bg-[#020403] border border-white/5 px-3 py-1.5 rounded-lg text-[10px] font-bold">
+                    <span className="text-primary uppercase">
+                      Last 7 Decisions
                     </span>
                   </div>
                 </div>
 
-                <div className="flex-1 w-full h-[240px] mt-4 relative">
+                <div className="w-full h-[200px] mt-4 relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                       data={sparklineData}
-                      margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
+                      margin={{ top: 10, right: 80, left: 10, bottom: 60 }}
                     >
                       <defs>
                         <linearGradient
@@ -316,23 +357,47 @@ export default function Dashboard() {
                         stroke="rgba(255,255,255,0.05)"
                       />
                       <XAxis
-                        dataKey="date"
-                        tick={{ fill: "#52525b", fontSize: 10 }}
+                        dataKey="index"
+                        tick={{ fill: "#52525b", fontSize: 9 }}
                         tickLine={false}
                         axisLine={false}
-                        interval="preserveStartEnd"
-                        padding={{ left: 10, right: 10 }}
+                        tickFormatter={(value) => {
+                          const item = sparklineData[value];
+                          if (!item) return "";
+                          const name = item.item;
+                          return name.length > 10
+                            ? name.substring(0, 10) + "…"
+                            : name;
+                        }}
+                        interval={0}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
                       />
                       <YAxis
                         tick={{ fill: "#52525b", fontSize: 10 }}
                         tickLine={false}
                         axisLine={false}
                         domain={[0, 10]}
-                        ticks={[0, 5, 10]}
+                        ticks={[0, 4, 7, 10]}
+                        width={35}
                       />
                       <ReferenceLine
                         y={7}
                         stroke="#10b981"
+                        strokeDasharray="3 3"
+                        strokeOpacity={0.5}
+                        label={{
+                          value: "Safe Threshold",
+                          position: "right",
+                          fill: "#10b981",
+                          fontSize: 9,
+                          fontWeight: "bold",
+                        }}
+                      />
+                      <ReferenceLine
+                        y={4}
+                        stroke="#fbbf24"
                         strokeDasharray="3 3"
                         strokeOpacity={0.3}
                       />
@@ -352,6 +417,12 @@ export default function Dashboard() {
                                 : score >= 4
                                   ? "text-yellow-400"
                                   : "text-red-400";
+                            const riskLabel =
+                              score >= 7
+                                ? "Low Risk"
+                                : score >= 4
+                                  ? "Moderate Risk"
+                                  : "High Risk";
                             return (
                               <div className="bg-[#0A1210]/90 backdrop-blur-md border border-white/10 p-4 rounded-xl shadow-2xl">
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 font-bold">
@@ -374,6 +445,14 @@ export default function Dashboard() {
                                       / 10
                                     </span>
                                   </div>
+                                  <p
+                                    className={cn(
+                                      "text-[10px] font-bold uppercase tracking-wider",
+                                      colorClass,
+                                    )}
+                                  >
+                                    {riskLabel}
+                                  </p>
                                 </div>
                               </div>
                             );
@@ -389,15 +468,57 @@ export default function Dashboard() {
                         strokeDasharray="5 5"
                         fill="url(#fillGradient)"
                         animationDuration={1500}
+                        dot={({ cx, cy, payload, index }) => {
+                          const score = payload.score;
+                          const color =
+                            score >= 7
+                              ? "#10b981"
+                              : score >= 4
+                                ? "#fbbf24"
+                                : "#ef4444";
+                          return (
+                            <circle
+                              key={`dot-${index}`}
+                              cx={cx}
+                              cy={cy}
+                              r={5}
+                              fill={color}
+                              stroke="#0A1210"
+                              strokeWidth={2}
+                            />
+                          );
+                        }}
                         activeDot={{
-                          r: 6,
+                          r: 7,
                           fill: "#0A1210",
-                          stroke: "url(#scoreGradient)",
+                          stroke: "#10b981",
                           strokeWidth: 3,
                         }}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
+                </div>
+
+                {/* Legend */}
+                <div className="flex items-center justify-center gap-6 mt-2 pt-2 border-t border-white/5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-primary" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Low Risk (7-10)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Moderate (4-6)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                      High Risk (0-3)
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>

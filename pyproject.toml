@@ -10,6 +10,7 @@ dependencies = []
 members = [
     "core",
     "api",
+    "e2e-tests-v2",
 ]
 
 [tool.uv.sources]

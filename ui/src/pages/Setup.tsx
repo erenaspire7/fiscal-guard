@@ -49,7 +49,8 @@ export default function Setup() {
       label: "App",
       items: [
         { icon: Smartphone, label: "Data Export", value: "CSV/JSON" },
-        { icon: Info, label: "Help & Support", value: "v1.0.4" },
+        // TODO: Implement versioning
+        { icon: Info, label: "Help & Support", value: "v1.0.0" },
       ],
     },
   ];
@@ -104,8 +105,9 @@ export default function Setup() {
                   {user?.name || user?.email?.split("@")[0] || "User"}
                 </h2>
                 <p className="text-sm text-primary font-bold opacity-90 flex items-center gap-2">
-                  Premium Guard Member
-                  <span className="w-1 h-1 rounded-full bg-white/30" />
+                  {/*TODO: Change*/}
+                  {/*Premium Guard Member
+                  <span className="w-1 h-1 rounded-full bg-white/30" />*/}
                   <span className="text-muted-foreground font-normal">
                     Since 2024
                   </span>
@@ -114,9 +116,6 @@ export default function Setup() {
               <div className="flex gap-3 pt-2">
                 <button className="px-4 py-2 bg-[#0F2922] hover:bg-[#0F2922]/80 text-white text-xs font-bold rounded-xl border border-white/5 transition-colors">
                   Edit Profile
-                </button>
-                <button className="px-4 py-2 bg-transparent hover:bg-white/5 text-muted-foreground text-xs font-bold rounded-xl border border-white/5 transition-colors">
-                  View Public Profile
                 </button>
               </div>
             </div>

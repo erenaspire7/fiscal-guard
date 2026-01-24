@@ -20,9 +20,13 @@ export interface InsightsData {
   intercepted_count: number;
   correlation_trend: number[];
   reflections: ReflectionItem[];
+  total_reflections: number;
 }
 
-export function useInsightsData() {
+export function useInsightsData(
+  options: { limit?: number; offset?: number; startDate?: Date | null } = {},
+) {
+  const { limit = 10, offset = 0, startDate = null } = options;
   const [data, setData] = useState<InsightsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,18 +51,27 @@ export function useInsightsData() {
       const stats = await response.json();
 
       // We'll augment the stats with full decision history for reflections
-      const historyRes = await fetch(`${env.apiUrl}/decisions?limit=20`, {
+      const params = new URLSearchParams();
+      params.append("limit", limit.toString());
+      params.append("offset", offset.toString());
+
+      if (startDate) {
+        params.append("start_date", startDate.toISOString());
+      }
+
+      const historyRes = await fetch(`${env.apiUrl}/decisions?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const history = await historyRes.json();
+      const historyData = await historyRes.json();
 
       setData({
         health_score: Math.round(stats.average_score * 10),
-        impulse_control_growth: 12, // Placeholder until time-series comparison is in backend
-        total_capital_retained: stats.total_requested, // Simplified for now: sum of all intercepted
-        intercepted_count: stats.total_decisions,
-        correlation_trend: [60, 85, 45, 90, 70, 100, 95, 88], // Placeholder
-        reflections: history,
+        impulse_control_growth: stats.impulse_control_growth || 0,
+        total_capital_retained: stats.capital_retained || 0,
+        intercepted_count: stats.intercepted_count || 0,
+        correlation_trend: stats.weekly_scores || [],
+        reflections: historyData.items,
+        total_reflections: historyData.total,
       });
       setError(null);
     } catch (err) {
@@ -69,7 +82,7 @@ export function useInsightsData() {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, limit, offset, startDate]);
 
   useEffect(() => {
     fetchInsights();

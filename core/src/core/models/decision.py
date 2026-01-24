@@ -19,6 +19,17 @@ class DecisionScore(str, Enum):
     STRONG_YES = "strong_yes"  # 9-10
 
 
+class BudgetCategory(str, Enum):
+    """Budget categories for spending."""
+
+    SHOPPING = "shopping"
+    DINING = "dining"
+    ENTERTAINMENT = "entertainment"
+    GROCERIES = "groceries"
+    TRANSPORT = "transport"
+    GENERAL = "general"
+
+
 class PurchaseCategory(str, Enum):
     """Purchase categories."""
 
@@ -31,19 +42,33 @@ class PurchaseCategory(str, Enum):
 class PurchaseDecisionRequest(BaseModel):
     """Request to make a purchase decision."""
 
-    item_name: str = Field(..., description="Name of the item to purchase")
-    amount: Decimal = Field(..., description="Purchase amount", gt=0)
-    category: Optional[str] = Field(
+    item_name: Optional[str] = Field(None, description="Name of the item to purchase")
+    amount: Optional[Decimal] = Field(None, description="Purchase amount", gt=0)
+    category: Optional[BudgetCategory] = Field(
         None, description="Budget category this falls under"
     )
     reason: Optional[str] = Field(None, description="Why the user wants to buy this")
     urgency: Optional[str] = Field(None, description="How urgent is this purchase")
 
+    # Natural language input - agent will extract fields from this
+    user_message: Optional[str] = Field(
+        None, description="Natural language description of the purchase request"
+    )
+
+    # Context for follow-up conversations
+    related_decision_id: Optional[UUID] = Field(
+        None, description="ID of a previous decision this is related to"
+    )
+    is_follow_up: bool = Field(
+        default=False,
+        description="Whether this is a follow-up to a clarification question",
+    )
+
 
 class BudgetAnalysis(BaseModel):
     """Analysis of budget impact."""
 
-    category: Optional[str] = Field(None, description="Budget category")
+    category: Optional[BudgetCategory] = Field(None, description="Budget category")
     current_spent: Decimal = Field(..., description="Current spending in category")
     limit: Decimal = Field(..., description="Category limit")
     remaining: Decimal = Field(..., description="Remaining budget")
@@ -98,6 +123,15 @@ class PurchaseDecisionResponse(BaseModel):
 
     decision: PurchaseDecision
     decision_id: UUID
+    requires_clarification: bool = Field(
+        default=False, description="Whether the user needs to clarify their intent"
+    )
+    clarification_question: Optional[str] = Field(
+        None, description="Question to ask the user for clarification"
+    )
+    related_decision_id: Optional[UUID] = Field(
+        None, description="ID of related previous decision if asking for clarification"
+    )
 
 
 class PurchaseDecisionCreate(BaseModel):
@@ -139,6 +173,15 @@ class PurchaseDecisionDB(BaseModel):
     regret_level: Optional[int] = None
 
     model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class PurchaseDecisionListResponse(BaseModel):
+    """Paginated response for purchase decisions."""
+
+    items: list[PurchaseDecisionDB]
+    total: int
+    limit: int
+    offset: int
 
 
 class DecisionFeedback(BaseModel):

@@ -1,25 +1,29 @@
 """API endpoints for purchase decisions."""
 
-from typing import List
+from datetime import datetime
+from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-
-from api.dependencies import get_current_user, get_db
 from core.database.models import User
 from core.models.decision import (
     DecisionFeedback,
     PurchaseDecisionDB,
+    PurchaseDecisionListResponse,
     PurchaseDecisionRequest,
     PurchaseDecisionResponse,
 )
 from core.services.decision import DecisionService
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from api.dependencies import get_current_user, get_db
 
 router = APIRouter(prefix="/decisions", tags=["decisions"])
 
 
-@router.post("", response_model=PurchaseDecisionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=PurchaseDecisionResponse, status_code=status.HTTP_201_CREATED
+)
 def create_decision(
     request: PurchaseDecisionRequest,
     db: Session = Depends(get_db),
@@ -41,10 +45,12 @@ def create_decision(
     return service.create_decision(current_user.user_id, request)
 
 
-@router.get("", response_model=List[PurchaseDecisionDB])
+@router.get("", response_model=PurchaseDecisionListResponse)
 def list_decisions(
     limit: int = 50,
     offset: int = 0,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -53,14 +59,22 @@ def list_decisions(
     Args:
         limit: Maximum number of decisions to return
         offset: Number of decisions to skip
+        start_date: Optional start date for filtering
+        end_date: Optional end date for filtering
         db: Database session
         current_user: Authenticated user
 
     Returns:
-        List of purchase decisions
+        Paginated list of purchase decisions
     """
     service = DecisionService(db)
-    return service.list_decisions(current_user.user_id, limit, offset)
+    return service.list_decisions(
+        current_user.user_id,
+        limit,
+        offset,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
 
 @router.get("/stats")

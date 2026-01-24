@@ -14,7 +14,7 @@
 
 Fiscal Guard is an AI-powered financial decision assistant that helps you make smarter purchasing decisions by analyzing your budget, goals, and spending patterns **before** you buy.
 
-Unlike traditional budgeting apps that show you what you overspent *after the fact*, Fiscal Guard intervenes at the moment of decision with personalized insights powered by a **Multi-Agent System** (Strands + Gemini 2.0) and **Real-Time Observability** (Opik).
+Unlike traditional budgeting apps that show you what you overspent *after the fact*, Fiscal Guard intervenes at the moment of decision with personalized insights powered by a **Multi-Agent System** (Strands + Gemini 2.5) and **Real-Time Observability** (Opik).
 
 ### The Problem
 
@@ -69,7 +69,7 @@ The system uses a modern decoupled architecture:
     ↓ (Auth via JWT)
 [Decision Service]
     ↓ (Opik Tracing)
-[Decision Agent (Strands + Gemini 2.0 Flash)]
+[Decision Agent (Strands + Gemini 2.5 Flash)]
     ↓ ⟷ [Tools: check_budget, check_goals, analyze_history, analyze_regret]
 [PostgreSQL Database]
 ```
@@ -171,7 +171,7 @@ fiscal-guard/
 
 - **Frontend**: React 19, TailwindCSS, Radix UI, Recharts, Framer Motion
 - **Backend**: FastAPI, Python 3.11, Pydantic
-- **AI**: Strands (Orchestration), Google Gemini 2.0 Flash (Reasoning)
+- **AI**: Strands (Orchestration), Google Gemini 2.5 Flash (Reasoning)
 - **Observability**: Opik (Comet.ml) for Tracing & Evaluation
 - **Database**: PostgreSQL, SQLAlchemy, Alembic
 

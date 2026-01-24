@@ -12,16 +12,11 @@ import {
 } from "@/components/ui/card";
 import {
   InputGroup,
-  InputGroupIcon,
+  InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
-import {
-  Field,
-  FieldLabel,
-  FieldControl,
-  FieldError,
-} from "@/components/ui/field";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { useAuth } from "@/contexts/AuthContext";
 import { env } from "@/config/env";
 
@@ -87,42 +82,38 @@ export default function Login() {
               <FieldLabel>
                 <Label htmlFor="email">Email</Label>
               </FieldLabel>
-              <FieldControl>
-                <InputGroup>
-                  <InputGroupIcon>
-                    <Mail className="h-4 w-4" />
-                  </InputGroupIcon>
-                  <InputGroupInput
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </InputGroup>
-              </FieldControl>
+              <InputGroup>
+                <InputGroupAddon>
+                  <Mail className="h-4 w-4" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </InputGroup>
             </Field>
 
             <Field>
               <FieldLabel>
                 <Label htmlFor="password">Password</Label>
               </FieldLabel>
-              <FieldControl>
-                <InputGroup>
-                  <InputGroupIcon>
-                    <Lock className="h-4 w-4" />
-                  </InputGroupIcon>
-                  <InputGroupInput
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </InputGroup>
-              </FieldControl>
+              <InputGroup>
+                <InputGroupAddon>
+                  <Lock className="h-4 w-4" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </InputGroup>
             </Field>
 
             {error && <FieldError className="text-center">{error}</FieldError>}

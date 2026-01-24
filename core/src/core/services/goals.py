@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from core.database.models import Goal
-from core.models.goal import GoalCreate, GoalResponse, GoalUpdate
+from core.models.goal import GoalCreate, GoalUpdate
 
 
 class GoalService:

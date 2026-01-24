@@ -67,6 +67,60 @@ class Budget(Base):
 
     # Relationships
     user = relationship("User", back_populates="budgets")
+    budget_items = relationship(
+        "BudgetItem", back_populates="budget", cascade="all, delete-orphan"
+    )
+
+
+class BudgetItem(Base):
+    """Budget item model for tracking individual spending events within budgets."""
+
+    __tablename__ = "budget_items"
+
+    item_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    budget_id = Column(
+        UUID(as_uuid=True), ForeignKey("budgets.budget_id"), nullable=False
+    )
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+
+    # Transaction details
+    item_name = Column(String(255), nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False)
+    category = Column(
+        String(100), nullable=False
+    )  # Budget category (groceries, dining, etc.)
+    transaction_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Link to purchase decision if applicable
+    decision_id = Column(
+        UUID(as_uuid=True), ForeignKey("purchase_decisions.decision_id"), nullable=True
+    )
+
+    # Budget impact tracking
+    exceeded_budget = Column(
+        Boolean, default=False
+    )  # Did this push category over budget?
+    category_spent_before = Column(
+        Numeric(10, 2), nullable=True
+    )  # Spending before this item
+    category_spent_after = Column(
+        Numeric(10, 2), nullable=True
+    )  # Spending after this item
+    category_limit = Column(
+        Numeric(10, 2), nullable=True
+    )  # Category limit at time of purchase
+
+    # Optional metadata
+    notes = Column(Text, nullable=True)
+    is_planned = Column(Boolean, default=False)  # Was this a planned expense?
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    budget = relationship("Budget", back_populates="budget_items")
+    user = relationship("User")
+    decision = relationship("PurchaseDecision")
 
 
 class Goal(Base):
