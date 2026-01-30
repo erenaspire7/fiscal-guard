@@ -1,9 +1,12 @@
 """API endpoints for conversational chat interface."""
 
+import json
+
 from core.database.models import User
 from core.models.conversation import ConversationRequest, ConversationResponse
 from core.services.conversation import ConversationService
 from fastapi import APIRouter, Depends, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from api.dependencies import get_current_user, get_db
@@ -40,3 +43,23 @@ def send_message(
     """
     service = ConversationService(db)
     return service.handle_message(current_user.user_id, request)
+
+
+@router.post("/stream")
+async def stream_message(
+    request: ConversationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Stream a conversational message response.
+
+    Returns:
+        NDJSON stream of response chunks
+    """
+    service = ConversationService(db)
+
+    async def generate():
+        async for chunk in service.stream_handle_message(current_user.user_id, request):
+            yield json.dumps(chunk) + "\n"
+
+    return StreamingResponse(generate(), media_type="application/x-ndjson")

@@ -92,6 +92,19 @@ class GoalAnalysis(BaseModel):
     )
 
 
+class OpportunityCost(BaseModel):
+    """Opportunity cost analysis for a purchase."""
+
+    description: str = Field(
+        ...,
+        description="Explanation of what the user is giving up by making this purchase",
+    )
+    examples: list[str] = Field(
+        ...,
+        description="Concrete examples of alternative uses for this money",
+    )
+
+
 class DecisionAnalysis(BaseModel):
     """Complete analysis for a purchase decision."""
 
@@ -100,6 +113,9 @@ class DecisionAnalysis(BaseModel):
     purchase_category: PurchaseCategory = Field(..., description="Category of purchase")
     financial_health_score: float = Field(
         ..., description="Overall financial health (0-100)", ge=0, le=100
+    )
+    opportunity_cost: Optional[OpportunityCost] = Field(
+        None, description="Opportunity cost analysis"
     )
 
 

@@ -211,12 +211,8 @@ source = { editable = "api" }
 dependencies = [
     { name = "authlib" },
     { name = "core" },
-    { name = "cryptography" },
-    { name = "email-validator" },
     { name = "fastapi" },
-    { name = "httpx" },
     { name = "itsdangerous" },
-    { name = "passlib" },
     { name = "python-jose" },
     { name = "uvicorn" },
 ]
@@ -225,12 +221,8 @@ dependencies = [
 requires-dist = [
     { name = "authlib", specifier = ">=1.6.6" },
     { name = "core", editable = "core" },
-    { name = "cryptography", specifier = ">=46.0.3" },
-    { name = "email-validator", specifier = ">=2.3.0" },
     { name = "fastapi" },
-    { name = "httpx", specifier = ">=0.28.1" },
     { name = "itsdangerous", specifier = ">=2.2.0" },
-    { name = "passlib", specifier = ">=1.7.4" },
     { name = "python-jose", specifier = ">=3.5.0" },
     { name = "uvicorn" },
 ]
@@ -627,16 +619,16 @@ source = { editable = "core" }
 dependencies = [
     { name = "alembic" },
     { name = "bcrypt" },
+    { name = "google-auth" },
     { name = "opentelemetry-exporter-otlp" },
     { name = "opentelemetry-sdk" },
     { name = "opik" },
-    { name = "passlib" },
     { name = "psycopg2-binary" },
-    { name = "pydantic" },
+    { name = "pydantic", extra = ["email"] },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
     { name = "sqlalchemy" },
-    { name = "strands-agents", extra = ["gemini"] },
+    { name = "strands-agents", extra = ["gemini", "otel"] },
     { name = "strands-agents-tools" },
 ]
 
@@ -644,16 +636,16 @@ dependencies = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.13.0" },
     { name = "bcrypt", specifier = ">=4.0.0" },
-    { name = "opentelemetry-exporter-otlp", specifier = ">=1.39.1" },
-    { name = "opentelemetry-sdk", specifier = ">=1.39.1" },
+    { name = "google-auth", specifier = ">=2.23.0" },
+    { name = "opentelemetry-exporter-otlp" },
+    { name = "opentelemetry-sdk" },
     { name = "opik", specifier = ">=1.9.80" },
-    { name = "passlib", specifier = ">=1.7.4" },
     { name = "psycopg2-binary", specifier = ">=2.9.9" },
-    { name = "pydantic", specifier = ">=2.5.0" },
+    { name = "pydantic", extras = ["email"], specifier = ">=2.5.0" },
     { name = "pydantic-settings", specifier = ">=2.1.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "sqlalchemy", specifier = ">=2.0.0" },
-    { name = "strands-agents", extras = ["gemini"] },
+    { name = "strands-agents", extras = ["gemini", "otel"] },
     { name = "strands-agents-tools" },
 ]
 
@@ -2000,15 +1992,6 @@ wheels = [
 ]
 
 [[package]]
-name = "passlib"
-version = "1.7.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b6/06/9da9ee59a67fae7761aab3ccc84fa4f3f33f125b370f1ccdb915bf967c11/passlib-1.7.4.tar.gz", hash = "sha256:defd50f72b65c5402ab2c573830a6978e5f202ad0d984793c8dde2c4152ebe04", size = 689844, upload-time = "2020-10-08T19:00:52.121Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/a4/ab6b7589382ca3df236e03faa71deac88cae040af60c071a78d254a62172/passlib-1.7.4-py2.py3-none-any.whl", hash = "sha256:aa6bca462b8d8bda89c70b382f0c298a20b5560af6cbfa2dce410c0a2fb669f1", size = 525554, upload-time = "2020-10-08T19:00:49.856Z" },
-]
-
-[[package]]
 name = "pillow"
 version = "11.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2366,6 +2349,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/69/44/36f1a6e523abc58ae5f928898e4aca2e0ea509b5aa6f6f392a5d882be928/pydantic-2.12.5.tar.gz", hash = "sha256:4d351024c75c0f085a9febbb665ce8c0c6ec5d30e903bdb6394b7ede26aebb49", size = 821591, upload-time = "2025-11-26T15:11:46.471Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5a/87/b70ad306ebb6f9b585f114d0ac2137d792b48be34d732d60e597c2f8465a/pydantic-2.12.5-py3-none-any.whl", hash = "sha256:e561593fccf61e8a20fc46dfc2dfe075b8be7d0188df33f221ad1f0139180f9d", size = 463580, upload-time = "2025-11-26T15:11:44.605Z" },
+]
+
+[package.optional-dependencies]
+email = [
+    { name = "email-validator" },
 ]
 
 [[package]]
@@ -3226,6 +3214,9 @@ wheels = [
 [package.optional-dependencies]
 gemini = [
     { name = "google-genai" },
+]
+otel = [
+    { name = "opentelemetry-exporter-otlp-proto-http" },
 ]
 
 [[package]]

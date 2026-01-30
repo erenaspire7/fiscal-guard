@@ -1,13 +1,12 @@
-"""Strands tools for the decision agent."""
+"""Tools for decision analysis agent."""
 
-from datetime import date, datetime
-from decimal import Decimal
+from datetime import date
 from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from strands.tools import tool
+from strands import tool
 
 from core.database.models import Budget, Goal, PurchaseDecision
 
@@ -15,7 +14,6 @@ from core.database.models import Budget, Goal, PurchaseDecision
 class BudgetCheckInput(BaseModel):
     """Input schema for budget check tool."""
 
-    user_id: str = Field(..., description="User ID")
     category: str = Field(..., description="Budget category to check")
     amount: float = Field(..., description="Purchase amount to check against budget")
 
@@ -36,7 +34,7 @@ class BudgetCheckOutput(BaseModel):
 class GoalCheckInput(BaseModel):
     """Input schema for goal check tool."""
 
-    user_id: str = Field(..., description="User ID")
+    pass
 
 
 class GoalCheckOutput(BaseModel):
@@ -54,7 +52,7 @@ class GoalCheckOutput(BaseModel):
 class SpendingAnalysisInput(BaseModel):
     """Input schema for spending analysis tool."""
 
-    user_id: str = Field(..., description="User ID")
+    pass
 
 
 class SpendingAnalysisOutput(BaseModel):
@@ -71,7 +69,6 @@ class SpendingAnalysisOutput(BaseModel):
 class PastDecisionsInput(BaseModel):
     """Input schema for past decisions tool."""
 
-    user_id: str = Field(..., description="User ID")
     category: Optional[str] = Field(None, description="Category to filter by")
     min_amount: Optional[float] = Field(None, description="Minimum purchase amount")
     max_amount: Optional[float] = Field(None, description="Maximum purchase amount")
@@ -91,7 +88,6 @@ class PastDecisionsOutput(BaseModel):
 class RegretAnalysisInput(BaseModel):
     """Input schema for regret analysis tool."""
 
-    user_id: str = Field(..., description="User ID")
     category: Optional[str] = Field(None, description="Category to analyze")
 
 
@@ -107,35 +103,34 @@ class RegretAnalysisOutput(BaseModel):
     recommendations: str
 
 
-def create_decision_tools(db_session: Session):
-    """Create decision tools with database session."""
+def create_decision_tools(db_session: Session, user_id: str):
+    """Create decision tools with database session and bound user_id.
+
+    The user_id is injected into the tools so it doesn't need to be passed
+    by the LLM, preventing PII leakage in prompts.
+
+    Args:
+        db_session: Database session
+        user_id: User ID to bind to the tools
+    """
+
+    # Validate and convert user_id once
+    try:
+        user_uuid = UUID(user_id)
+    except ValueError:
+        raise ValueError(f"Invalid user_id format: {user_id}")
 
     @tool
-    def check_budget(user_id: str, category: str, amount: float) -> dict:
+    def check_budget(category: str, amount: float) -> dict:
         """Check if a purchase fits within the budget for a specific category.
 
         Args:
-            user_id: The user's ID
             category: The budget category (e.g., 'groceries', 'entertainment')
             amount: The purchase amount to check
 
         Returns:
             Budget analysis including current spending, limits, and impact
         """
-        try:
-            user_uuid = UUID(user_id)
-        except ValueError:
-            return {
-                "category": category,
-                "has_budget": False,
-                "current_spent": 0.0,
-                "limit": 0.0,
-                "remaining": 0.0,
-                "percentage_used": 0.0,
-                "would_exceed": True,
-                "impact_description": "Invalid user ID format",
-            }
-
         # Get current active budget (latest budget that includes today)
         today = date.today()
         budget = (
@@ -211,28 +206,12 @@ def create_decision_tools(db_session: Session):
         }
 
     @tool
-    def check_goals(user_id: str) -> dict:
+    def check_goals() -> dict:
         """Check user's financial goals and how a purchase might impact them.
-
-        Args:
-            user_id: The user's ID
 
         Returns:
             Summary of all user goals and their status
         """
-        try:
-            user_uuid = UUID(user_id)
-        except ValueError:
-            return {
-                "goals": [],
-                "total_goals": 0,
-                "active_goals": 0,
-                "total_target": 0.0,
-                "total_current": 0.0,
-                "total_remaining": 0.0,
-                "impact_description": "Invalid user ID format",
-            }
-
         # Get all active goals
         goals = (
             db_session.query(Goal)
@@ -300,27 +279,12 @@ def create_decision_tools(db_session: Session):
         }
 
     @tool
-    def analyze_spending(user_id: str) -> dict:
+    def analyze_spending() -> dict:
         """Analyze overall spending patterns and financial health.
-
-        Args:
-            user_id: The user's ID
 
         Returns:
             Overall financial health analysis
         """
-        try:
-            user_uuid = UUID(user_id)
-        except ValueError:
-            return {
-                "total_budget": 0.0,
-                "total_spent": 0.0,
-                "total_remaining": 0.0,
-                "percentage_spent": 0.0,
-                "financial_health_score": 0.0,
-                "analysis_description": "Invalid user ID format",
-            }
-
         # Get current active budget
         today = date.today()
         budget = (
@@ -409,7 +373,6 @@ def create_decision_tools(db_session: Session):
 
     @tool
     def check_past_decisions(
-        user_id: str,
         category: Optional[str] = None,
         min_amount: Optional[float] = None,
         max_amount: Optional[float] = None,
@@ -418,7 +381,6 @@ def create_decision_tools(db_session: Session):
         """Check user's past purchase decisions for patterns and learning.
 
         Args:
-            user_id: The user's ID
             category: Optional category to filter by
             min_amount: Optional minimum amount filter
             max_amount: Optional maximum amount filter
@@ -427,17 +389,6 @@ def create_decision_tools(db_session: Session):
         Returns:
             Past decisions with patterns and insights
         """
-        try:
-            user_uuid = UUID(user_id)
-        except ValueError:
-            return {
-                "decisions": [],
-                "total_decisions": 0,
-                "average_score": 0.0,
-                "category_patterns": {},
-                "insights": "Invalid user ID format",
-            }
-
         # Build query
         query = db_session.query(PurchaseDecision).filter(
             PurchaseDecision.user_id == user_uuid
@@ -543,29 +494,15 @@ def create_decision_tools(db_session: Session):
         }
 
     @tool
-    def analyze_regrets(user_id: str, category: Optional[str] = None) -> dict:
+    def analyze_regrets(category: Optional[str] = None) -> dict:
         """Analyze user's purchase regrets to identify patterns.
 
         Args:
-            user_id: The user's ID
             category: Optional category to filter analysis
 
         Returns:
             Regret analysis with patterns and recommendations
         """
-        try:
-            user_uuid = UUID(user_id)
-        except ValueError:
-            return {
-                "total_purchases": 0,
-                "purchases_with_feedback": 0,
-                "regretted_purchases": 0,
-                "regret_rate": 0.0,
-                "average_regret_level": 0.0,
-                "common_regret_patterns": [],
-                "recommendations": "Invalid user ID format",
-            }
-
         # Build query
         query = db_session.query(PurchaseDecision).filter(
             PurchaseDecision.user_id == user_uuid

@@ -25,6 +25,7 @@ class ConversationIntent(BaseModel):
         "budget_query",
         "goal_update",
         "general_question",
+        "small_talk",
         "log_expense",
         "budget_modification",
     ]

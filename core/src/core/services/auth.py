@@ -89,6 +89,10 @@ class AuthService:
         """Get user by ID."""
         return self.db.query(User).filter(User.user_id == user_id).first()
 
+    def get_user_by_google_id(self, google_id: str) -> Optional[User]:
+        """Get user by Google ID."""
+        return self.db.query(User).filter(User.google_id == google_id).first()
+
     def hash_password(self, password: str) -> str:
         """Hash a password using bcrypt."""
         # Ensure password is truncated to 72 bytes for bcrypt

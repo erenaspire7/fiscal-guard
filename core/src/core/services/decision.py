@@ -3,15 +3,22 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
-from core.ai.decision_agent import DecisionAgent
+from core.ai.agents.decision_agent import DecisionAgent
 from core.database.models import Budget
 from core.database.models import PurchaseDecision as PurchaseDecisionDB
 from core.models.budget import BudgetItemCreate
+from core.models.cart import (
+    AggregateRecommendation,
+    CartAnalysisResponse,
+    CartItem,
+    ItemDecisionResult,
+)
 from core.models.decision import (
+    BudgetCategory,
     DecisionFeedback,
     PurchaseDecisionListResponse,
     PurchaseDecisionRequest,
@@ -504,3 +511,237 @@ class DecisionService:
                 "over_budget_count": budget_analysis.over_budget_count,
             },
         }
+
+    async def analyze_cart_items(
+        self,
+        user_id: UUID,
+        items: list[CartItem],
+        page_url: str,
+        page_type: str,
+    ) -> CartAnalysisResponse:
+        """Analyze cart items from browser extension.
+
+        Processes each item individually using the DecisionAgent,
+        then creates an aggregate recommendation.
+
+        Args:
+            user_id: User ID
+            items: List of extracted cart items
+            page_url: URL of the shopping page
+            page_type: Type of page (cart, checkout, product)
+
+        Returns:
+            Cart analysis response with individual and aggregate decisions
+        """
+        item_decisions: list[ItemDecisionResult] = []
+
+        # Analyze each item individually
+        for item in items:
+            # Calculate total amount for this item
+            total_amount = item.price * item.quantity
+
+            # Infer category from item name
+            category = self._infer_category(item.item_name)
+
+            # Create decision request
+            decision_request = PurchaseDecisionRequest(
+                item_name=item.item_name,
+                amount=total_amount,
+                category=category,
+                urgency=item.urgency_badge or "normal",
+                reason=f"Cart item from {page_url}",
+                user_message=None,
+            )
+
+            # Use existing decision logic
+            decision, _, _ = self.agent.analyze_purchase(user_id, decision_request)
+
+            # Save to database for later confirmation
+            db_decision = PurchaseDecisionDB(
+                user_id=user_id,
+                item_name=item.item_name,
+                amount=total_amount,
+                category=category.value,
+                reason=f"Cart item from {page_url}",
+                urgency=item.urgency_badge or "normal",
+                score=decision.score,
+                decision_category=decision.decision_category.value,
+                reasoning=decision.reasoning,
+                analysis=decision.analysis.model_dump(mode="json"),
+                alternatives=decision.alternatives,
+                conditions=decision.conditions,
+            )
+            self.db.add(db_decision)
+
+            item_decisions.append(
+                ItemDecisionResult(
+                    item_name=item.item_name,
+                    price=item.price,
+                    quantity=item.quantity,
+                    total_amount=total_amount,
+                    urgency_badge=item.urgency_badge,
+                    decision=decision,
+                )
+            )
+
+        # Commit all decisions at once
+        self.db.commit()
+
+        # Generate aggregate recommendation
+        aggregate = self._create_aggregate_recommendation(user_id, item_decisions)
+
+        # Create conversation ID for follow-up chat
+        conversation_id = uuid4()
+
+        return CartAnalysisResponse(
+            items=item_decisions,
+            aggregate=aggregate,
+            conversation_id=conversation_id,
+            requires_clarification=False,
+        )
+
+    def _infer_category(self, item_name: str) -> BudgetCategory:
+        """Infer budget category from item name.
+
+        Simple keyword-based categorization. Could be enhanced with AI.
+
+        Args:
+            item_name: Name of the item
+
+        Returns:
+            Inferred budget category
+        """
+        item_lower = item_name.lower()
+
+        # Entertainment keywords
+        if any(
+            word in item_lower
+            for word in [
+                "book",
+                "game",
+                "movie",
+                "music",
+                "dvd",
+                "blu-ray",
+                "streaming",
+                "console",
+                "controller",
+            ]
+        ):
+            return BudgetCategory.ENTERTAINMENT
+
+        # Groceries keywords
+        if any(
+            word in item_lower
+            for word in [
+                "food",
+                "snack",
+                "coffee",
+                "tea",
+                "drink",
+                "water",
+                "juice",
+                "milk",
+                "cereal",
+                "bread",
+                "fruit",
+                "vegetable",
+            ]
+        ):
+            return BudgetCategory.GROCERIES
+
+        # Dining keywords
+        if any(
+            word in item_lower
+            for word in ["restaurant", "takeout", "delivery", "meal kit"]
+        ):
+            return BudgetCategory.DINING
+
+        # Transport keywords
+        if any(
+            word in item_lower
+            for word in ["uber", "lyft", "taxi", "gas", "fuel", "parking", "transit"]
+        ):
+            return BudgetCategory.TRANSPORT
+
+        # Default to shopping
+        return BudgetCategory.SHOPPING
+
+    def _create_aggregate_recommendation(
+        self,
+        user_id: UUID,
+        item_decisions: list[ItemDecisionResult],
+    ) -> AggregateRecommendation:
+        """Create aggregate recommendation from individual item decisions.
+
+        Args:
+            user_id: User ID
+            item_decisions: List of individual item decisions
+
+        Returns:
+            Aggregate recommendation
+        """
+        # Calculate total amount
+        total_amount = sum(item.total_amount for item in item_decisions)
+
+        # Calculate weighted average score (weighted by item price)
+        if item_decisions:
+            scores = [item.decision.score for item in item_decisions]
+            weights = [float(item.total_amount) for item in item_decisions]
+            total_weight = sum(weights)
+
+            if total_weight > 0:
+                overall_score = int(
+                    sum(s * w for s, w in zip(scores, weights)) / total_weight
+                )
+            else:
+                overall_score = int(sum(scores) / len(scores))
+        else:
+            overall_score = 5
+
+        # Categorize items
+        items_to_remove = [
+            item.item_name for item in item_decisions if item.decision.score <= 4
+        ]
+
+        items_to_keep = [
+            item.item_name for item in item_decisions if item.decision.score >= 7
+        ]
+
+        # Generate summary recommendation
+        if overall_score <= 4:
+            recommendation = (
+                f"We recommend reconsidering this ${total_amount:.2f} purchase. "
+            )
+        elif overall_score >= 7:
+            recommendation = (
+                f"This ${total_amount:.2f} purchase aligns with your financial goals. "
+            )
+        else:
+            recommendation = (
+                f"This ${total_amount:.2f} purchase has mixed financial impact. "
+            )
+
+        if items_to_remove:
+            recommendation += f"Consider removing: {', '.join(items_to_remove[:3])}. "
+
+        # Get budget and goal impact from the first item's decision
+        # (assumes budget/goal impact is calculated per-item by the agent)
+        budget_impact = None
+        goal_impact = []
+
+        if item_decisions:
+            first_decision = item_decisions[0].decision
+            if first_decision.analysis.budget_analysis:
+                budget_impact = first_decision.analysis.budget_analysis
+            goal_impact = first_decision.analysis.affected_goals
+
+        return AggregateRecommendation(
+            total_amount=total_amount,
+            overall_score=overall_score,
+            overall_recommendation=recommendation,
+            items_to_remove=items_to_remove,
+            items_to_keep=items_to_keep,
+            budget_impact=budget_impact,
+            goal_impact=goal_impact,
+        )

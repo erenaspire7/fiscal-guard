@@ -1,10 +1,13 @@
 """API endpoints for purchase decisions."""
 
+import base64
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
+from core.ai.agents.vision_agent import VisionAgent
 from core.database.models import User
+from core.models.cart import CartAnalysisRequest, CartAnalysisResponse, CartItem
 from core.models.decision import (
     DecisionFeedback,
     PurchaseDecisionDB,
@@ -12,11 +15,32 @@ from core.models.decision import (
     PurchaseDecisionRequest,
     PurchaseDecisionResponse,
 )
+from core.observability.pii_redaction import create_trace_attributes
 from core.services.decision import DecisionService
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from api.dependencies import get_current_user, get_db
+
+
+class ScreenshotExtractionRequest(BaseModel):
+    """Request model for screenshot-based cart extraction."""
+
+    image_base64: str
+    page_url: str
+    page_type: str = "cart"
+
+
+class ScreenshotExtractionResponse(BaseModel):
+    """Response model for screenshot extraction."""
+
+    items: list[CartItem]
+    extraction_quality: str
+    confidence_score: float
+    warnings: list[str]
+    validation_report: dict
+
 
 router = APIRouter(prefix="/decisions", tags=["decisions"])
 
@@ -158,3 +182,130 @@ def add_decision_feedback(
         )
 
     return decision
+
+
+@router.post(
+    "/extract-cart-screenshot",
+    response_model=ScreenshotExtractionResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def extract_cart_screenshot(
+    request: ScreenshotExtractionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Extract cart items from screenshot using Gemini Vision.
+
+    This endpoint receives a screenshot from the browser extension and uses
+    the VisionAgent to extract cart items securely on the backend.
+
+    Args:
+        request: Screenshot extraction request with base64 image
+        db: Database session
+        current_user: Authenticated user
+
+    Returns:
+        Extracted cart items with quality metrics
+
+    Raises:
+        HTTPException: If extraction fails or image is invalid
+    """
+    try:
+        # Validate base64 image
+        try:
+            # Check if it's a data URL and strip prefix if present
+            image_data = request.image_base64
+            if image_data.startswith("data:image"):
+                image_data = image_data.split(",", 1)[1]
+
+            # Validate it's valid base64
+            base64.b64decode(image_data)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid base64 image: {str(e)}",
+            )
+
+        # Create vision agent
+        vision_agent = VisionAgent()
+
+        # Build trace attributes for observability
+        trace_attributes = create_trace_attributes(
+            user_id=str(current_user.user_id),
+            page_url=request.page_url,
+            page_type=request.page_type,
+            action="cart_extraction",
+        )
+
+        # Decode base64 to bytes for vision agent
+        image_bytes = base64.b64decode(image_data)
+
+        # Extract cart items using vision agent
+        extraction_result = vision_agent.extract_cart_items(
+            image_bytes=image_bytes, trace_attributes=trace_attributes
+        )
+
+        # Validate extraction quality
+        validation_report = vision_agent.validate_extraction(extraction_result)
+
+        # Convert extracted items to CartItem models
+        cart_items = []
+        from decimal import Decimal
+
+        for item in extraction_result.items:
+            cart_item = CartItem(
+                item_name=item.item_name,
+                price=Decimal(str(item.price)),
+                quantity=item.quantity,
+                urgency_badge=item.urgency_badge,
+                confidence=item.confidence,
+            )
+            cart_items.append(cart_item)
+
+        return ScreenshotExtractionResponse(
+            items=cart_items,
+            extraction_quality=extraction_result.extraction_quality,
+            confidence_score=extraction_result.confidence_score,
+            warnings=extraction_result.warnings,
+            validation_report=validation_report,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Vision extraction failed: {str(e)}",
+        )
+
+
+@router.post(
+    "/analyze-cart",
+    response_model=CartAnalysisResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def analyze_cart(
+    request: CartAnalysisRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Analyze cart items from browser extension.
+
+    Processes cart items (extracted via /extract-cart-screenshot or manually provided)
+    and returns individual and aggregate purchase recommendations.
+
+    Args:
+        request: Cart analysis request with extracted items
+        db: Database session
+        current_user: Authenticated user
+
+    Returns:
+        Individual item decisions and aggregate recommendation
+    """
+    service = DecisionService(db)
+    return await service.analyze_cart_items(
+        user_id=current_user.user_id,
+        items=request.items,
+        page_url=request.page_url,
+        page_type=request.page_type,
+    )

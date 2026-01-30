@@ -1,24 +1,30 @@
-import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { StreamingMarkdown } from "@/components/ui/streaming-markdown";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { useChat } from "@/hooks/useChat";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Send, Shield, User, Loader2 } from "lucide-react";
+import { Send, Shield, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeBackgrounds, DEFAULT_THEME } from "@/lib/themes";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function AgentChat() {
-  const navigate = useNavigate();
   const { messages, sendMessage, isLoading } = useChat();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+
+  const lastAssistantMessageId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i]?.role === "assistant") return messages[i]!.id;
+    }
+    return null;
+  }, [messages]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -145,36 +151,73 @@ export default function AgentChat() {
                         : "bg-[#0A2A22] text-foreground/90",
                     )}
                   >
-                    <div className="text-sm leading-relaxed font-sans">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          p: ({ children }) => (
-                            <p className="mb-3 last:mb-0">{children}</p>
-                          ),
-                          ul: ({ children }) => (
-                            <ul className="list-disc pl-4 mb-3 last:mb-0 space-y-1">
-                              {children}
-                            </ul>
-                          ),
-                          ol: ({ children }) => (
-                            <ol className="list-decimal pl-4 mb-3 last:mb-0 space-y-1">
-                              {children}
-                            </ol>
-                          ),
-                          li: ({ children }) => (
-                            <li className="mb-1">{children}</li>
-                          ),
-                          strong: ({ children }) => (
-                            <strong className="font-semibold text-primary">
-                              {children}
-                            </strong>
-                          ),
-                        }}
-                      >
-                        {msg.content}
-                      </ReactMarkdown>
-                    </div>
+                    {msg.role === "assistant" ? (
+                      msg.id === lastAssistantMessageId ? (
+                        <StreamingMarkdown content={msg.content} />
+                      ) : (
+                        <div className="text-sm leading-relaxed font-sans">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              p: ({ children }) => (
+                                <p className="mb-3 last:mb-0">{children}</p>
+                              ),
+                              ul: ({ children }) => (
+                                <ul className="list-disc pl-4 mb-3 last:mb-0 space-y-1">
+                                  {children}
+                                </ul>
+                              ),
+                              ol: ({ children }) => (
+                                <ol className="list-decimal pl-4 mb-3 last:mb-0 space-y-1">
+                                  {children}
+                                </ol>
+                              ),
+                              li: ({ children }) => (
+                                <li className="mb-1">{children}</li>
+                              ),
+                              strong: ({ children }) => (
+                                <strong className="font-semibold text-primary">
+                                  {children}
+                                </strong>
+                              ),
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+                      )
+                    ) : (
+                      <div className="text-sm leading-relaxed font-sans">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            p: ({ children }) => (
+                              <p className="mb-3 last:mb-0">{children}</p>
+                            ),
+                            ul: ({ children }) => (
+                              <ul className="list-disc pl-4 mb-3 last:mb-0 space-y-1">
+                                {children}
+                              </ul>
+                            ),
+                            ol: ({ children }) => (
+                              <ol className="list-decimal pl-4 mb-3 last:mb-0 space-y-1">
+                                {children}
+                              </ol>
+                            ),
+                            li: ({ children }) => (
+                              <li className="mb-1">{children}</li>
+                            ),
+                            strong: ({ children }) => (
+                              <strong className="font-semibold text-primary">
+                                {children}
+                              </strong>
+                            ),
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      </div>
+                    )}
                   </Card>
                   <span
                     className={cn(

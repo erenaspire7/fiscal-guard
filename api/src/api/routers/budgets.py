@@ -3,7 +3,6 @@
 from typing import List, Optional
 from uuid import UUID
 
-from core.ai.budget_importer import BudgetImporter
 from core.models.budget import (
     BudgetAnalysisOverTime,
     BudgetCreate,
@@ -12,8 +11,6 @@ from core.models.budget import (
     BudgetResponse,
     BudgetUpdate,
     BudgetWithItems,
-    ChatBudgetImportRequest,
-    ChatBudgetImportResponse,
 )
 from core.services.budget import BudgetService
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -105,33 +102,6 @@ def delete_budget(
         )
 
     return None
-
-
-@router.post("/import/chat", response_model=ChatBudgetImportResponse)
-def chat_budget_import(
-    request: ChatBudgetImportRequest,
-    user_id: UUID = Depends(get_current_user_id),
-):
-    """Process a chat message for budget import."""
-    importer = BudgetImporter()
-
-    if not request.message:
-        # Start new conversation
-        return importer.start_conversation()
-
-    response = importer.process_message(
-        request.message,
-        request.conversation_history,
-    )
-
-    return response
-
-
-@router.get("/import/chat/start", response_model=ChatBudgetImportResponse)
-def start_chat_budget_import(user_id: UUID = Depends(get_current_user_id)):
-    """Start a new chat-based budget import conversation."""
-    importer = BudgetImporter()
-    return importer.start_conversation()
 
 
 # Budget Items endpoints

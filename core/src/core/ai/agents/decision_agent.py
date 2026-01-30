@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from strands import Agent
 from strands.models.gemini import GeminiModel
 
-from core.ai.decision_tools import create_decision_tools
+from core.ai.tools.decision_tools import create_decision_tools
 from core.config import settings
 from core.database.models import User
 from core.models.decision import (
@@ -58,7 +58,7 @@ class StructuredPurchaseDecision(BaseModel):
     )
     reasoning: str = Field(
         ...,
-        description="Detailed reasoning for the decision, referencing budget, goals, and patterns",
+        description="Detailed reasoning for the decision, referencing budget, goals, patterns, and opportunity costs",
     )
     purchase_category: str = Field(
         ...,
@@ -66,6 +66,16 @@ class StructuredPurchaseDecision(BaseModel):
     )
     financial_health_score: float = Field(
         ..., description="Overall financial health score (0-100)", ge=0, le=100
+    )
+
+    # Opportunity cost analysis
+    opportunity_cost_description: str = Field(
+        ...,
+        description="Clear explanation of what the user is giving up by making this purchase. What else could this money be used for? What goals or alternatives are being sacrificed?",
+    )
+    opportunity_cost_examples: list[str] = Field(
+        default_factory=list,
+        description="Concrete examples of alternative uses for this money (e.g., '3 weeks of groceries', 'half your monthly savings goal', '2 months closer to vacation fund')",
     )
 
     # Budget analysis
@@ -119,14 +129,11 @@ class DecisionAgent:
             },
         )
 
-        # Create decision tools with database session
-        tools = create_decision_tools(db_session)
-
         # Store for per-request agent creation
         self.model = model
-        self.tools = tools
+        # Tools will be created per-request with user context
 
-        self.system_prompt = """You are an expert financial advisor helping users make smart purchase decisions.
+        self.system_prompt = """You are an expert financial advisor helping users make smart purchase decisions through opportunity cost thinking.
 
 Your role:
 1. Use the available tools to analyze the purchase comprehensively:
@@ -136,7 +143,11 @@ Your role:
    - check_past_decisions: Learn from user's purchase history
    - analyze_regrets: Identify patterns in past regrets
 
-2. Analyze the purchase request comprehensively
+2. ALWAYS perform opportunity cost analysis - this is critical:
+   - What is the user giving up by spending this money?
+   - What financial goals will be delayed or sacrificed?
+   - What alternative uses would provide more value?
+   - Frame the cost in relatable terms (e.g., "This equals X days of groceries" or "This delays your vacation goal by Y weeks")
 
 3. Provide a decision score from 1-10 where:
    - 1-3: Strong No (strong_no) - would significantly harm financial health
@@ -152,6 +163,7 @@ Your role:
    - impulse: Emotional or unplanned purchase
 
 5. Provide concise reasoning (keep it short and punchy) that considers:
+   - OPPORTUNITY COST (what are they giving up?)
    - Budget impact (will it exceed category limits?)
    - Goal impact (will it delay financial goals?)
    - Overall financial health
@@ -160,15 +172,20 @@ Your role:
    - Value vs cost
    - Urgency and necessity
 
-6. Suggest alternatives when appropriate
+6. Provide concrete opportunity cost examples:
+   - Convert the purchase amount into relatable alternatives
+   - Reference specific goals from their profile when available
+   - Use tangible comparisons (meals, days of work, progress toward savings goals)
 
-7. Provide conditions under which this purchase might make more sense
+7. Suggest alternatives when appropriate
 
-8. Reference past patterns when relevant (e.g., "You've regretted similar purchases before")
+8. Provide conditions under which this purchase might make more sense
 
-Be honest, practical, and empathetic. Consider the user's context and help them make decisions that align with their financial goals.
+9. Reference past patterns when relevant (e.g., "You've regretted similar purchases before")
 
-CRITICAL: Keep your reasoning and analysis extremely concise. Avoid fluff. Get straight to the point."""
+Be honest, practical, and empathetic. Help users understand the true cost of their decisions by making opportunity costs explicit and relatable.
+
+CRITICAL: Keep your reasoning and analysis extremely concise. Avoid fluff. Get straight to the point. ALWAYS include opportunity cost analysis."""
 
     def _extract_purchase_info(self, user_message: str) -> ExtractedPurchaseInfo:
         """Extract structured purchase information from natural language.
@@ -298,11 +315,15 @@ If amount is not mentioned, provide a reasonable estimate based on typical price
         elif strictness <= 3:
             custom_instructions += "Be more flexible and prioritize the user's immediate happiness more than usual."
 
+        # Create tools bound to this user
+        # This prevents the need to pass user_id in the prompt (PII protection)
+        tools = create_decision_tools(self.db_session, str(user_id))
+
         # Create agent for this request with trace attributes and structured output
         # OpenTelemetry will automatically trace all interactions
         agent = Agent(
             model=self.model,
-            tools=self.tools,
+            tools=tools,
             system_prompt=self.system_prompt + custom_instructions,
             structured_output_model=StructuredPurchaseDecision,  # Enforce structured output!
             trace_attributes=trace_attributes,
@@ -312,7 +333,6 @@ If amount is not mentioned, provide a reasonable estimate based on typical price
         prompt = f"""Analyze this purchase decision:
 
 PURCHASE REQUEST:
-User ID: {str(user_id)}
 Item: {request.item_name}
 Amount: ${request.amount}
 Category: {request.category or "unspecified"}
@@ -325,11 +345,16 @@ INSTRUCTIONS:
 3. Use analyze_spending tool to understand overall financial health
 4. Use check_past_decisions tool to see if user has made similar purchases
 5. Use analyze_regrets tool to check if user has regret patterns in this category
-6. Based on all tool results and patterns, provide your decision
-7. Reference past behavior in your reasoning if patterns are found
-8. REMEMBER: You must act as a {persona} advisor with a strictness of {strictness}/10.
+6. CRITICAL - Perform opportunity cost analysis:
+   - Based on the user's goals, budget, and spending patterns, what are they giving up?
+   - Provide concrete, relatable examples (e.g., "This equals 2 weeks of your grocery budget")
+   - Show how this impacts progress toward their specific goals
+   - Frame the tradeoff clearly: "This purchase means X instead of Y"
+7. Based on all tool results, patterns, AND opportunity costs, provide your decision
+8. Reference past behavior in your reasoning if patterns are found
+9. REMEMBER: You must act as a {persona} advisor with a strictness of {strictness}/10.
 
-Provide your complete analysis with a decision score, reasoning, and recommendations."""
+Provide your complete analysis with a decision score, reasoning, opportunity cost analysis, and recommendations."""
 
         # Call the agent (it will use tools automatically)
         # The response will be an AgentResult with JSON string output
@@ -458,12 +483,23 @@ Provide your complete analysis with a decision score, reasoning, and recommendat
         except ValueError:
             purchase_category = PurchaseCategory.DISCRETIONARY
 
+        # Build opportunity cost analysis
+        from core.models.decision import OpportunityCost
+
+        opportunity_cost = OpportunityCost(
+            description=structured.opportunity_cost_description,
+            examples=structured.opportunity_cost_examples
+            if structured.opportunity_cost_examples
+            else [],
+        )
+
         # Build analysis
         analysis = DecisionAnalysis(
             budget_analysis=budget_analysis,
             affected_goals=affected_goals,
             purchase_category=purchase_category,
             financial_health_score=float(structured.financial_health_score),
+            opportunity_cost=opportunity_cost,
         )
 
         # Build decision

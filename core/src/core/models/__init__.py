@@ -4,8 +4,6 @@ from core.models.budget import (
     BudgetResponse,
     BudgetUpdate,
     CategoryBudget,
-    ChatBudgetImportRequest,
-    ChatBudgetImportResponse,
 )
 from core.models.goal import GoalCreate, GoalResponse, GoalUpdate
 from core.models.user import UserCreate, UserResponse
@@ -17,8 +15,6 @@ __all__ = [
     "BudgetResponse",
     "BudgetUpdate",
     "CategoryBudget",
-    "ChatBudgetImportRequest",
-    "ChatBudgetImportResponse",
     "GoalCreate",
     "GoalResponse",
     "GoalUpdate",

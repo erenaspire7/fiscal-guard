@@ -44,7 +44,7 @@ class PIIRedactor:
 
             # Redact specific dollar amounts (keep rounded)
             data = re.sub(
-                r"\$\d+\.\d{2}",
+                r"\$\d+(\.\d{1,2})?",
                 lambda m: f"${round(float(m.group()[1:]), -1):.0f}",
                 data,
             )

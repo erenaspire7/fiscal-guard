@@ -53,21 +53,6 @@ class BudgetResponse(BudgetBase):
         from_attributes = True
 
 
-class ChatBudgetImportRequest(BaseModel):
-    """Request model for chat-based budget import."""
-
-    message: str = Field(..., min_length=1)
-    conversation_history: Optional[list[Dict[str, str]]] = None
-
-
-class ChatBudgetImportResponse(BaseModel):
-    """Response model for chat-based budget import."""
-
-    response: str
-    budget_data: Optional[BudgetCreate] = None
-    is_complete: bool = False
-
-
 class BudgetItemBase(BaseModel):
     """Base budget item model."""
 

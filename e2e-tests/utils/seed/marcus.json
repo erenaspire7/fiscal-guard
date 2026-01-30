@@ -1,0 +1,1075 @@
+{
+  "base_categories": {
+    "groceries": { "limit": 500, "spent": 0 },
+    "dining": { "limit": 200, "spent": 0 },
+    "shopping": { "limit": 150, "spent": 0 },
+    "entertainment": { "limit": 100, "spent": 0 },
+    "transport": { "limit": 300, "spent": 0 },
+    "savings": { "limit": 500, "spent": 0 }
+  },
+  "purchase_patterns": [
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "95",
+        "category": "groceries",
+        "reason": "Meal prep for the week",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Essential purchase with excellent planning. Buying ingredients for meal prep is cost-effective and healthy.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 19% of grocery budget efficiently"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 95
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Perfect routine"
+      },
+      {
+        "item_name": "Gas for Commute",
+        "amount": "60",
+        "category": "transport",
+        "reason": "Work commute",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Essential transportation expense for work. Non-negotiable necessity.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 300,
+            "remaining": 300,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 20% of transport budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 95
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Necessary expense"
+      },
+      {
+        "item_name": "Library Book Sale",
+        "amount": "15",
+        "category": "entertainment",
+        "reason": "Educational reading material",
+        "urgency": "low",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Budget-friendly entertainment that provides long-term value. Books are an investment in knowledge.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 100,
+            "remaining": 100,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses only 15% of entertainment budget wisely"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 95
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Great value for knowledge"
+      },
+      {
+        "item_name": "Home Cooked Meal Ingredients",
+        "amount": "40",
+        "category": "groceries",
+        "reason": "Hosting friends for dinner",
+        "urgency": "medium",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Cost-effective way to socialize. Hosting at home costs fraction of restaurant dining while maintaining relationships.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 95,
+            "limit": 500,
+            "remaining": 405,
+            "percentage_used": 19,
+            "would_exceed": false,
+            "impact_description": "Uses 8% more of grocery budget for social connection"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 95
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Much cheaper than restaurant"
+      },
+      {
+        "item_name": "Designer Watch",
+        "amount": "800",
+        "category": "shopping",
+        "reason": "Looks impressive",
+        "urgency": "low",
+        "score": 1,
+        "decision_category": "strong_no",
+        "reasoning": "This is 533% of your shopping budget for a luxury status symbol. A $50 watch tells time just as well. This money serves your goals better in investments or savings.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "shopping",
+            "current_spent": 0,
+            "limit": 150,
+            "remaining": 150,
+            "percentage_used": 0,
+            "would_exceed": true,
+            "impact_description": "Would exceed budget by $650"
+          },
+          "affected_goals": [
+            {
+              "goal_name": "Investment Account",
+              "target_amount": 15000,
+              "current_amount": 9800,
+              "remaining": 5200,
+              "deadline": "2027-12-31",
+              "impact_description": "$800 represents 15.4% of remaining investment goal"
+            }
+          ],
+          "purchase_category": "impulse",
+          "financial_health_score": 95
+        },
+        "alternatives": [
+          "Buy a functional watch for $50-80",
+          "Invest the $800 in your investment account",
+          "Save toward vacation fund instead"
+        ],
+        "actual_purchase": false,
+        "user_feedback": "Not worth sacrificing my goals"
+      },
+      {
+        "item_name": "Monthly Savings Transfer",
+        "amount": "450",
+        "category": "savings",
+        "reason": "Building investment account",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Excellent! Paying yourself first is the foundation of wealth building. Consistent savings create financial security.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "savings",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 90% of savings budget - excellent discipline"
+          },
+          "affected_goals": [
+            {
+              "goal_name": "Investment Account",
+              "target_amount": 15000,
+              "current_amount": 9800,
+              "remaining": 5200,
+              "deadline": "2027-12-31",
+              "impact_description": "Contributes 8.7% toward investment goal"
+            }
+          ],
+          "purchase_category": "investment",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Best decision I make every month"
+      }
+    ],
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "88",
+        "category": "groceries",
+        "reason": "Meal prep essentials",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Consistent smart shopping. You're maintaining excellent habits.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 18% of grocery budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 96
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Consistency is key"
+      },
+      {
+        "item_name": "Free Hiking Day",
+        "amount": "0",
+        "category": "entertainment",
+        "reason": "Outdoor activity",
+        "urgency": "low",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Free entertainment that promotes health and wellbeing. Perfect balance of fun and frugality.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 100,
+            "remaining": 100,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Free activity - preserves entire entertainment budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 96
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Best things in life are free"
+      },
+      {
+        "item_name": "Car Oil Change",
+        "amount": "45",
+        "category": "transport",
+        "reason": "Preventive maintenance",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Preventive maintenance saves thousands in future repairs. This is wise financial planning.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 300,
+            "remaining": 300,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 15% of transport budget for maintenance"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 96
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Cheaper than engine problems"
+      },
+      {
+        "item_name": "Coffee Shop Meetup",
+        "amount": "12",
+        "category": "dining",
+        "reason": "Networking with colleague",
+        "urgency": "medium",
+        "score": 8,
+        "decision_category": "mild_yes",
+        "reasoning": "Professional networking at minimal cost. This investment in relationships can yield career opportunities.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 0,
+            "limit": 200,
+            "remaining": 200,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses only 6% of dining budget for networking"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 96
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Good for career connections"
+      },
+      {
+        "item_name": "Impulse Tech Gadget",
+        "amount": "250",
+        "category": "shopping",
+        "reason": "Saw it on sale",
+        "urgency": "low",
+        "score": 2,
+        "decision_category": "strong_no",
+        "reasoning": "Sale prices create false urgency. This is 167% of your shopping budget. If you don't need it at full price, you don't need it on sale.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "shopping",
+            "current_spent": 0,
+            "limit": 150,
+            "remaining": 150,
+            "percentage_used": 0,
+            "would_exceed": true,
+            "impact_description": "Would exceed budget by $100"
+          },
+          "affected_goals": [],
+          "purchase_category": "impulse",
+          "financial_health_score": 96
+        },
+        "alternatives": [
+          "Wait 30 days - if you still want it, reconsider",
+          "Research if you actually need this functionality",
+          "Invest the $250 instead"
+        ],
+        "actual_purchase": false,
+        "user_feedback": "Glad I waited, didn't need it"
+      },
+      {
+        "item_name": "Monthly Savings Transfer",
+        "amount": "475",
+        "category": "savings",
+        "reason": "Investment account contribution",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Outstanding commitment to your financial future. You're on track to meet your investment goal ahead of schedule.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "savings",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 95% of savings budget - exceptional discipline"
+          },
+          "affected_goals": [
+            {
+              "goal_name": "Investment Account",
+              "target_amount": 15000,
+              "current_amount": 9800,
+              "remaining": 5200,
+              "deadline": "2027-12-31",
+              "impact_description": "Contributes 9.1% toward investment goal"
+            }
+          ],
+          "purchase_category": "investment",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Future me will thank current me"
+      }
+    ],
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "92",
+        "category": "groceries",
+        "reason": "Healthy meal ingredients",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Consistent healthy eating saves money and improves wellbeing. Perfect execution.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 18% of grocery budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 97
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Health is wealth"
+      },
+      {
+        "item_name": "Community Event",
+        "amount": "20",
+        "category": "entertainment",
+        "reason": "Local festival",
+        "urgency": "low",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Low-cost community engagement. These experiences create memories without breaking the bank.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 100,
+            "remaining": 100,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 20% of entertainment budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 97
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Great local experience"
+      },
+      {
+        "item_name": "Gas",
+        "amount": "65",
+        "category": "transport",
+        "reason": "Commute",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Essential transportation expense.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 300,
+            "remaining": 300,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 22% of transport budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 97
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Necessary"
+      },
+      {
+        "item_name": "Bulk Rice and Beans",
+        "amount": "35",
+        "category": "groceries",
+        "reason": "Stock pantry staples",
+        "urgency": "medium",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Buying staples in bulk saves money long-term. Smart pantry management prevents last-minute expensive purchases.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 92,
+            "limit": 500,
+            "remaining": 408,
+            "percentage_used": 18,
+            "would_exceed": false,
+            "impact_description": "Uses 7% more of grocery budget efficiently"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 97
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Smart bulk buying"
+      },
+      {
+        "item_name": "Premium Gym Membership",
+        "amount": "120",
+        "category": "entertainment",
+        "reason": "Fancy gym with spa",
+        "urgency": "low",
+        "score": 4,
+        "decision_category": "mild_no",
+        "reasoning": "This would exceed your entire entertainment budget. A basic gym membership ($30-40) provides the same health benefits without the luxury markup.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 20,
+            "limit": 100,
+            "remaining": 80,
+            "percentage_used": 20,
+            "would_exceed": true,
+            "impact_description": "Would exceed budget by $40"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 95
+        },
+        "alternatives": [
+          "Join basic gym for $30-40/month",
+          "Use free outdoor exercise options",
+          "Try home workout programs"
+        ],
+        "actual_purchase": false,
+        "user_feedback": "Found a budget gym instead"
+      },
+      {
+        "item_name": "Monthly Savings Transfer",
+        "amount": "460",
+        "category": "savings",
+        "reason": "Consistent wealth building",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Your consistency is remarkable. This disciplined approach to savings will compound into significant wealth over time.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "savings",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 92% of savings budget"
+          },
+          "affected_goals": [
+            {
+              "goal_name": "Investment Account",
+              "target_amount": 15000,
+              "current_amount": 9800,
+              "remaining": 5200,
+              "deadline": "2027-12-31",
+              "impact_description": "Contributes 8.8% toward investment goal"
+            }
+          ],
+          "purchase_category": "investment",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Discipline equals freedom"
+      }
+    ],
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "98",
+        "category": "groceries",
+        "reason": "Weekly meal prep",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Flawless execution of your budget strategy. Meal prepping continues to serve you well.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 20% of grocery budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 97
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Routine excellence"
+      },
+      {
+        "item_name": "Used Book Store",
+        "amount": "18",
+        "category": "entertainment",
+        "reason": "Reading material",
+        "urgency": "low",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Used books provide same value at fraction of the cost. Smart entertainment spending.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 100,
+            "remaining": 100,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 18% of entertainment budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 97
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Love finding book deals"
+      },
+      {
+        "item_name": "Birthday Lunch for Friend",
+        "amount": "45",
+        "category": "dining",
+        "reason": "Friend's birthday celebration",
+        "urgency": "high",
+        "score": 8,
+        "decision_category": "mild_yes",
+        "reasoning": "Relationships matter. This is a reasonable amount for celebrating a friend's birthday.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 0,
+            "limit": 200,
+            "remaining": 200,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 23% of dining budget for special occasion"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 97
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Worth it for friendship"
+      },
+      {
+        "item_name": "Gas",
+        "amount": "58",
+        "category": "transport",
+        "reason": "Work commute",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Essential expense for work.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 300,
+            "remaining": 300,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 19% of transport budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 97
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Necessary"
+      },
+      {
+        "item_name": "Luxury Sneakers",
+        "amount": "220",
+        "category": "shopping",
+        "reason": "Limited edition release",
+        "urgency": "low",
+        "score": 2,
+        "decision_category": "strong_no",
+        "reasoning": "Limited edition creates artificial scarcity. This is 147% of your shopping budget. Good sneakers cost $60-80 and perform identically.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "shopping",
+            "current_spent": 0,
+            "limit": 150,
+            "remaining": 150,
+            "percentage_used": 0,
+            "would_exceed": true,
+            "impact_description": "Would exceed budget by $70"
+          },
+          "affected_goals": [],
+          "purchase_category": "impulse",
+          "financial_health_score": 97
+        },
+        "alternatives": [
+          "Buy quality sneakers for $60-80",
+          "Wait for actual need, not artificial urgency",
+          "Invest the difference"
+        ],
+        "actual_purchase": false,
+        "user_feedback": "Marketing doesn't control me"
+      },
+      {
+        "item_name": "Monthly Savings Transfer",
+        "amount": "480",
+        "category": "savings",
+        "reason": "Building financial independence",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "You're a model of financial discipline. This consistent saving behavior is building lasting wealth.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "savings",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 96% of savings budget"
+          },
+          "affected_goals": [
+            {
+              "goal_name": "Investment Account",
+              "target_amount": 15000,
+              "current_amount": 9800,
+              "remaining": 5200,
+              "deadline": "2027-12-31",
+              "impact_description": "Contributes 9.2% toward investment goal"
+            }
+          ],
+          "purchase_category": "investment",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Wealth is built daily"
+      }
+    ],
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "85",
+        "category": "groceries",
+        "reason": "Meal prep staples",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Your meal prep habit remains strong. This consistency saves thousands annually.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 17% of grocery budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Never gets old"
+      },
+      {
+        "item_name": "Free Museum Day",
+        "amount": "0",
+        "category": "entertainment",
+        "reason": "Cultural enrichment",
+        "urgency": "low",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Taking advantage of free community offerings. Cultural enrichment at zero cost - perfect.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 100,
+            "remaining": 100,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Free entertainment preserves budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Great free activity"
+      },
+      {
+        "item_name": "Gas",
+        "amount": "62",
+        "category": "transport",
+        "reason": "Commute",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Essential transportation.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 300,
+            "remaining": 300,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 21% of transport budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Necessary"
+      },
+      {
+        "item_name": "Quality Winter Boots",
+        "amount": "110",
+        "category": "shopping",
+        "reason": "Old boots worn out",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Replacing worn essentials with quality items. Good boots last years and prevent health issues. Smart investment.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "shopping",
+            "current_spent": 0,
+            "limit": 150,
+            "remaining": 150,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 73% of shopping budget for essential replacement"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Will last many winters"
+      },
+      {
+        "item_name": "Potluck Contribution",
+        "amount": "25",
+        "category": "dining",
+        "reason": "Office potluck",
+        "urgency": "medium",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Cost-effective workplace socializing. Potlucks distribute cost while maintaining team relationships.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 0,
+            "limit": 200,
+            "remaining": 200,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 13% of dining budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Good team bonding"
+      },
+      {
+        "item_name": "Monthly Savings Transfer",
+        "amount": "490",
+        "category": "savings",
+        "reason": "Maximizing investment growth",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Outstanding! You're maximizing your savings potential. This discipline will create financial freedom.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "savings",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 98% of savings budget - exemplary"
+          },
+          "affected_goals": [
+            {
+              "goal_name": "Investment Account",
+              "target_amount": 15000,
+              "current_amount": 9800,
+              "remaining": 5200,
+              "deadline": "2027-12-31",
+              "impact_description": "Contributes 9.4% toward investment goal"
+            }
+          ],
+          "purchase_category": "investment",
+          "financial_health_score": 99
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Financial freedom is priceless"
+      }
+    ],
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "90",
+        "category": "groceries",
+        "reason": "Healthy meal prep",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Six months of perfect execution. You've mastered the art of budget grocery shopping.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 18% of grocery budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Perfect system"
+      },
+      {
+        "item_name": "Public Park Workout",
+        "amount": "0",
+        "category": "entertainment",
+        "reason": "Free outdoor fitness",
+        "urgency": "low",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Free fitness and entertainment. You've found the perfect balance of health, fun, and frugality.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 100,
+            "remaining": 100,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Free activity maintains full budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Nature's gym"
+      },
+      {
+        "item_name": "Gas",
+        "amount": "70",
+        "category": "transport",
+        "reason": "Work and errands",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Essential transportation expense.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 300,
+            "remaining": 300,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 23% of transport budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Necessary"
+      },
+      {
+        "item_name": "Online Course",
+        "amount": "75",
+        "category": "entertainment",
+        "reason": "Skill development",
+        "urgency": "medium",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Investing in skills that increase earning potential. This is how you build long-term wealth - through knowledge and discipline.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 100,
+            "remaining": 100,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 75% of entertainment budget for education"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 99
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Best investment is in myself"
+      },
+      {
+        "item_name": "Coffee Date",
+        "amount": "15",
+        "category": "dining",
+        "reason": "Catching up with mentor",
+        "urgency": "medium",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Mentorship is invaluable. This minimal investment can yield tremendous career and personal growth.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 0,
+            "limit": 200,
+            "remaining": 200,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 8% of dining budget for mentorship"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 98
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "Mentorship is priceless"
+      },
+      {
+        "item_name": "Monthly Savings Transfer",
+        "amount": "500",
+        "category": "savings",
+        "reason": "Hitting maximum savings goal",
+        "urgency": "high",
+        "score": 10,
+        "decision_category": "strong_yes",
+        "reasoning": "Perfect! You've reached 100% of your savings goal. Your discipline over these six months has been exceptional. You're building generational wealth through consistent action.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "savings",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 100% of savings budget - perfection"
+          },
+          "affected_goals": [
+            {
+              "goal_name": "Investment Account",
+              "target_amount": 15000,
+              "current_amount": 9800,
+              "remaining": 5200,
+              "deadline": "2027-12-31",
+              "impact_description": "Contributes 9.6% toward investment goal - you're ahead of schedule"
+            }
+          ],
+          "purchase_category": "investment",
+          "financial_health_score": 100
+        },
+        "actual_purchase": true,
+        "regret_level": 0,
+        "user_feedback": "This is how financial freedom is built"
+      }
+    ]
+  ]
+}

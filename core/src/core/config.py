@@ -26,13 +26,14 @@ class Settings(BaseSettings):
 
     # Strands AI Configuration
     strands_default_model: str = "gemini-2.5-flash"
+    strands_vision_model: str = "gemini-2.0-flash-exp"
 
     # Google AI (for Gemini)
     google_api_key: str = ""
 
-    # Opik (via OpenTelemetry)
-    # Note: OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS
-    # are handled directly by OpenTelemetry and don't need to be in this config
+    # OpenTelemetry / Opik tracing
+    # OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS are read
+    # directly by the OTLPSpanExporter from the environment.
     opik_tracing_enabled: bool = False
 
 

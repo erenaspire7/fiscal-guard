@@ -3,7 +3,7 @@
 import json
 from datetime import datetime, timedelta
 from typing import List
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 from strands import Agent
@@ -12,6 +12,7 @@ from strands.models.gemini import GeminiModel
 from core.config import settings
 from core.database.models import Budget, Goal, PurchaseDecision
 from core.models.conversation import ConversationIntent, ConversationMessage
+from core.observability.pii_redaction import create_trace_attributes
 
 
 class IntentClassifier:
@@ -81,6 +82,22 @@ Classify the user's message into ONE of these intents:
    - "What should I focus on financially?"
    - "Am I doing well?"
    - "How can I improve my financial health?"
+   - "How do I make more money?"
+   - "How can I increase my income?"
+   - "How can I negotiate a raise?"
+
+8. **small_talk**: Short conversational messages that are not asking for financial analysis or an action.
+   - "Hi"
+   - "Hello"
+   - "Hey"
+   - "Thanks"
+   - "Thank you"
+   - "Got it, thanks!"
+   - "Awesome, appreciate it"
+   - "lol"
+   - "nice"
+
+If the user's message is primarily greeting/acknowledgement/small talk, classify it as **small_talk** (NOT general_question).
 
 Extract relevant entities based on the intent:
 - For purchase_decision: item_name, amount, category, urgency, reason
@@ -89,7 +106,12 @@ Extract relevant entities based on the intent:
 - For goal_update: goal_name, amount
 - For log_expense: amount, category, item_name
 - For budget_modification: category, amount, operation (increase/decrease/set)
-- For general_question: topic
+- For general_question: topic, question_type, keywords
+- For small_talk: no entities needed
+
+For **general_question**, enrich extracted_entities as follows:
+- question_type: ONE of ["financial_health", "increase_income", "reduce_spending", "debt", "investing", "savings", "goals", "other"]
+- keywords: a list of 2-8 short keywords/phrases from the user message (e.g. ["raise", "negotiation", "career"], ["side hustle", "freelance", "income"], ["credit card", "interest", "payoff"])
 
 Also determine:
 - Confidence level (0-1)
@@ -117,11 +139,20 @@ Be intelligent about context - if the user says "I bought it" right after asking
         # Build context from conversation history
         context = self._build_context(conversation_history, user_id)
 
+        # Create trace attributes with PII redaction
+        trace_attributes = create_trace_attributes(
+            user_id=str(user_id),
+            session_id=str(uuid4()),
+            action="intent_classification",
+            message_length=len(user_message),
+        )
+
         # Create agent for intent classification
         agent = Agent(
             model=self.model,
             system_prompt=self.system_prompt,
             structured_output_model=ConversationIntent,
+            trace_attributes=trace_attributes,
         )
 
         # Build the prompt

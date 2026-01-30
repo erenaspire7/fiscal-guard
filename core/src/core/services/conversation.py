@@ -1,12 +1,11 @@
 """Main conversation service for routing messages to appropriate handlers."""
 
-from datetime import datetime
 from typing import List
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from core.ai.intent_classifier import IntentClassifier
+from core.ai.agents.intent_classifier import IntentClassifier
 from core.models.conversation import (
     ConversationIntent,
     ConversationMessage,
@@ -14,13 +13,14 @@ from core.models.conversation import (
     ConversationResponse,
 )
 from core.models.decision import PurchaseDecisionRequest
-from core.services.budget_modification_handler import BudgetModificationHandler
-from core.services.budget_query_handler import BudgetQueryHandler
 from core.services.decision import DecisionService
-from core.services.expense_handler import ExpenseHandler
-from core.services.feedback_handler import PurchaseFeedbackHandler
-from core.services.general_assistant_handler import GeneralAssistantHandler
-from core.services.goal_update_handler import GoalUpdateHandler
+from core.services.handlers.budget_modification_handler import BudgetModificationHandler
+from core.services.handlers.budget_query_handler import BudgetQueryHandler
+from core.services.handlers.expense_handler import ExpenseHandler
+from core.services.handlers.feedback_handler import PurchaseFeedbackHandler
+from core.services.handlers.general_assistant_handler import GeneralAssistantHandler
+from core.services.handlers.goal_update_handler import GoalUpdateHandler
+from core.services.handlers.small_talk_handler import SmallTalkHandler
 
 
 class ConversationService:
@@ -41,6 +41,7 @@ class ConversationService:
         self.expense_handler = ExpenseHandler(db)
         self.budget_modifier = BudgetModificationHandler(db)
         self.assistant = GeneralAssistantHandler(db)
+        self.small_talk_handler = SmallTalkHandler(db)
 
     def handle_message(
         self, user_id: UUID, request: ConversationRequest
@@ -90,6 +91,11 @@ class ConversationService:
                 user_id, intent, request.conversation_history
             )
 
+        elif intent.intent == "small_talk":
+            return self.small_talk_handler.handle(
+                user_id, intent, request.conversation_history
+            )
+
         elif intent.intent == "general_question":
             return self._handle_general_question(
                 user_id, intent, request.conversation_history
@@ -100,6 +106,84 @@ class ConversationService:
                 message="I'm not sure what you're asking. Could you rephrase that?",
                 requires_clarification=True,
             )
+
+    async def stream_handle_message(self, user_id: UUID, request: ConversationRequest):
+        """Route message based on classified intent and stream response.
+
+        Args:
+            user_id: User ID
+            request: Conversation request with message and history
+
+        Yields:
+            Chunks of response
+        """
+        # Classify intent
+        intent = self.intent_classifier.classify(
+            request.message, request.conversation_history, user_id
+        )
+
+        # Check if we need clarification
+        if intent.confidence < 0.7 and intent.suggested_clarification:
+            yield {
+                "data": intent.suggested_clarification,
+                "requires_clarification": True,
+            }
+            return
+
+        # Route to appropriate handler based on intent
+        if intent.intent == "general_question":
+            async for chunk in self.assistant.stream_handle(
+                user_id, intent, request.conversation_history
+            ):
+                yield chunk
+            return
+
+        if intent.intent == "small_talk":
+            async for chunk in self.small_talk_handler.stream_handle(
+                user_id, intent, request.conversation_history
+            ):
+                yield chunk
+            return
+
+        # For other intents, use standard handling
+        response = None
+        if intent.intent == "purchase_decision":
+            response = self._handle_purchase_decision(user_id, intent, request.message)
+
+        elif intent.intent == "purchase_feedback":
+            response = self._handle_purchase_feedback(
+                user_id, intent, request.conversation_history
+            )
+
+        elif intent.intent == "budget_query":
+            response = self._handle_budget_query(user_id, intent)
+
+        elif intent.intent == "goal_update":
+            response = self._handle_goal_update(user_id, intent)
+
+        elif intent.intent == "log_expense":
+            response = self._handle_log_expense(
+                user_id, intent, request.conversation_history
+            )
+
+        elif intent.intent == "budget_modification":
+            response = self._handle_budget_modification(
+                user_id, intent, request.conversation_history
+            )
+
+        else:
+            yield {
+                "data": "I'm not sure what you're asking. Could you rephrase that?",
+                "requires_clarification": True,
+            }
+            return
+
+        if response:
+            yield {
+                "data": response.message,
+                "metadata": response.metadata,
+                "requires_clarification": response.requires_clarification,
+            }
 
     def _handle_purchase_decision(
         self, user_id: UUID, intent: ConversationIntent, original_message: str

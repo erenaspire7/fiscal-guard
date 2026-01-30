@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Fiscal Guard",
+  "version": "0.1.0",
+  "description": "Real-time purchase analysis on e-commerce sites. Make informed financial decisions with AI-powered recommendations.",
+  "icons": {
+    "16": "vite.svg",
+    "48": "vite.svg",
+    "128": "vite.svg"
+  },
+  "permissions": ["identity", "storage", "activeTab", "tabs"],
+  "host_permissions": ["https://www.amazon.com/*", "https://amazon.com/*"],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_icon": {
+      "16": "vite.svg",
+      "48": "vite.svg",
+      "128": "vite.svg"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.amazon.com/*", "https://amazon.com/*"],
+      "js": ["src/content/index.tsx"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/content/*"],
+      "matches": ["https://www.amazon.com/*", "https://amazon.com/*"]
+    }
+  ],
+  "oauth2": {
+    "client_id": "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": ["openid", "email", "profile"]
+  }
+}

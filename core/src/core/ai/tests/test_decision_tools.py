@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from core.ai.decision_tools import create_decision_tools
+from core.ai.tools.decision_tools import create_decision_tools
 from core.database.models import Base, Budget, Goal, PurchaseDecision
 
 

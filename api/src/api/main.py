@@ -1,11 +1,15 @@
 """FastAPI application for Fiscal Guard."""
 
 from core.config import settings
+from core.observability.tracing import setup_tracing
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from api.routers import auth, budgets, chat, dashboard, decisions, goals, users
+
+# Initialise Strands OTLP tracing (no-op when OPIK_TRACING_ENABLED=false)
+setup_tracing()
 
 # Create FastAPI app
 app = FastAPI(
@@ -21,9 +25,12 @@ app.add_middleware(
 )
 
 # Add CORS middleware
+# Allows requests from web UI and Chrome extension (chrome-extension://*)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify allowed origins
+    allow_origins=[
+        "*"
+    ],  # In production, specify allowed origins including chrome-extension://*
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

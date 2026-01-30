@@ -1,0 +1,1018 @@
+{
+  "base_categories": {
+    "groceries": { "limit": 500, "spent": 0 },
+    "dining": { "limit": 250, "spent": 0 },
+    "shopping": { "limit": 200, "spent": 0 },
+    "entertainment": { "limit": 180, "spent": 0 },
+    "transport": { "limit": 350, "spent": 0 }
+  },
+  "purchase_patterns": [
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "120",
+        "category": "groceries",
+        "reason": "Meal prep for the week",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Smart grocery shopping with a plan. Meal prepping saves money on dining out and reduces waste.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 24% of grocery budget efficiently"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 85
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Great habit to maintain"
+      },
+      {
+        "item_name": "Gas",
+        "amount": "80",
+        "category": "transport",
+        "reason": "Commute to work",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Essential transportation expense. Necessary for work commute.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 350,
+            "remaining": 350,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 23% of transport budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 85
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Necessary expense"
+      },
+      {
+        "item_name": "Casual Dinner Out",
+        "amount": "45",
+        "category": "dining",
+        "reason": "Socializing with friends",
+        "urgency": "medium",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Reasonable dining expense for social connection. Well within budget and maintains relationships.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 0,
+            "limit": 250,
+            "remaining": 250,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 18% of dining budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 85
+        },
+        "actual_purchase": true,
+        "regret_level": 2,
+        "user_feedback": "Good balance of social and budget"
+      },
+      {
+        "item_name": "Coffee Subscription",
+        "amount": "35",
+        "category": "dining",
+        "reason": "Monthly coffee delivery",
+        "urgency": "low",
+        "score": 6,
+        "decision_category": "neutral",
+        "reasoning": "Subscription is more economical than daily cafe visits. Reasonable small luxury if you enjoy it.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 45,
+            "limit": 250,
+            "remaining": 205,
+            "percentage_used": 18,
+            "would_exceed": false,
+            "impact_description": "Adds 14% to dining spending"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 85
+        },
+        "actual_purchase": true,
+        "regret_level": 2,
+        "user_feedback": "Enjoy my morning coffee"
+      },
+      {
+        "item_name": "Movie Tickets",
+        "amount": "30",
+        "category": "entertainment",
+        "reason": "Weekend entertainment",
+        "urgency": "low",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Budget-friendly entertainment option. Good use of entertainment budget.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 180,
+            "remaining": 180,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 17% of entertainment budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 85
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Fun and affordable"
+      },
+      {
+        "item_name": "Designer Watch",
+        "amount": "450",
+        "category": "shopping",
+        "reason": "Looks impressive",
+        "urgency": "low",
+        "score": 3,
+        "decision_category": "strong_no",
+        "reasoning": "This is 225% of your shopping budget for a luxury item. Unless this is a career necessity or special milestone reward, it's excessive.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "shopping",
+            "current_spent": 0,
+            "limit": 200,
+            "remaining": 200,
+            "percentage_used": 0,
+            "would_exceed": true,
+            "impact_description": "Would exceed shopping budget by $250"
+          },
+          "affected_goals": [],
+          "purchase_category": "impulse",
+          "financial_health_score": 80
+        },
+        "alternatives": [
+          "Save up over 3 months if you really want it",
+          "Find a quality watch in the $100-150 range"
+        ],
+        "conditions": [
+          "You receive a bonus or extra income",
+          "This is a milestone reward for achieving a major goal"
+        ],
+        "actual_purchase": false,
+        "user_feedback": "Good call, didn't really need it"
+      }
+    ],
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "110",
+        "category": "groceries",
+        "reason": "Regular shopping",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Consistent smart grocery shopping. You're building excellent habits.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 22% of grocery budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 85
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Staying consistent"
+      },
+      {
+        "item_name": "Gym Membership",
+        "amount": "50",
+        "category": "entertainment",
+        "reason": "Health and fitness",
+        "urgency": "medium",
+        "score": 8,
+        "decision_category": "mild_yes",
+        "reasoning": "Health investments pay long-term dividends. This is a smart use of entertainment budget.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 180,
+            "remaining": 180,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 28% of entertainment budget for health"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 85
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Using it regularly"
+      },
+      {
+        "item_name": "Work Lunch",
+        "amount": "65",
+        "category": "dining",
+        "reason": "Busy work week",
+        "urgency": "medium",
+        "score": 6,
+        "decision_category": "neutral",
+        "reasoning": "Occasional work lunches are fine, but meal prepping would save money. This is reasonable for a busy week.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 0,
+            "limit": 250,
+            "remaining": 250,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 26% of dining budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 85
+        },
+        "actual_purchase": true,
+        "regret_level": 2,
+        "user_feedback": "Convenient during busy week"
+      },
+      {
+        "item_name": "Car Maintenance",
+        "amount": "150",
+        "category": "transport",
+        "reason": "Oil change and inspection",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Preventive maintenance saves money on repairs. Essential for vehicle longevity.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 350,
+            "remaining": 350,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 43% of transport budget for maintenance"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 85
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Necessary for car health"
+      },
+      {
+        "item_name": "New Shoes",
+        "amount": "85",
+        "category": "shopping",
+        "reason": "Old ones wore out",
+        "urgency": "high",
+        "score": 8,
+        "decision_category": "mild_yes",
+        "reasoning": "Replacing worn essentials is smart. This is a reasonable price for quality shoes.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "shopping",
+            "current_spent": 0,
+            "limit": 200,
+            "remaining": 200,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 43% of shopping budget for essential replacement"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 85
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Needed replacement"
+      },
+      {
+        "item_name": "Concert Tickets",
+        "amount": "120",
+        "category": "entertainment",
+        "reason": "Favorite band in town",
+        "urgency": "medium",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Live experiences create lasting memories. This is within budget and a reasonable splurge.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 50,
+            "limit": 180,
+            "remaining": 130,
+            "percentage_used": 28,
+            "would_exceed": false,
+            "impact_description": "Brings entertainment spending to 94% of budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 83
+        },
+        "actual_purchase": true,
+        "regret_level": 2,
+        "user_feedback": "Great experience, worth it"
+      }
+    ],
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "125",
+        "category": "groceries",
+        "reason": "Stocking up for the week",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Consistent grocery planning. You're maintaining excellent spending habits.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 25% of grocery budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 86
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Good routine"
+      },
+      {
+        "item_name": "Birthday Dinner",
+        "amount": "90",
+        "category": "dining",
+        "reason": "Friend's birthday",
+        "urgency": "high",
+        "score": 8,
+        "decision_category": "mild_yes",
+        "reasoning": "Special occasions deserve celebration. Investing in relationships is worthwhile.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 0,
+            "limit": 250,
+            "remaining": 250,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 36% of dining budget for special occasion"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 86
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Worth it for friendship"
+      },
+      {
+        "item_name": "Streaming Services",
+        "amount": "40",
+        "category": "entertainment",
+        "reason": "Monthly subscriptions",
+        "urgency": "low",
+        "score": 6,
+        "decision_category": "neutral",
+        "reasoning": "Entertainment subscriptions are fine if you use them. Consider auditing which ones you actually watch.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 180,
+            "remaining": 180,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 22% of entertainment budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 86
+        },
+        "actual_purchase": true,
+        "regret_level": 2,
+        "user_feedback": "Use most of them"
+      },
+      {
+        "item_name": "Work Clothes",
+        "amount": "140",
+        "category": "shopping",
+        "reason": "Professional wardrobe update",
+        "urgency": "medium",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Professional appearance supports career growth. This is a reasonable investment in your career.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "shopping",
+            "current_spent": 0,
+            "limit": 200,
+            "remaining": 200,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 70% of shopping budget for career investment"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 85
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Good for professional image"
+      },
+      {
+        "item_name": "Gas",
+        "amount": "75",
+        "category": "transport",
+        "reason": "Regular commute",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Essential transportation expense.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 350,
+            "remaining": 350,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 21% of transport budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 86
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Necessary"
+      },
+      {
+        "item_name": "Takeout Premium Sushi",
+        "amount": "85",
+        "category": "dining",
+        "reason": "Craving something special",
+        "urgency": "low",
+        "score": 5,
+        "decision_category": "mild_no",
+        "reasoning": "Already spent $90 on birthday dinner. Premium sushi for a craving is a splurge that would bring dining to 70% of budget.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 90,
+            "limit": 250,
+            "remaining": 160,
+            "percentage_used": 36,
+            "would_exceed": false,
+            "impact_description": "Would bring dining to 70% of budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 84
+        },
+        "alternatives": [
+          "Choose a less expensive sushi option",
+          "Save premium sushi for next month",
+          "Make sushi at home for fun"
+        ],
+        "actual_purchase": false,
+        "user_feedback": "Decided to wait, good decision"
+      }
+    ],
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "115",
+        "category": "groceries",
+        "reason": "Weekly meal prep",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Excellent consistency with meal planning. This saves money and promotes health.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 23% of grocery budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 87
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Great habit"
+      },
+      {
+        "item_name": "Book Club Books",
+        "amount": "45",
+        "category": "entertainment",
+        "reason": "Monthly book club",
+        "urgency": "medium",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Reading and social engagement are valuable. Good use of entertainment budget.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 180,
+            "remaining": 180,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 25% of entertainment budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 87
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Enjoying the books"
+      },
+      {
+        "item_name": "Lunch Out",
+        "amount": "55",
+        "category": "dining",
+        "reason": "Work meetings",
+        "urgency": "medium",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Networking lunches support career development. Reasonable business expense.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 0,
+            "limit": 250,
+            "remaining": 250,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 22% of dining budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 87
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Good networking opportunity"
+      },
+      {
+        "item_name": "Gas",
+        "amount": "80",
+        "category": "transport",
+        "reason": "Regular commute",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Essential transportation expense.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 350,
+            "remaining": 350,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 23% of transport budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 87
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Necessary"
+      },
+      {
+        "item_name": "Electronics Upgrade",
+        "amount": "280",
+        "category": "shopping",
+        "reason": "New headphones for WFH",
+        "urgency": "medium",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Quality audio equipment for work-from-home is a productivity investment. This exceeds shopping budget but provides work value.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "shopping",
+            "current_spent": 0,
+            "limit": 200,
+            "remaining": 200,
+            "percentage_used": 0,
+            "would_exceed": true,
+            "impact_description": "Exceeds shopping budget by $80 for work productivity"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 85
+        },
+        "conditions": [
+          "Significantly improves work quality",
+          "Used daily for work"
+        ],
+        "actual_purchase": true,
+        "regret_level": 2,
+        "user_feedback": "Helpful for video calls"
+      },
+      {
+        "item_name": "Weekend Brunch",
+        "amount": "65",
+        "category": "dining",
+        "reason": "Catching up with family",
+        "urgency": "medium",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Family time is valuable. Combined with lunch, you're at $120 dining (48% of budget), which is reasonable.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 55,
+            "limit": 250,
+            "remaining": 195,
+            "percentage_used": 22,
+            "would_exceed": false,
+            "impact_description": "Brings dining to 48% of budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 86
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Quality family time"
+      }
+    ],
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "130",
+        "category": "groceries",
+        "reason": "Meal prep and household items",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Consistent smart spending. You've mastered grocery budgeting.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 26% of grocery budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 88
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Maintaining good habits"
+      },
+      {
+        "item_name": "Coffee Date",
+        "amount": "25",
+        "category": "dining",
+        "reason": "Meeting with friend",
+        "urgency": "low",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Budget-friendly social connection. Excellent balance.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 0,
+            "limit": 250,
+            "remaining": 250,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 10% of dining budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 88
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Nice catch-up"
+      },
+      {
+        "item_name": "Hiking Gear",
+        "amount": "150",
+        "category": "shopping",
+        "reason": "New hobby",
+        "urgency": "medium",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Active hobbies promote health and are often lower cost than other entertainment. Good investment in wellbeing.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "shopping",
+            "current_spent": 0,
+            "limit": 200,
+            "remaining": 200,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 75% of shopping budget for health hobby"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 87
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Using it every weekend"
+      },
+      {
+        "item_name": "Gas",
+        "amount": "70",
+        "category": "transport",
+        "reason": "Commute",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Essential expense.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 350,
+            "remaining": 350,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 20% of transport budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 88
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Necessary"
+      },
+      {
+        "item_name": "Live Theater Tickets",
+        "amount": "95",
+        "category": "entertainment",
+        "reason": "Cultural experience",
+        "urgency": "medium",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Cultural experiences enrich life. This is a good use of entertainment budget.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 180,
+            "remaining": 180,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 53% of entertainment budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 87
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Wonderful experience"
+      },
+      {
+        "item_name": "Impulse Online Shopping",
+        "amount": "180",
+        "category": "shopping",
+        "reason": "Saw ads online",
+        "urgency": "low",
+        "score": 3,
+        "decision_category": "strong_no",
+        "reasoning": "You already spent $150 on hiking gear (75% of budget). Ads create artificial desire. You're doing great - don't break your pattern now.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "shopping",
+            "current_spent": 150,
+            "limit": 200,
+            "remaining": 50,
+            "percentage_used": 75,
+            "would_exceed": true,
+            "impact_description": "Would exceed budget by $130"
+          },
+          "affected_goals": [],
+          "purchase_category": "impulse",
+          "financial_health_score": 85
+        },
+        "alternatives": [
+          "Wait 48 hours to see if you still want it",
+          "Unsubscribe from marketing emails",
+          "Put money toward savings instead"
+        ],
+        "actual_purchase": false,
+        "user_feedback": "Glad I waited, didn't need it"
+      }
+    ],
+    [
+      {
+        "item_name": "Weekly Groceries",
+        "amount": "120",
+        "category": "groceries",
+        "reason": "Routine shopping",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Excellent consistency. You've built sustainable spending habits.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "groceries",
+            "current_spent": 0,
+            "limit": 500,
+            "remaining": 500,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 24% of grocery budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 89
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Consistent routine"
+      },
+      {
+        "item_name": "Gas",
+        "amount": "75",
+        "category": "transport",
+        "reason": "Commute",
+        "urgency": "high",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning": "Essential expense.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "transport",
+            "current_spent": 0,
+            "limit": 350,
+            "remaining": 350,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 21% of transport budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 89
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Necessary"
+      },
+      {
+        "item_name": "Casual Dining",
+        "amount": "50",
+        "category": "dining",
+        "reason": "Weekend meal",
+        "urgency": "low",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Reasonable dining expense. Well within budget.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 0,
+            "limit": 250,
+            "remaining": 250,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 20% of dining budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 89
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Enjoyed it"
+      },
+      {
+        "item_name": "Online Course",
+        "amount": "120",
+        "category": "entertainment",
+        "reason": "Professional development",
+        "urgency": "medium",
+        "score": 8,
+        "decision_category": "mild_yes",
+        "reasoning": "Investing in skills and knowledge. Excellent use of entertainment budget for personal growth.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "entertainment",
+            "current_spent": 0,
+            "limit": 180,
+            "remaining": 180,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 67% of entertainment budget for education"
+          },
+          "affected_goals": [],
+          "purchase_category": "investment",
+          "financial_health_score": 90
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Learning valuable skills"
+      },
+      {
+        "item_name": "Phone Accessories",
+        "amount": "45",
+        "category": "shopping",
+        "reason": "Case and screen protector",
+        "urgency": "medium",
+        "score": 7,
+        "decision_category": "mild_yes",
+        "reasoning": "Protective accessories prevent expensive repairs. Smart preventive purchase.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "shopping",
+            "current_spent": 0,
+            "limit": 200,
+            "remaining": 200,
+            "percentage_used": 0,
+            "would_exceed": false,
+            "impact_description": "Uses 23% of shopping budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "essential",
+          "financial_health_score": 89
+        },
+        "actual_purchase": true,
+        "regret_level": 1,
+        "user_feedback": "Good investment"
+      },
+      {
+        "item_name": "Restaurant Delivery",
+        "amount": "70",
+        "category": "dining",
+        "reason": "Too tired to cook",
+        "urgency": "low",
+        "score": 5,
+        "decision_category": "mild_no",
+        "reasoning": "You've done so well with meal prep. Already spent $50 dining. Delivery fees make this expensive. Try keeping easy meals frozen for tired days.",
+        "analysis": {
+          "budget_analysis": {
+            "category": "dining",
+            "current_spent": 50,
+            "limit": 250,
+            "remaining": 200,
+            "percentage_used": 20,
+            "would_exceed": false,
+            "impact_description": "Would bring dining to 48% of budget"
+          },
+          "affected_goals": [],
+          "purchase_category": "discretionary",
+          "financial_health_score": 87
+        },
+        "alternatives": [
+          "Use a frozen meal you prepared",
+          "Pick up instead of delivery to save fees",
+          "Order something simpler for less"
+        ],
+        "actual_purchase": false,
+        "user_feedback": "Found something in the freezer, saved money"
+      }
+    ]
+  ]
+}

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
@@ -12,6 +12,7 @@ import Vault from "./pages/Vault";
 import Insights from "./pages/Insights";
 import Setup from "./pages/Setup";
 import AgentConfiguration from "./pages/AgentConfiguration";
+import LandingPage from "./pages/LandingPage";
 import "./App.css";
 
 function App() {
@@ -85,7 +86,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/"
+            element={
+              <PublicRoute>
+                <LandingPage />
+              </PublicRoute>
+            }
+          />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

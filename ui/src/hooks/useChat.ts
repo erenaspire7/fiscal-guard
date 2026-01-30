@@ -37,7 +37,7 @@ export function useChat() {
         }));
 
         // Use the new conversation endpoint
-        const response = await fetch(`${env.apiUrl}/chat/message`, {
+        const response = await fetch(`${env.apiUrl}/chat/stream`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -50,19 +50,63 @@ export function useChat() {
         });
 
         if (!response.ok) throw new Error("Failed to reach the Fiscal Guard");
+        if (!response.body) throw new Error("No response body");
 
-        const data = await response.json();
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let isFirstChunk = true;
+        let assistantMsgId = "";
 
-        // Create assistant message from response
-        const assistantMessage: Message = {
-          role: "assistant",
-          content: data.message,
-          id: Math.random().toString(36).substring(7),
-          timestamp: new Date(),
-          metadata: data.metadata,
-        };
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        setMessages((prev) => [...prev, assistantMessage]);
+          const chunk = decoder.decode(value, { stream: true });
+          buffer += chunk;
+
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const data = JSON.parse(line);
+
+              if (isFirstChunk) {
+                isFirstChunk = false;
+                assistantMsgId = Math.random().toString(36).substring(7);
+                const assistantMessage: Message = {
+                  role: "assistant",
+                  content: data.data || data.content || "",
+                  id: assistantMsgId,
+                  timestamp: new Date(),
+                  metadata: data.metadata,
+                };
+                setMessages((prev) => [...prev, assistantMessage]);
+                setIsLoading(false);
+              } else {
+                setMessages((prev) =>
+                  prev.map((msg) => {
+                    if (msg.id === assistantMsgId) {
+                      return {
+                        ...msg,
+                        content:
+                          msg.content + (data.data || data.content || ""),
+                        metadata: data.metadata
+                          ? { ...msg.metadata, ...data.metadata }
+                          : msg.metadata,
+                      };
+                    }
+                    return msg;
+                  }),
+                );
+              }
+            } catch (e) {
+              console.error("Error parsing stream chunk", e);
+            }
+          }
+        }
       } catch (error) {
         const errorMessage: Message = {
           role: "assistant",

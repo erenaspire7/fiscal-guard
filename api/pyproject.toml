@@ -5,16 +5,12 @@ description = "FastAPI endpoints for Fiscal Guard"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "authlib>=1.6.6",
     "core",
-    "cryptography>=46.0.3",
-    "email-validator>=2.3.0",
+    "authlib>=1.6.6",
     "fastapi",
-    "httpx>=0.28.1",
-    "itsdangerous>=2.2.0",
-    "passlib>=1.7.4",
-    "python-jose>=3.5.0",
     "uvicorn",
+    "itsdangerous>=2.2.0",
+    "python-jose>=3.5.0",
 ]
 
 [build-system]
