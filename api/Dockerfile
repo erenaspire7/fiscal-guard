@@ -1,5 +1,5 @@
 # Builder stage - install dependencies
-FROM python:3.10-slim as builder
+FROM python:3.10-slim AS builder
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/

@@ -25,7 +25,7 @@ export function StreamingMarkdown({
   // The last index we actually committed to React state (throttled)
   const committedIndexRef = useRef(0);
 
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<number | null>(null);
   const contentRef = useRef(content);
 
   // Throttling: don't update React state / markdown parse more often than this
@@ -114,22 +114,33 @@ export function StreamingMarkdown({
 
   const markdownComponents = useMemo(
     () => ({
-      p: ({ children }: { children: React.ReactNode }) => (
-        <p className="mb-3 last:mb-0">{children}</p>
+      p: ({ children, ...props }: React.ComponentPropsWithoutRef<"p">) => (
+        <p className="mb-3 last:mb-0" {...props}>
+          {children}
+        </p>
       ),
-      ul: ({ children }: { children: React.ReactNode }) => (
-        <ul className="list-disc pl-4 mb-3 last:mb-0 space-y-1">{children}</ul>
+      ul: ({ children, ...props }: React.ComponentPropsWithoutRef<"ul">) => (
+        <ul className="list-disc pl-4 mb-3 last:mb-0 space-y-1" {...props}>
+          {children}
+        </ul>
       ),
-      ol: ({ children }: { children: React.ReactNode }) => (
-        <ol className="list-decimal pl-4 mb-3 last:mb-0 space-y-1">
+      ol: ({ children, ...props }: React.ComponentPropsWithoutRef<"ol">) => (
+        <ol className="list-decimal pl-4 mb-3 last:mb-0 space-y-1" {...props}>
           {children}
         </ol>
       ),
-      li: ({ children }: { children: React.ReactNode }) => (
-        <li className="mb-1">{children}</li>
+      li: ({ children, ...props }: React.ComponentPropsWithoutRef<"li">) => (
+        <li className="mb-1" {...props}>
+          {children}
+        </li>
       ),
-      strong: ({ children }: { children: React.ReactNode }) => (
-        <strong className="font-semibold text-primary">{children}</strong>
+      strong: ({
+        children,
+        ...props
+      }: React.ComponentPropsWithoutRef<"strong">) => (
+        <strong className="font-semibold text-primary" {...props}>
+          {children}
+        </strong>
       ),
     }),
     [],

@@ -554,24 +554,70 @@ class DecisionService:
             )
 
             # Use existing decision logic
-            decision, _, _ = self.agent.analyze_purchase(user_id, decision_request)
-
-            # Save to database for later confirmation
-            db_decision = PurchaseDecisionDB(
-                user_id=user_id,
-                item_name=item.item_name,
-                amount=total_amount,
-                category=category.value,
-                reason=f"Cart item from {page_url}",
-                urgency=item.urgency_badge or "normal",
-                score=decision.score,
-                decision_category=decision.decision_category.value,
-                reasoning=decision.reasoning,
-                analysis=decision.analysis.model_dump(mode="json"),
-                alternatives=decision.alternatives,
-                conditions=decision.conditions,
+            decision, clarification_question, related_decision_id = (
+                self.agent.analyze_purchase(user_id, decision_request)
             )
-            self.db.add(db_decision)
+
+            # Check if this is a duplicate of a recent decision
+            # If related_decision_id is set, we found a similar recent purchase
+            if related_decision_id and not decision_request.is_follow_up:
+                # Update existing decision instead of creating duplicate
+                existing_decision = (
+                    self.db.query(PurchaseDecisionDB)
+                    .filter(
+                        PurchaseDecisionDB.decision_id == related_decision_id,
+                        PurchaseDecisionDB.user_id == user_id,
+                    )
+                    .first()
+                )
+
+                if existing_decision:
+                    # Update the existing decision with new analysis
+                    existing_decision.score = decision.score
+                    existing_decision.decision_category = (
+                        decision.decision_category.value
+                    )
+                    existing_decision.reasoning = decision.reasoning
+                    existing_decision.analysis = decision.analysis.model_dump(
+                        mode="json"
+                    )
+                    existing_decision.alternatives = decision.alternatives
+                    existing_decision.conditions = decision.conditions
+                    # Don't add a new record, just update existing
+                else:
+                    # If we can't find the existing decision, create new one
+                    db_decision = PurchaseDecisionDB(
+                        user_id=user_id,
+                        item_name=item.item_name,
+                        amount=total_amount,
+                        category=category.value,
+                        reason=f"Cart item from {page_url}",
+                        urgency=item.urgency_badge or "normal",
+                        score=decision.score,
+                        decision_category=decision.decision_category.value,
+                        reasoning=decision.reasoning,
+                        analysis=decision.analysis.model_dump(mode="json"),
+                        alternatives=decision.alternatives,
+                        conditions=decision.conditions,
+                    )
+                    self.db.add(db_decision)
+            else:
+                # No duplicate found, save as new decision
+                db_decision = PurchaseDecisionDB(
+                    user_id=user_id,
+                    item_name=item.item_name,
+                    amount=total_amount,
+                    category=category.value,
+                    reason=f"Cart item from {page_url}",
+                    urgency=item.urgency_badge or "normal",
+                    score=decision.score,
+                    decision_category=decision.decision_category.value,
+                    reasoning=decision.reasoning,
+                    analysis=decision.analysis.model_dump(mode="json"),
+                    alternatives=decision.alternatives,
+                    conditions=decision.conditions,
+                )
+                self.db.add(db_decision)
 
             item_decisions.append(
                 ItemDecisionResult(
