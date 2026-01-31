@@ -452,6 +452,6 @@ class PurchaseFeedbackHandler:
             else 0
         )
 
-        status = f"📉 {matching_goal.name}: ${new_amount:.2f} / ${matching_goal.target_amount:.2f} ({percentage:.0f}% complete - ${remaining:.2f} remaining)"
+        status = f"📉 {matching_goal.goal_name}: ${new_amount:.2f} / ${matching_goal.target_amount:.2f} ({percentage:.0f}% complete - ${remaining:.2f} remaining)"
 
         return status

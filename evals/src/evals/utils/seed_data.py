@@ -7,22 +7,10 @@ avoiding AI agent evaluation delays during seeding.
 
 import json
 import os
-import sys
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from uuid import UUID, uuid4
-
-# Add core to path (go up two levels from e2e-tests-v2/utils to project root)
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "core" / "src"))
-
-# Load environment variables from .env file BEFORE importing config
-from dotenv import load_dotenv
-
-env_path = Path(__file__).parent.parent.parent / ".env"
-if not env_path.exists():
-    raise FileNotFoundError(f".env file not found at {env_path}")
-load_dotenv(env_path, override=True)
 
 from core.database.models import Base, Budget, BudgetItem, Goal, PurchaseDecision, User
 from core.services.auth import AuthService
@@ -290,22 +278,32 @@ def create_decision(
 
 
 def generate_months(num_months: int = 6) -> list[tuple[int, int, str]]:
-    """Generate list of (year, month, name) tuples for the past N months."""
+    """Generate list of (year, month, name) tuples for the past N-1 months plus next month.
+
+    This ensures the most recent budget extends into the future and remains active
+    during evaluation runs.
+    """
     months = []
     today = datetime.utcnow()
-    for i in range(num_months - 1, -1, -1):
+
+    # Generate past months (num_months - 2) + current month + next month
+    # This gives us historical data plus an active budget
+    for i in range(num_months - 2, -2, -1):  # Changed range to include next month
         y = today.year
         m = today.month - i
         while m <= 0:
             m += 12
             y -= 1
+        while m > 12:
+            m -= 12
+            y += 1
         months.append((y, m, datetime(y, m, 1).strftime("%B %Y")))
     return months
 
 
 def load_character_data(character_name: str) -> dict:
     """Load and process character data from JSON file."""
-    json_path = Path(__file__).parent / "seed" / f"{character_name}.json"
+    json_path = Path(__file__).parent.parent / "personas" / f"{character_name}.json"
     with open(json_path, "r") as f:
         character_data = json.load(f)
 

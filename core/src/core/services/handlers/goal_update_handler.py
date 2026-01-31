@@ -122,8 +122,8 @@ class GoalUpdateHandler:
         goal_name_lower = goal_name.lower()
         for goal in goals:
             if (
-                goal_name_lower in goal.name.lower()
-                or goal.name.lower() in goal_name_lower
+                goal_name_lower in goal.goal_name.lower()
+                or goal.goal_name.lower() in goal_name_lower
             ):
                 return goal
 
@@ -143,7 +143,7 @@ class GoalUpdateHandler:
         """
         message = f"""🎉 **Congratulations!** 🎉
 
-You've completed your goal: **{goal.name}**!
+You've completed your goal: **{goal.goal_name}**!
 
 You added ${amount_added:.2f}, bringing you to ${goal.current_amount:.2f} / ${goal.target_amount:.2f}.
 
@@ -174,7 +174,7 @@ This is a huge achievement! Keep up the excellent financial discipline! 💪"""
         )
 
         message_parts = [
-            f"✅ **Added ${amount_added:.2f} to {goal.name}!**",
+            f"✅ **Added ${amount_added:.2f} to {goal.goal_name}!**",
             "",
             f"📊 **Progress:**",
             f"- Current: ${goal.current_amount:.2f}",
@@ -201,9 +201,9 @@ This is a huge achievement! Keep up the excellent financial discipline! 💪"""
 
         # Calculate months to completion if we have contribution history
         if goal.deadline:
-            days_until_deadline = (goal.deadline - datetime.utcnow()).days
+            days_until_deadline = (goal.deadline - datetime.utcnow().date()).days
             if days_until_deadline > 0:
-                required_per_month = remaining / max(1, days_until_deadline / 30)
+                required_per_month = float(remaining) / max(1, days_until_deadline / 30)
                 message_parts.append(
                     f"\n⏰ To reach your goal by the deadline, you'll need to save ~${required_per_month:.2f}/month."
                 )

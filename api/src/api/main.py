@@ -6,7 +6,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from api.routers import auth, budgets, chat, dashboard, decisions, goals, users
+from api.routers import (
+    auth,
+    budgets,
+    chat,
+    dashboard,
+    decisions,
+    goals,
+    internal,
+    users,
+)
 
 # Initialise Strands OTLP tracing (no-op when OPIK_TRACING_ENABLED=false)
 setup_tracing()
@@ -44,6 +53,10 @@ app.include_router(budgets.router)
 app.include_router(goals.router)
 app.include_router(decisions.router)
 app.include_router(chat.router)
+
+# Internal endpoints (only enabled when ALLOW_INTERNAL_ENDPOINTS=true)
+if settings.allow_internal_endpoints:
+    app.include_router(internal.router)
 
 
 @app.get("/")

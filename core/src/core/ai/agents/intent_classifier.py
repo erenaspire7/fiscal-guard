@@ -2,7 +2,7 @@
 
 import json
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
@@ -18,13 +18,15 @@ from core.observability.pii_redaction import create_trace_attributes
 class IntentClassifier:
     """Classify user intent from conversational messages."""
 
-    def __init__(self, db_session: Session):
+    def __init__(self, db_session: Session, session_id: Optional[str] = None):
         """Initialize intent classifier.
 
         Args:
             db_session: SQLAlchemy database session
+            session_id: Optional session ID for prompt override testing
         """
         self.db_session = db_session
+        self.session_id = session_id
 
         # Initialize Gemini model
         self.model = GeminiModel(
@@ -40,7 +42,8 @@ class IntentClassifier:
             },
         )
 
-        self.system_prompt = """You are an expert at classifying user intent in financial conversations.
+        # Default system prompt (can be overridden for testing)
+        self._default_system_prompt = """You are an expert at classifying user intent in financial conversations.
 
 Classify the user's message into ONE of these intents:
 
@@ -101,11 +104,12 @@ If the user's message is primarily greeting/acknowledgement/small talk, classify
 
 Extract relevant entities based on the intent:
 - For purchase_decision: item_name, amount, category, urgency, reason
+  * category must be ONE of: "shopping", "dining", "entertainment", "groceries", "transport", "general"
 - For purchase_feedback: purchased (bool), regret_level (1-10), payment_source (budget/savings/goal)
-- For budget_query: category
+- For budget_query: category (must be one of the valid categories above)
 - For goal_update: goal_name, amount
-- For log_expense: amount, category, item_name
-- For budget_modification: category, amount, operation (increase/decrease/set)
+- For log_expense: amount, category (must be one of the valid categories above), item_name
+- For budget_modification: category (must be one of the valid categories above), amount, operation (increase/decrease/set)
 - For general_question: topic, question_type, keywords
 - For small_talk: no entities needed
 
@@ -120,11 +124,35 @@ Also determine:
 
 Be intelligent about context - if the user says "I bought it" right after asking about a purchase, it's purchase_feedback."""
 
+        # Check for prompt override (for testing)
+        self.system_prompt = self._get_system_prompt()
+
+    def _get_system_prompt(self) -> str:
+        """Get system prompt, checking for override if session_id is set.
+
+        Returns:
+            System prompt (override or default)
+        """
+        if self.session_id:
+            try:
+                # Import here to avoid circular dependency
+                from api.routers.internal import get_prompt_override
+
+                override = get_prompt_override(self.session_id, "intent_classifier")
+                if override:
+                    return override
+            except ImportError:
+                # api.routers.internal not available (e.g., in tests)
+                pass
+
+        return self._default_system_prompt
+
     def classify(
         self,
         user_message: str,
         conversation_history: List[ConversationMessage],
         user_id: UUID,
+        session_id: Optional[str] = None,
     ) -> ConversationIntent:
         """Classify user intent with context.
 
@@ -132,10 +160,17 @@ Be intelligent about context - if the user says "I bought it" right after asking
             user_message: The user's message to classify
             conversation_history: Recent conversation messages
             user_id: User ID for context gathering
+            session_id: Optional session ID for prompt override testing
 
         Returns:
             Classified intent with extracted entities
         """
+        # If session_id provided, create new classifier with it
+        if session_id and session_id != self.session_id:
+            classifier = IntentClassifier(self.db_session, session_id)
+            return classifier.classify(
+                user_message, conversation_history, user_id, session_id
+            )
         # Build context from conversation history
         context = self._build_context(conversation_history, user_id)
 

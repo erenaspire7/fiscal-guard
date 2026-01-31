@@ -59,3 +59,7 @@ class ConversationRequest(BaseModel):
     conversation_history: list[ConversationMessage] = Field(
         default_factory=list, description="Last N messages in the conversation"
     )
+    session_id: Optional[str] = Field(
+        None,
+        description="Optional session ID for prompt override testing (internal use only)",
+    )

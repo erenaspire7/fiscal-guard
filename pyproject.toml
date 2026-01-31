@@ -10,9 +10,10 @@ dependencies = []
 members = [
     "core",
     "api",
-    "e2e-tests-v2",
+    "evals",
 ]
 
 [tool.uv.sources]
 core = {workspace = true}
 api = {workspace = true}
+evals = {workspace = true}

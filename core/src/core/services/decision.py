@@ -44,11 +44,13 @@ class DecisionService:
             db: Database session
         """
         self.db = db
-        self.agent = DecisionAgent(db)
         self.budget_service = BudgetService(db)
 
     def create_decision(
-        self, user_id: UUID, request: PurchaseDecisionRequest
+        self,
+        user_id: UUID,
+        request: PurchaseDecisionRequest,
+        session_id: Optional[str] = None,
     ) -> PurchaseDecisionResponse:
         """Create a new purchase decision.
 
@@ -58,15 +60,19 @@ class DecisionService:
         Args:
             user_id: User making the purchase request
             request: Purchase request details
+            session_id: Optional session ID for prompt override testing
 
         Returns:
             Purchase decision response with decision and ID
         """
+        # Create agent for this request (allows prompt override via session_id)
+        agent = DecisionAgent(self.db, session_id=session_id)
+
         # Use the AI agent to analyze the purchase
         # This is automatically traced via OpenTelemetry
         # Note: The agent may modify the request object if user_message was provided
-        decision, clarification_question, related_decision_id = (
-            self.agent.analyze_purchase(user_id, request)
+        decision, clarification_question, related_decision_id = agent.analyze_purchase(
+            user_id, request
         )
 
         # If we need clarification, don't save yet - return response asking for confirmation

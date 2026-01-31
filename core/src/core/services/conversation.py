@@ -1,6 +1,6 @@
 """Main conversation service for routing messages to appropriate handlers."""
 
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -55,9 +55,9 @@ class ConversationService:
         Returns:
             Conversation response
         """
-        # Classify intent
+        # Classify intent (pass session_id for prompt override)
         intent = self.intent_classifier.classify(
-            request.message, request.conversation_history, user_id
+            request.message, request.conversation_history, user_id, request.session_id
         )
 
         # Check if we need clarification
@@ -68,7 +68,9 @@ class ConversationService:
 
         # Route to appropriate handler based on intent
         if intent.intent == "purchase_decision":
-            return self._handle_purchase_decision(user_id, intent, request.message)
+            return self._handle_purchase_decision(
+                user_id, intent, request.message, request.session_id
+            )
 
         elif intent.intent == "purchase_feedback":
             return self._handle_purchase_feedback(
@@ -186,7 +188,11 @@ class ConversationService:
             }
 
     def _handle_purchase_decision(
-        self, user_id: UUID, intent: ConversationIntent, original_message: str
+        self,
+        user_id: UUID,
+        intent: ConversationIntent,
+        original_message: str,
+        session_id: Optional[str] = None,
     ) -> ConversationResponse:
         """Handle purchase decision request.
 
@@ -194,6 +200,7 @@ class ConversationService:
             user_id: User ID
             intent: Classified intent
             original_message: Original user message
+            session_id: Optional session ID for prompt override testing
 
         Returns:
             Conversation response
@@ -210,9 +217,9 @@ class ConversationService:
             user_message=original_message,  # Pass original message for extraction if needed
         )
 
-        # Use existing decision service
+        # Use existing decision service (pass session_id for prompt override)
         decision_response = self.decision_service.create_decision(
-            user_id, decision_request
+            user_id, decision_request, session_id
         )
 
         # Convert to conversation response

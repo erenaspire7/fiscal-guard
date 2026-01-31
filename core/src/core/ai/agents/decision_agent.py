@@ -107,13 +107,15 @@ class StructuredPurchaseDecision(BaseModel):
 class DecisionAgent:
     """Handle purchase decision analysis using Strands AI with tools."""
 
-    def __init__(self, db_session: Session):
+    def __init__(self, db_session: Session, session_id: Optional[str] = None):
         """Initialize decision agent.
 
         Args:
             db_session: SQLAlchemy database session for tool access
+            session_id: Optional session ID for prompt override testing
         """
         self.db_session = db_session
+        self.session_id = session_id
 
         # Initialize Gemini model
         model = GeminiModel(
@@ -133,7 +135,8 @@ class DecisionAgent:
         self.model = model
         # Tools will be created per-request with user context
 
-        self.system_prompt = """You are an expert financial advisor helping users make smart purchase decisions through opportunity cost thinking.
+        # Default system prompt (can be overridden for testing)
+        self._default_system_prompt = """You are an expert financial advisor helping users make smart purchase decisions through opportunity cost thinking.
 
 Your role:
 1. Use the available tools to analyze the purchase comprehensively:
@@ -186,6 +189,29 @@ Your role:
 Be honest, practical, and empathetic. Help users understand the true cost of their decisions by making opportunity costs explicit and relatable.
 
 CRITICAL: Keep your reasoning and analysis extremely concise. Avoid fluff. Get straight to the point. ALWAYS include opportunity cost analysis."""
+
+        # Check for prompt override (for testing)
+        self.system_prompt = self._get_system_prompt()
+
+    def _get_system_prompt(self) -> str:
+        """Get system prompt, checking for override if session_id is set.
+
+        Returns:
+            System prompt (override or default)
+        """
+        if self.session_id:
+            try:
+                # Import here to avoid circular dependency
+                from api.routers.internal import get_prompt_override
+
+                override = get_prompt_override(self.session_id, "decision_agent")
+                if override:
+                    return override
+            except ImportError:
+                # api.routers.internal not available (e.g., in tests)
+                pass
+
+        return self._default_system_prompt
 
     def _extract_purchase_info(self, user_message: str) -> ExtractedPurchaseInfo:
         """Extract structured purchase information from natural language.
@@ -376,7 +402,18 @@ Provide your complete analysis with a decision score, reasoning, opportunity cos
             json_str = str(response)
 
         # Parse JSON string into StructuredPurchaseDecision model
-        json_data = json.loads(json_str)
+        if not json_str or not json_str.strip():
+            raise ValueError(
+                f"LLM returned empty response for purchase decision. Request: {request.message}"
+            )
+
+        try:
+            json_data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                f"LLM returned invalid JSON for purchase decision. Response: {json_str[:200]}. Error: {e}"
+            )
+
         structured_response = StructuredPurchaseDecision(**json_data)
 
         # Check if we need clarification about a similar recent purchase

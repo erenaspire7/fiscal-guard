@@ -1,0 +1,371 @@
+{
+  "name": "Sarah - Multi-Turn Handler Tests",
+  "description": "Multi-turn conversation scenarios testing all handler types for Sarah",
+  "version": "1.0",
+  "type": "multi_turn",
+  "scenarios": [
+    {
+      "id": "sarah_greeting_expense_budget_query",
+      "persona": "sarah",
+      "description": "Tests: Small talk → Log expense → Budget query flow",
+      "context": {
+        "month": "current"
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "description": "Greeting (small_talk handler)",
+          "input": {
+            "message": "Hi there!",
+            "conversation_history": []
+          },
+          "expected_output": {
+            "intent": "small_talk",
+            "response_contains": ["hello", "help"]
+          }
+        },
+        {
+          "turn": 2,
+          "description": "Log expense (expense_handler)",
+          "input": {
+            "message": "I spent $100 on groceries yesterday",
+            "conversation_history": [
+              {"role": "user", "content": "Hi there!"},
+              {"role": "assistant", "content": "Hello! How can I help you today?"}
+            ]
+          },
+          "expected_output": {
+            "intent": "log_expense",
+            "response_contains": ["logged", "groceries", "100"],
+            "state_changes": [
+              {
+                "field": "budget_categories.groceries.spent",
+                "operation": "+",
+                "value": 100.0
+              }
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "description": "Budget query (budget_query_handler)",
+          "input": {
+            "message": "What's my grocery budget looking like now?",
+            "conversation_history": [
+              {"role": "user", "content": "Hi there!"},
+              {"role": "assistant", "content": "Hello! How can I help you today?"},
+              {"role": "user", "content": "I spent $100 on groceries yesterday"},
+              {"role": "assistant", "content": "I've logged $100 for groceries..."}
+            ]
+          },
+          "expected_output": {
+            "intent": "budget_query",
+            "response_contains": ["groceries", "spent", "100"]
+          }
+        }
+      ],
+      "tags": ["small_talk", "expense_logging", "budget_query", "handler_chain"]
+    },
+    {
+      "id": "sarah_purchase_decision_feedback_budget_mod",
+      "persona": "sarah",
+      "description": "Tests: Purchase decision → Feedback → Budget modification",
+      "context": {
+        "month": "current"
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "description": "Purchase decision (decision_handler)",
+          "input": {
+            "message": "Should I buy this $85 dress on sale?",
+            "conversation_history": []
+          },
+          "expected_output": {
+            "intent": "purchase_decision",
+            "response_contains": ["score", "shopping"],
+            "metadata_checks": {
+              "decision_id": "not_null",
+              "score": "not_null"
+            }
+          }
+        },
+        {
+          "turn": 2,
+          "description": "Purchase feedback - didn't buy (feedback_handler)",
+          "input": {
+            "message": "I decided not to buy it after all",
+            "conversation_history": [
+              {"role": "user", "content": "Should I buy this $85 dress on sale?"},
+              {"role": "assistant", "content": "Decision Score: 4/10 (Mild No)..."}
+            ]
+          },
+          "expected_output": {
+            "intent": "purchase_feedback",
+            "response_contains": ["good", "decision"]
+          }
+        },
+        {
+          "turn": 3,
+          "description": "Budget modification (budget_modification_handler)",
+          "input": {
+            "message": "Can you increase my shopping budget by $50 for this month?",
+            "conversation_history": [
+              {"role": "user", "content": "Should I buy this $85 dress on sale?"},
+              {"role": "assistant", "content": "Decision Score: 4/10..."},
+              {"role": "user", "content": "I decided not to buy it after all"},
+              {"role": "assistant", "content": "Good decision! Resisting impulse..."}
+            ]
+          },
+          "expected_output": {
+            "intent": "budget_modification",
+            "response_contains": ["shopping", "50", "budget"],
+            "state_changes": [
+              {
+                "field": "budget_categories.shopping.limit",
+                "operation": "+",
+                "value": 50.0
+              }
+            ]
+          }
+        }
+      ],
+      "tags": ["purchase_decision", "feedback", "budget_modification", "handler_chain"]
+    },
+    {
+      "id": "sarah_general_question_goal_update",
+      "persona": "sarah",
+      "description": "Tests: General question → Goal update flow",
+      "context": {
+        "month": "current"
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "description": "General question (general_assistant_handler)",
+          "input": {
+            "message": "How am I doing financially this month?",
+            "conversation_history": []
+          },
+          "expected_output": {
+            "intent": "general_question",
+            "response_contains": ["budget", "financial"]
+          }
+        },
+        {
+          "turn": 2,
+          "description": "Goal update (goal_update_handler)",
+          "input": {
+            "message": "I want to add $500 to my emergency fund",
+            "conversation_history": [
+              {"role": "user", "content": "How am I doing financially this month?"},
+              {"role": "assistant", "content": "You're doing well with your budget..."}
+            ]
+          },
+          "expected_output": {
+            "intent": "goal_update",
+            "response_contains": ["emergency fund", "500", "added"],
+            "state_changes": [
+              {
+                "field": "goals.Emergency Fund.current_amount",
+                "operation": "+",
+                "value": 500.0
+              }
+            ]
+          }
+        }
+      ],
+      "tags": ["general_question", "goal_update", "handler_chain"]
+    },
+    {
+      "id": "sarah_expense_then_purchase_decision",
+      "persona": "sarah",
+      "description": "Tests: Log expense → Purchase decision with updated budget context",
+      "context": {
+        "month": "current"
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "description": "Log dining expense",
+          "input": {
+            "message": "I spent $45 on takeout sushi last night",
+            "conversation_history": []
+          },
+          "expected_output": {
+            "intent": "log_expense",
+            "response_contains": ["logged", "dining", "45"],
+            "state_changes": [
+              {
+                "field": "budget_categories.dining.spent",
+                "operation": "+",
+                "value": 45.0
+              }
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "description": "Purchase decision should reflect updated budget",
+          "input": {
+            "message": "Should I order another $50 of takeout tonight?",
+            "conversation_history": [
+              {"role": "user", "content": "I spent $45 on takeout sushi last night"},
+              {"role": "assistant", "content": "I've logged $45 for dining..."}
+            ]
+          },
+          "expected_output": {
+            "intent": "purchase_decision",
+            "response_contains": ["dining", "already", "spent"],
+            "response_must_not_contain": ["$0 spent", "haven't spent"]
+          }
+        }
+      ],
+      "tags": ["expense_logging", "purchase_decision", "budget_awareness", "stateful"]
+    },
+    {
+      "id": "sarah_purchase_bought_it_feedback",
+      "persona": "sarah",
+      "description": "Tests: Purchase decision → 'I bought it' feedback with context",
+      "context": {
+        "month": "current"
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "description": "Purchase decision for watch",
+          "input": {
+            "message": "Should I buy this $450 designer watch?",
+            "conversation_history": []
+          },
+          "expected_output": {
+            "intent": "purchase_decision",
+            "response_contains": ["score", "shopping"],
+            "metadata_checks": {
+              "decision_id": "not_null",
+              "score": "not_null"
+            }
+          }
+        },
+        {
+          "turn": 2,
+          "description": "Feedback - bought it (should reference previous decision)",
+          "input": {
+            "message": "I bought it anyway",
+            "conversation_history": [
+              {"role": "user", "content": "Should I buy this $450 designer watch?"},
+              {"role": "assistant", "content": "Decision Score: 3/10 (Strong No)..."}
+            ]
+          },
+          "expected_output": {
+            "intent": "purchase_feedback",
+            "response_contains": ["watch", "450"],
+            "state_changes": [
+              {
+                "field": "budget_categories.shopping.spent",
+                "operation": "+",
+                "value": 450.0
+              }
+            ]
+          }
+        }
+      ],
+      "tags": ["purchase_decision", "feedback", "context_dependent", "stateful"]
+    },
+    {
+      "id": "sarah_multiple_expenses_then_budget_query",
+      "persona": "sarah",
+      "description": "Tests: Multiple expense logs → Comprehensive budget query",
+      "context": {
+        "month": "current"
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "description": "Log groceries",
+          "input": {
+            "message": "I spent $120 on groceries",
+            "conversation_history": []
+          },
+          "expected_output": {
+            "intent": "log_expense",
+            "response_contains": ["120", "groceries"],
+            "state_changes": [
+              {
+                "field": "budget_categories.groceries.spent",
+                "operation": "+",
+                "value": 120.0
+              }
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "description": "Log transport",
+          "input": {
+            "message": "Also logged $80 for gas",
+            "conversation_history": [
+              {"role": "user", "content": "I spent $120 on groceries"},
+              {"role": "assistant", "content": "Logged $120..."}
+            ]
+          },
+          "expected_output": {
+            "intent": "log_expense",
+            "response_contains": ["80", "transport"],
+            "state_changes": [
+              {
+                "field": "budget_categories.transport.spent",
+                "operation": "+",
+                "value": 80.0
+              }
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "description": "Log entertainment",
+          "input": {
+            "message": "And $50 on a gym membership",
+            "conversation_history": [
+              {"role": "user", "content": "I spent $120 on groceries"},
+              {"role": "assistant", "content": "Logged $120..."},
+              {"role": "user", "content": "Also logged $80 for gas"},
+              {"role": "assistant", "content": "Logged $80..."}
+            ]
+          },
+          "expected_output": {
+            "intent": "log_expense",
+            "response_contains": ["50", "entertainment"],
+            "state_changes": [
+              {
+                "field": "budget_categories.entertainment.spent",
+                "operation": "+",
+                "value": 50.0
+              }
+            ]
+          }
+        },
+        {
+          "turn": 4,
+          "description": "Query overall budget",
+          "input": {
+            "message": "How's my overall budget looking?",
+            "conversation_history": [
+              {"role": "user", "content": "I spent $120 on groceries"},
+              {"role": "assistant", "content": "Logged..."},
+              {"role": "user", "content": "Also logged $80 for gas"},
+              {"role": "assistant", "content": "Logged..."},
+              {"role": "user", "content": "And $50 on a gym membership"},
+              {"role": "assistant", "content": "Logged..."}
+            ]
+          },
+          "expected_output": {
+            "intent": "budget_query",
+            "response_contains": ["groceries", "transport", "entertainment"]
+          }
+        }
+      ],
+      "tags": ["expense_logging", "budget_query", "multi_category", "stateful"]
+    }
+  ]
+}

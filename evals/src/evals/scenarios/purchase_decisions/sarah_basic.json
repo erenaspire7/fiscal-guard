@@ -1,0 +1,253 @@
+{
+  "name": "Sarah - Basic Purchase Decisions",
+  "description": "Core purchase decision scenarios for Sarah (Financial Monk, strictness 9/10). Tests budget awareness, impulse control, and persona adherence.",
+  "version": "1.0",
+  "scenarios": [
+    {
+      "id": "sarah_watch_over_budget",
+      "persona": "sarah",
+      "description": "Tests response to luxury purchase that exceeds budget by 225%",
+      "context": {
+        "month": "current"
+      },
+      "input": {
+        "message": "Should I buy this $450 designer watch? It looks really nice.",
+        "conversation_history": []
+      },
+      "expected_output": {
+        "intent": "purchase_decision",
+        "score": 1,
+        "decision_category": "strong_no",
+        "reasoning_must_contain": ["budget", "shopping"],
+        "reasoning_must_not_contain": ["great purchase", "go for it"],
+        "must_have_alternatives": false,
+        "budget_analysis": {
+          "category": "shopping",
+          "would_exceed": true,
+          "percentage_used": 150.0
+        }
+      },
+      "tags": ["over_budget", "impulse", "luxury", "strictness_high"]
+    },
+    {
+      "id": "sarah_groceries_essential",
+      "persona": "sarah",
+      "description": "Tests response to essential purchase within budget",
+      "context": {
+        "month": "current"
+      },
+      "input": {
+        "message": "I need to buy groceries for the week, about $120",
+        "conversation_history": []
+      },
+      "expected_output": {
+        "intent": "purchase_decision",
+        "score": 9,
+        "decision_category": "strong_yes",
+        "reasoning_must_contain": ["essential", "groceries"],
+        "budget_analysis": {
+          "category": "groceries",
+          "would_exceed": false
+        }
+      },
+      "tags": ["essential", "within_budget"]
+    },
+    {
+      "id": "sarah_takeout_temptation",
+      "persona": "sarah",
+      "description": "Tests response to discretionary dining expense",
+      "context": {
+        "month": "current"
+      },
+      "input": {
+        "message": "I'm craving sushi takeout. It's about $45.",
+        "conversation_history": []
+      },
+      "expected_output": {
+        "intent": "purchase_decision",
+        "score": 4,
+        "decision_category": "mild_no",
+        "reasoning_must_contain": ["dining"],
+        "must_have_alternatives": true,
+        "budget_analysis": {
+          "category": "dining",
+          "would_exceed": false
+        }
+      },
+      "tags": ["discretionary", "dining", "craving"]
+    },
+    {
+      "id": "sarah_emergency_car_repair",
+      "persona": "sarah",
+      "description": "Tests response to urgent essential expense even if over budget",
+      "context": {
+        "month": "current"
+      },
+      "input": {
+        "message": "My car broke down and needs a $400 repair to run. I need it for work.",
+        "conversation_history": []
+      },
+      "expected_output": {
+        "intent": "purchase_decision",
+        "score": 6,
+        "decision_category": "neutral",
+        "reasoning_must_contain": ["essential", "work"],
+        "budget_analysis": {
+          "category": "transport",
+          "would_exceed": true
+        }
+      },
+      "tags": ["essential", "urgent", "over_budget", "emergency"]
+    },
+    {
+      "id": "sarah_impulse_clothing",
+      "persona": "sarah",
+      "description": "Tests response to impulse clothing purchase",
+      "context": {
+        "month": "current"
+      },
+      "input": {
+        "message": "There's a sale on clothes! Should I buy this $85 dress?",
+        "conversation_history": []
+      },
+      "expected_output": {
+        "intent": "purchase_decision",
+        "score": 4,
+        "decision_category": "mild_no",
+        "reasoning_must_contain": ["sale", "shopping"],
+        "must_have_alternatives": false,
+        "must_have_conditions": false,
+        "budget_analysis": {
+          "category": "shopping",
+          "would_exceed": false
+        }
+      },
+      "tags": ["impulse", "sale", "shopping", "discretionary"]
+    },
+    {
+      "id": "sarah_coffee_subscription",
+      "persona": "sarah",
+      "description": "Tests response to recurring subscription expense",
+      "context": {
+        "month": "current"
+      },
+      "input": {
+        "message": "Should I subscribe to a coffee delivery service for $35/month?",
+        "conversation_history": []
+      },
+      "expected_output": {
+        "intent": "purchase_decision",
+        "score": 3,
+        "decision_category": "strong_no",
+        "reasoning_must_contain": ["subscription", "recurring"],
+        "must_have_alternatives": true,
+        "budget_analysis": {
+          "category": "dining",
+          "would_exceed": false
+        }
+      },
+      "tags": ["subscription", "recurring", "discretionary"]
+    },
+    {
+      "id": "sarah_gym_membership",
+      "persona": "sarah",
+      "description": "Tests response to health investment",
+      "context": {
+        "month": "current"
+      },
+      "input": {
+        "message": "I want to join a gym for $50/month. It would help me get healthier.",
+        "conversation_history": []
+      },
+      "expected_output": {
+        "intent": "purchase_decision",
+        "score": 4,
+        "decision_category": "mild_no",
+        "reasoning_must_contain": ["health", "entertainment"],
+        "must_have_alternatives": true,
+        "budget_analysis": {
+          "category": "entertainment",
+          "would_exceed": false
+        }
+      },
+      "tags": ["health", "investment", "subscription"]
+    },
+    {
+      "id": "sarah_goal_conflict",
+      "persona": "sarah",
+      "description": "Tests response when purchase conflicts with savings goals",
+      "context": {
+        "month": "current"
+      },
+      "input": {
+        "message": "Should I buy a new laptop for $1200? Mine is getting slow.",
+        "conversation_history": []
+      },
+      "expected_output": {
+        "intent": "purchase_decision",
+        "score": 1,
+        "decision_category": "strong_no",
+        "reasoning_must_contain": ["goal", "shopping"],
+        "must_have_alternatives": true,
+        "must_have_conditions": true,
+        "budget_analysis": {
+          "category": "shopping",
+          "would_exceed": true
+        }
+      },
+      "tags": ["high_value", "discretionary", "goal_impact"]
+    },
+    {
+      "id": "sarah_opportunity_cost_test",
+      "persona": "sarah",
+      "description": "Tests that opportunity cost analysis is provided",
+      "context": {
+        "month": "current"
+      },
+      "input": {
+        "message": "Should I buy concert tickets for $120?",
+        "conversation_history": []
+      },
+      "expected_output": {
+        "intent": "purchase_decision",
+        "score": 3,
+        "decision_category": "strong_no",
+        "reasoning_must_contain": ["entertainment"],
+        "budget_analysis": {
+          "category": "entertainment",
+          "would_exceed": true
+        }
+      },
+      "tags": ["entertainment", "opportunity_cost", "discretionary"]
+    },
+    {
+      "id": "sarah_context_from_history",
+      "persona": "sarah",
+      "description": "Tests that agent uses conversation history for context",
+      "context": {
+        "month": "current"
+      },
+      "input": {
+        "message": "I bought it",
+        "conversation_history": [
+          {
+            "role": "user",
+            "content": "Should I buy this $450 designer watch?"
+          },
+          {
+            "role": "assistant",
+            "content": "Decision Score: 3/10 (Strong No). This is 225% of your shopping budget..."
+          }
+        ]
+      },
+      "expected_output": {
+        "intent": "purchase_feedback",
+        "confidence": 0.8,
+        "extracted_entities": {
+          "purchased": true
+        }
+      },
+      "tags": ["feedback", "context_dependent", "intent_classification"]
+    }
+  ]
+}

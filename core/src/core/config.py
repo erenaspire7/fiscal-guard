@@ -36,5 +36,9 @@ class Settings(BaseSettings):
     # directly by the OTLPSpanExporter from the environment.
     opik_tracing_enabled: bool = False
 
+    # Internal API for testing/evaluation
+    allow_internal_endpoints: bool = False
+    internal_api_token: str = ""
+
 
 settings = Settings()
