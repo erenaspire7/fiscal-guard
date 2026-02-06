@@ -1,182 +1,79 @@
 # Fiscal Guard
 
-**Your AI Financial Companion - Prevent Buyer's Remorse Before It Happens**
-
-[![Status](https://img.shields.io/badge/status-MVP_Complete-success)](https://github.com/erenaspire7/fiscal-guard)
-[![Python](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org)
-[![React](https://img.shields.io/badge/react-19+-61DAFB)](https://react.dev)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)](https://fastapi.tiangolo.com)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-
----
+**Prevent Buyer's Remorse Before It Happens**
 
 ## 🎯 What is Fiscal Guard?
 
 Fiscal Guard is an AI-powered financial decision assistant that helps you make smarter purchasing decisions by analyzing your budget, goals, and spending patterns **before** you buy.
 
-Unlike traditional budgeting apps that show you what you overspent *after the fact*, Fiscal Guard intervenes at the moment of decision with personalized insights powered by a **Multi-Agent System** (Strands + Gemini 2.5) and **Real-Time Observability** (Opik).
+Unlike traditional budgeting apps that show you what you overspent _after the fact_, Fiscal Guard intervenes at the moment of decision with personalized insights powered by a **Multi-Agent System** (Strands + Gemini 2.5) and **Real-Time Observability** (Opik).
 
 ### The Problem
 
-Americans spend an average of **$21,000/year** on impulse purchases they later regret. Traditional budgeting tools are passive—they tell you the bad news after the money is gone.
+For people with long-term financial goals—whether saving for a home, building retirement security, or achieving financial independence—impulse spending is a silent saboteur. Americans spend an average of $3,381 annually on [impulse purchases](https://capitaloneshopping.com/research/impulse-buying-statistics/), with around 64% regretting these [decisions](https://youngfinances.com/psychology-of-impulse-spending-explained/). Even more concerning, 32% of consumers have delayed a major financial milestone due to impulse [buying](https://clarifycapital.com/financial-regrets-report).
+
+Traditional budgeting tools are passive—they show you the damage after the money is gone. But impulse purchases happen in a split second, driven by emotion, not logic. By the time you check your budget app, the opportunity to make a better choice has already passed.
 
 ### Our Solution
 
-**Active intervention:** Chat with AI before making a purchase. The agent adopts a persona (e.g., "Financial Monk") to guide you based on your strictness settings, checking your budget, goals, and emotional history in real-time.
+**Active intervention at the moment of decision:** Before you buy, chat with an AI financial guide that knows your goals, budget, and spending patterns. The agent adopts a persona matched to your preferences (e.g., "Financial Monk", etc.) and your strictness settings, providing real-time guidance that checks:
 
----
+- Your current budget status
+- Progress toward your long-term goals
+- Your emotional spending triggers and history
+
+Instead of learning about your mistake tomorrow, get the insight you need today—right when it matters most.
 
 ## ✨ Key Features
 
-### 🛡️ Shield (Agent Chat)
-Direct chat interface for real-time purchase analysis.
-- **5-Tool Analysis**: Checks Budget, Goals, Financial Health, Past Decisions, and Regret Patterns.
-- **Persona Adaptation**: Choose from **Gentle**, **Balanced**, or **Financial Monk** personas.
-- **Responsive UI**: Fully optimized for both Desktop and Mobile experiences.
+### 🛡️ Shield (AI Chat)
+
+Real-time purchase guidance powered by AI analysis.
+
+- **Smart Analysis**: Checks your budget, goals, spending patterns, and emotional triggers before you buy
+- **Adaptive Personas**: Choose your guide — Gentle, Balanced, or Financial Monk
+- **Mobile-First**: Catch impulse buys wherever they happen
 
 ### 📊 Command (Dashboard)
-Real-time discipline hub.
-- **Guard Score**: A dynamic score (0-100) reflecting your recent financial discipline.
-- **Growth Analysis**: Rich trend graph showing your decision quality over time with "Danger Zone" indicators.
-- **Budget Health**: Visual indicators for category utilization.
+
+Your financial discipline HQ.
+
+- **Guard Score**: Live discipline rating (0-100) based on recent decisions
+- **Trend Analysis**: Visualize decision quality over time with danger zone alerts
+- **Budget Health**: At-a-glance category spending
 
 ### 🧠 Insights (Regret Tracker)
-Close the loop on your decisions.
-- **Feedback Loop**: Rate your satisfaction with past purchases to train the AI.
-- **Pattern Recognition**: The system learns triggers (e.g., *"You often regret clothing purchases over $100"*).
-- **Peace of Mind Score**: Tracks your impulse control growth.
 
-### 🏦 Vault (Budgets & Goals)
-Asset security management.
-- **Goal Progress**: Contribute to goals directly from the UI with an interactive modal.
-- **Smart Budgets**: Category-based tracking with visual progress bars.
+Learn from past purchases.
 
-### 🔒 Enterprise-Grade Security & Observability
-- **Dual Auth**: Login with Google OAuth or Email/Password (Bcrypt).
-- **Opik Tracing**: Full visibility into agent reasoning with automatic PII redaction.
-- **Privacy First**: User IDs, emails, and exact amounts are redacted in traces.
+- **Feedback Loop**: Rate your purchase satisfaction to train the AI
+- **Pattern Recognition**: Surface triggers like _"You often regret clothing over $100"_
+- **Progress Tracking**: Watch your impulse control improve
 
----
+### 🏦 Vault (Finance Hub)
+
+Traditional tracking meets AI-powered chat.
+
+- **Dual Input**: Log expenses via forms or natural language chat
+- **Goal Management**: Track progress and contribute with one click
+- **Budget Oversight**: Category-based limits with visual indicators
+
+### 🔒 Security & Observability
+
+- **Dual Auth**: Google OAuth + Email/Password (Bcrypt)
+- **Full Tracing**: Opik integration with automatic PII redaction
+- **Privacy-First**: Sensitive data never leaves trace logs
 
 ## 🏗️ Architecture
+**Multi-agent system with real-time observability and privacy-first design.**
 
-The system uses a modern decoupled architecture:
+## 🎯 Try It Live
 
-```
-[React 19 Frontend]
-    ↓ (REST API)
-[FastAPI Backend]
-    ↓ (Auth via JWT)
-[Decision Service]
-    ↓ (Opik Tracing)
-[Decision Agent (Strands + Gemini 2.5 Flash)]
-    ↓ ⟷ [Tools: check_budget, check_goals, analyze_history, analyze_regret]
-[PostgreSQL Database]
-```
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.11+ & Node.js 18+
-- Docker (for PostgreSQL)
-- Google Cloud API Key (Gemini)
-
-### 1. Setup & Install
-```bash
-# Clone repo
-git clone https://github.com/yourusername/fiscal-guard.git
-cd fiscal-guard
-
-# Setup environment
-cp .env.example .env
-# Edit .env with your keys (DATABASE_URL, GOOGLE_API_KEY, etc.)
-```
-
-### 2. Start Database & Backend
-```bash
-# Start DB
-./scripts/docker-db-start.sh
-
-# Run Migrations & Seed Demo Data
-cd core
-uv run alembic upgrade head
-uv run python -m core.scripts.seed_demo_data
-
-# Start API
-cd ../api
-uv run uvicorn src.api.main:app --reload --port 8000
-```
-
-### 3. Start Frontend
-```bash
-cd ../ui
-npm install
-npm run dev
-```
-
-Visit **http://localhost:5173** to launch the application.
-
----
-
-## 👤 Demo Accounts
-
-We have pre-seeded 3 distinct user personas for testing:
-
-| User | Email | Password | Persona | Focus |
-|------|-------|----------|---------|-------|
-| **Sarah Chen** | `demo+sarah@fiscalguard.app` | `demo123` | **Financial Monk** | Impulsive shopping correction |
-| **Alex Sterling** | `demo+alex@fiscalguard.app` | `demo123` | **Balanced** | Healthy habits maintenance |
-| **Marcus Wu** | `demo+marcus@fiscalguard.app` | `demo123` | **Gentle** | Extreme frugality support |
-
----
-
-## 🧪 Demo Scenarios
-
-### Scenario A: Sarah's Shopping Addiction
-1. **Login** as Sarah (Financial Monk).
-2. **Dashboard**: Note the "At Risk" status and recent low scores.
-3. **Chat**: Ask *"I want to buy $450 designer boots."*
-4. **Result**: The agent will strongly deny based on her history of regretting luxury fashion purchases, citing her budget limits.
-
-### Scenario B: Alex's Balanced Lifestyle
-1. **Login** as Alex (Balanced).
-2. **Chat**: Ask *"Can I buy concert tickets for $150?"*
-3. **Result**: Agent checks the "Vacation Fund" goal. It approves but suggests adding $50 to the goal to stay on track.
-4. **Vault**: Go to Vault and add the contribution to show progress.
-
-### Scenario C: Marcus's Investment Focus
-1. **Login** as Marcus (Gentle).
-2. **Insights**: Review high Guard Score and capital retained.
-3. **Chat**: Ask *"Should I buy this $300 investment course?"*
-4. **Result**: Agent encourages the purchase as it aligns with his long-term wealth goals.
-
----
-
-## 📁 Project Structure
-
-```
-fiscal-guard/
-├── api/              # FastAPI Backend Application
-├── core/             # Database Models, Migrations & Business Logic
-├── ui/               # React + Tailwind + Shadcn UI Frontend
-├── scripts/          # Utility scripts (Docker, Seeding)
-└── tmp/              # Documentation & Status Tracking
-```
-
----
+👉 **[Demo Link](https://fiscal-guard.vercel.app)**
 
 ## 🏆 Tech Stack
 
-- **Frontend**: React 19, TailwindCSS, Radix UI, Recharts, Framer Motion
-- **Backend**: FastAPI, Python 3.11, Pydantic
-- **AI**: Strands (Orchestration), Google Gemini 2.5 Flash (Reasoning)
-- **Observability**: Opik (Comet.ml) for Tracing & Evaluation
-- **Database**: PostgreSQL, SQLAlchemy, Alembic
-
----
-
-## 📄 License
-
-MIT License. Built for the Strands + Opik Hackathon 2026.
+- **AI Agent**: Google Gemini 2.5 Flash with Strands orchestration
+- **Backend**: FastAPI + PostgreSQL
+- **Frontend**: React + Shadcn UI
+- **Observability**: Opik for LLM tracing & evaluation

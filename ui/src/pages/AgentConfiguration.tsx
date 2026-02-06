@@ -92,7 +92,7 @@ export default function AgentConfiguration() {
   return (
     <div
       className={cn(
-        "min-h-screen text-foreground font-sans pb-32 md:pb-0 md:pl-64 transition-all duration-300",
+        "min-h-screen text-white font-sans pb-32 md:pb-0 md:pl-64 transition-all duration-300",
         ThemeBackgrounds[DEFAULT_THEME],
       )}
     >
@@ -106,12 +106,12 @@ export default function AgentConfiguration() {
               variant="ghost"
               size="icon"
               onClick={() => navigate(-1)}
-              className="rounded-full hover:bg-white/10 -ml-2 text-muted-foreground hover:text-white transition-colors"
+              className="rounded-full hover:bg-white/10 -ml-2 text-gray-400 hover:text-white transition-colors"
             >
               <ArrowLeft className="w-6 h-6" />
             </Button>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-primary opacity-80">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 opacity-80">
                 AI Tuning
               </p>
               <h1 className="text-3xl font-bold tracking-tight text-white">
@@ -123,7 +123,7 @@ export default function AgentConfiguration() {
             onClick={handleSave}
             disabled={isSaving}
             className={cn(
-              "rounded-xl bg-primary text-[#020403] hover:bg-primary/90 shadow-[0_0_15px_rgba(16,185,129,0.4)] px-6 transition-all font-bold gap-2",
+              "rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/20 px-6 transition-all font-bold gap-2",
               isSaving && "opacity-50",
             )}
           >
@@ -136,19 +136,19 @@ export default function AgentConfiguration() {
           {/* Left/Top Column: Persuasion Tone (Takes up more space) */}
           <section className="lg:col-span-3 space-y-6">
             <div className="flex items-center gap-3 px-1">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Megaphone className="w-4 h-4 text-primary" />
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <Megaphone className="w-4 h-4 text-emerald-500" />
               </div>
               <h3 className="text-xl font-bold tracking-tight text-white">
                 Persuasion Tone
               </h3>
             </div>
 
-            <Card className="bg-[#0A1210] border border-white/5 rounded-[32px] overflow-hidden shadow-xl">
+            <Card className="bg-[#040d07] border border-white/5 rounded-[32px] overflow-hidden shadow-xl">
               <CardContent className="p-8 space-y-10">
                 <div className="flex justify-between items-end">
                   <div className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 opacity-50">
                       Selected Mode
                     </p>
                     <p className="text-2xl font-bold text-white">
@@ -156,7 +156,7 @@ export default function AgentConfiguration() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-primary font-bold text-xl drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]">
+                    <p className="text-emerald-500 font-bold text-xl drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]">
                       {strictness}% Intensity
                     </p>
                   </div>
@@ -167,7 +167,7 @@ export default function AgentConfiguration() {
                   {/* Track Background */}
                   <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-primary shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-300"
+                      className="h-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-300"
                       style={{ width: `${strictness}%` }}
                     />
                   </div>
@@ -191,8 +191,8 @@ export default function AgentConfiguration() {
                           className={cn(
                             "w-3 h-3 rounded-full transition-all duration-300 border border-transparent",
                             strictness >= val
-                              ? "bg-primary shadow-[0_0_10px_rgba(16,185,129,0.8)] scale-110"
-                              : "bg-[#1A2521] border-white/10 group-hover:bg-white/10",
+                              ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] scale-110"
+                              : "bg-[#0a0f0c] border-white/10 group-hover:bg-white/10",
                           )}
                         />
                       </div>
@@ -211,8 +211,8 @@ export default function AgentConfiguration() {
                         className={cn(
                           "text-[9px] font-black uppercase tracking-widest w-16 text-center transition-colors duration-300",
                           strictness === item.val
-                            ? "text-primary opacity-100"
-                            : "text-muted-foreground opacity-30",
+                            ? "text-emerald-500 opacity-100"
+                            : "text-gray-500 opacity-30",
                         )}
                       >
                         {item.label}
@@ -222,20 +222,20 @@ export default function AgentConfiguration() {
                 </div>
 
                 {/* Agent Preview Box */}
-                <div className="bg-[#0F1A16] rounded-[24px] p-6 border border-white/5 relative group hover:border-white/10 transition-colors">
-                  <div className="absolute top-0 right-0 p-20 bg-primary/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                <div className="bg-[#020804] rounded-[24px] p-6 border border-white/5 relative group hover:border-emerald-500/20 transition-all shadow-lg">
+                  <div className="absolute top-0 right-0 p-20 bg-emerald-500/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
                   <div className="flex items-center gap-3 mb-4 relative z-10">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Bot className="w-4 h-4 text-primary" />
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                      <Bot className="w-4 h-4 text-emerald-500" />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 opacity-60">
                       Agent Preview: $200 Purchase
                     </span>
                   </div>
                   <div className="relative z-10 pl-11">
                     <div className="relative">
                       <MessageSquare
-                        className="w-4 h-4 text-primary absolute -left-6 top-1 opacity-50"
+                        className="w-4 h-4 text-emerald-500 absolute -left-6 top-1 opacity-50"
                         fill="currentColor"
                       />
                       <p className="text-base italic leading-relaxed text-white/90 font-medium">
@@ -251,63 +251,63 @@ export default function AgentConfiguration() {
           {/* Right Column: Guardrail Rules */}
           <section className="lg:col-span-2 space-y-6">
             <div className="flex items-center gap-3 px-1">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Shield className="w-4 h-4 text-primary" />
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-emerald-500" />
               </div>
               <h3 className="text-xl font-bold tracking-tight text-white">
                 Guardrail Rules
               </h3>
             </div>
 
-            <div className="bg-[#0A1210] border border-white/5 rounded-[28px] overflow-hidden divide-y divide-white/5 shadow-xl h-full flex flex-col">
-              <button className="w-full flex items-center justify-between p-6 hover:bg-[#0F1A16] transition-colors text-left outline-none group flex-1">
+            <div className="bg-[#040d07] border border-white/5 rounded-[28px] overflow-hidden divide-y divide-white/5 shadow-xl h-full flex flex-col">
+              <button className="w-full flex items-center justify-between p-6 hover:bg-emerald-500/5 transition-colors text-left outline-none group flex-1">
                 <div className="space-y-1">
-                  <p className="font-bold text-white group-hover:text-primary transition-colors">
+                  <p className="font-bold text-white group-hover:text-emerald-500 transition-colors">
                     Flag large purchases
                   </p>
-                  <p className="text-xs text-muted-foreground font-medium opacity-60">
+                  <p className="text-xs text-gray-500 font-medium opacity-60">
                     Threshold for mandatory interception
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-primary font-bold text-base drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
+                  <span className="text-emerald-500 font-bold text-base drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
                     $500
                   </span>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                  <ChevronRight className="w-5 h-5 text-gray-500 opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </div>
               </button>
 
-              <button className="w-full flex items-center justify-between p-6 hover:bg-[#0F1A16] transition-colors text-left outline-none group flex-1">
+              <button className="w-full flex items-center justify-between p-6 hover:bg-emerald-500/5 transition-colors text-left outline-none group flex-1">
                 <div className="space-y-1">
-                  <p className="font-bold text-white group-hover:text-primary transition-colors">
+                  <p className="font-bold text-white group-hover:text-emerald-500 transition-colors">
                     Daily spending cap
                   </p>
-                  <p className="text-xs text-muted-foreground font-medium opacity-60">
+                  <p className="text-xs text-gray-500 font-medium opacity-60">
                     Daily alert trigger point
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-primary font-bold text-base drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
+                  <span className="text-emerald-500 font-bold text-base drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
                     $150
                   </span>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                  <ChevronRight className="w-5 h-5 text-gray-500 opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </div>
               </button>
 
-              <button className="w-full flex items-center justify-between p-6 hover:bg-[#0F1A16] transition-colors text-left outline-none group flex-1">
+              <button className="w-full flex items-center justify-between p-6 hover:bg-emerald-500/5 transition-colors text-left outline-none group flex-1">
                 <div className="space-y-1">
-                  <p className="font-bold text-white group-hover:text-primary transition-colors">
+                  <p className="font-bold text-white group-hover:text-emerald-500 transition-colors">
                     Recurring Audit
                   </p>
-                  <p className="text-xs text-muted-foreground font-medium opacity-60">
+                  <p className="text-xs text-gray-500 font-medium opacity-60">
                     Review subscription charges
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-primary font-bold text-xs uppercase tracking-wider bg-primary/10 px-2 py-1 rounded">
+                  <span className="text-emerald-500 font-bold text-xs uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">
                     Monthly
                   </span>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                  <ChevronRight className="w-5 h-5 text-gray-500 opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </div>
               </button>
             </div>

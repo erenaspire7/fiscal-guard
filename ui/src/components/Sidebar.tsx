@@ -1,13 +1,13 @@
 import { type ElementType } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutGrid,
-  BarChart3,
-  Lock,
-  Settings,
+  LayoutDashboard,
+  PieChart,
+  Wallet,
+  Settings2,
   LogOut,
-  ShieldCheck,
-  MessageSquare,
+  MessageSquareText,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -20,12 +20,12 @@ export default function Sidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-64 bg-[#0A1210] border-r border-white/5 flex-col justify-between py-6 px-4 z-50 hidden md:flex font-sans">
+    <aside className="fixed left-0 top-0 bottom-0 w-64 bg-[#020804] border-r border-white/5 flex-col justify-between py-6 px-4 z-50 hidden md:flex font-sans">
       <div className="space-y-10">
         {/* Logo Area */}
         <div className="px-2 flex items-center gap-3 mt-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-            <ShieldCheck className="w-5 h-5 text-[#020403] fill-current" />
+          <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-500">
+            <Shield className="w-5 h-5 fill-emerald-500/20" />
           </div>
           <h1 className="text-lg font-bold text-white tracking-tight">
             Fiscal Guard
@@ -35,31 +35,31 @@ export default function Sidebar() {
         {/* Navigation */}
         <nav className="space-y-1">
           <SidebarItem
-            icon={LayoutGrid}
+            icon={LayoutDashboard}
             label="Command"
             active={isActive("/dashboard")}
             onClick={() => navigate("/dashboard")}
           />
           <SidebarItem
-            icon={BarChart3}
+            icon={PieChart}
             label="Insights"
             active={isActive("/insights")}
             onClick={() => navigate("/insights")}
           />
           <SidebarItem
-            icon={MessageSquare}
+            icon={MessageSquareText}
             label="Chat"
             active={isActive("/chat")}
             onClick={() => navigate("/chat")}
           />
           <SidebarItem
-            icon={Lock}
+            icon={Wallet}
             label="Vault"
             active={isActive("/vault")}
             onClick={() => navigate("/vault")}
           />
           <SidebarItem
-            icon={Settings}
+            icon={Settings2}
             label="Setup"
             active={isActive("/setup")}
             onClick={() => navigate("/setup")}
@@ -76,7 +76,7 @@ export default function Sidebar() {
           <span className="text-sm font-medium">Sign Out</span>
         </button>
 
-        <div className="bg-[#020403] rounded-xl p-3 flex items-center gap-3 border border-white/5 hover:bg-[#0F1A16] transition-colors cursor-pointer group">
+        <div className="bg-[#040d07] rounded-xl p-3 flex items-center gap-3 border border-white/5 hover:bg-emerald-500/10 transition-colors cursor-pointer group">
           <img
             src={
               user?.picture ||
@@ -88,7 +88,7 @@ export default function Sidebar() {
             className="w-10 h-10 rounded-full shadow-lg object-cover bg-muted border border-white/5"
           />
           <div className="flex flex-col min-w-0">
-            <span className="text-sm font-bold text-white truncate group-hover:text-primary transition-colors">
+            <span className="text-sm font-bold text-white truncate group-hover:text-emerald-500 transition-colors">
               {user?.name || "Guardian"}
             </span>
             <span className="text-[10px] font-medium text-muted-foreground truncate">
@@ -118,19 +118,14 @@ function SidebarItem({
       className={cn(
         "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative outline-none group",
         active
-          ? "bg-[#0F2922] text-primary"
-          : "text-muted-foreground hover:text-white hover:bg-white/5",
+          ? "bg-emerald-500/10 text-emerald-500"
+          : "text-gray-400 hover:text-white hover:bg-white/5",
       )}
     >
-      {active && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-      )}
       <Icon
         className={cn(
           "w-5 h-5 transition-colors",
-          active
-            ? "text-primary"
-            : "text-muted-foreground group-hover:text-white",
+          active ? "text-emerald-500" : "text-gray-400 group-hover:text-white",
         )}
       />
       <span className={cn("text-sm font-medium", active && "font-bold")}>

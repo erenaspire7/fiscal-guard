@@ -45,7 +45,7 @@ export default function AgentChat() {
   return (
     <div
       className={cn(
-        "flex h-screen text-foreground font-sans overflow-hidden transition-all duration-300",
+        "flex h-screen text-white font-sans overflow-hidden transition-all duration-300",
         ThemeBackgrounds[DEFAULT_THEME],
       )}
     >
@@ -54,14 +54,16 @@ export default function AgentChat() {
         {/* Sticky Header */}
         <header className="p-4 md:p-6 z-10 shrink-0 w-full flex justify-center">
           <div className="flex flex-col items-center justify-center gap-2">
-            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-              <Shield className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-500/20">
+              <Shield className="w-6 h-6 text-emerald-500" />
             </div>
             <div className="text-center">
-              <h1 className="font-bold text-lg">Fiscal Guard Agent</h1>
+              <h1 className="font-bold text-lg text-white">
+                Fiscal Guard Agent
+              </h1>
               <div className="flex items-center justify-center gap-2 mt-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                <p className="text-[10px] uppercase tracking-widest text-primary font-bold opacity-80">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-[10px] uppercase tracking-widest text-emerald-500 font-bold opacity-80">
                   Active Session
                 </p>
               </div>
@@ -78,10 +80,10 @@ export default function AgentChat() {
           >
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-60">
-                <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mb-2">
-                  <Shield className="w-8 h-8 text-muted-foreground" />
+                <div className="w-16 h-16 bg-emerald-500/5 rounded-2xl flex items-center justify-center mb-2">
+                  <Shield className="w-8 h-8 text-gray-500" />
                 </div>
-                <p className="text-sm font-medium px-12 md:text-base md:max-w-md">
+                <p className="text-sm font-medium px-12 md:text-base md:max-w-md text-gray-400">
                   Welcome back. Tell me about a purchase you're considering, and
                   I'll help you decide if it aligns with your goals.
                 </p>
@@ -98,7 +100,7 @@ export default function AgentChat() {
                         setInput(text);
                       }}
                       className={cn(
-                        "text-xs md:text-sm p-3 md:p-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-primary/10 hover:border-primary/20 hover:text-primary transition-all text-center",
+                        "text-xs md:text-sm p-3 md:p-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/20 hover:text-emerald-500 transition-all text-center",
                         i === 2 && "md:col-span-2",
                       )}
                     >
@@ -123,7 +125,7 @@ export default function AgentChat() {
                     "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1",
                     msg.role === "user"
                       ? "bg-white"
-                      : "border border-primary/30",
+                      : "border border-emerald-500/30",
                   )}
                 >
                   {msg.role === "user" ? (
@@ -138,7 +140,7 @@ export default function AgentChat() {
                       className="w-full h-full rounded-full"
                     />
                   ) : (
-                    <Shield className="w-4 h-4 text-primary" />
+                    <Shield className="w-4 h-4 text-emerald-500" />
                   )}
                 </div>
 
@@ -147,8 +149,8 @@ export default function AgentChat() {
                     className={cn(
                       "p-4 border-none shadow-none rounded-2xl",
                       msg.role === "user"
-                        ? "bg-primary/20 text-foreground"
-                        : "bg-[#0A2A22] text-foreground/90",
+                        ? "bg-emerald-500/20 text-white"
+                        : "bg-[#040d07] border border-white/5 text-gray-300",
                     )}
                   >
                     {msg.role === "assistant" ? (
@@ -176,7 +178,7 @@ export default function AgentChat() {
                                 <li className="mb-1">{children}</li>
                               ),
                               strong: ({ children }) => (
-                                <strong className="font-semibold text-primary">
+                                <strong className="font-semibold text-emerald-500">
                                   {children}
                                 </strong>
                               ),
@@ -208,7 +210,7 @@ export default function AgentChat() {
                               <li className="mb-1">{children}</li>
                             ),
                             strong: ({ children }) => (
-                              <strong className="font-semibold text-primary">
+                              <strong className="font-semibold text-emerald-500">
                                 {children}
                               </strong>
                             ),
@@ -221,7 +223,7 @@ export default function AgentChat() {
                   </Card>
                   <span
                     className={cn(
-                      "text-[10px] text-muted-foreground/60 mt-2 font-medium",
+                      "text-[10px] text-gray-500 mt-2 font-medium",
                       msg.role === "user" ? "text-right" : "text-left",
                     )}
                   >
@@ -236,15 +238,15 @@ export default function AgentChat() {
 
             {isLoading && (
               <div className="flex w-full gap-4 flex-row">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 border border-primary/30">
-                  <Shield className="w-4 h-4 text-primary" />
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 border border-emerald-500/30">
+                  <Shield className="w-4 h-4 text-emerald-500" />
                 </div>
                 <div className="flex flex-col max-w-[30%] w-full">
-                  <Card className="p-5 border-none shadow-none rounded-2xl bg-[#0A2A22] text-foreground/90">
+                  <Card className="p-5 border border-white/5 shadow-none rounded-2xl bg-[#040d07] text-gray-300">
                     <div className="space-y-2.5">
-                      <Skeleton className="h-2 w-[75%] bg-primary/10" />
-                      <Skeleton className="h-2 w-[90%] bg-primary/10" />
-                      <Skeleton className="h-2 w-[60%] bg-primary/10" />
+                      <Skeleton className="h-2 w-[75%] bg-emerald-500/10" />
+                      <Skeleton className="h-2 w-[90%] bg-emerald-500/10" />
+                      <Skeleton className="h-2 w-[60%] bg-emerald-500/10" />
                     </div>
                   </Card>
                 </div>
@@ -265,7 +267,7 @@ export default function AgentChat() {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Describe your purchase..."
                   disabled={isLoading}
-                  className="w-full bg-[#0A2A22]/50 border border-white/10 rounded-2xl py-5 pl-6 pr-16 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/50 transition-all backdrop-blur-xl shadow-2xl text-white"
+                  className="w-full bg-[#040d07] border border-white/10 rounded-2xl py-5 pl-6 pr-16 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50 placeholder:text-gray-500 transition-all shadow-2xl text-white"
                 />
                 <Button
                   type="submit"
@@ -274,7 +276,7 @@ export default function AgentChat() {
                   className={cn(
                     "absolute right-3 w-10 h-10 rounded-xl transition-all",
                     input.trim() && !isLoading
-                      ? "bg-primary text-background hover:bg-primary/90"
+                      ? "bg-emerald-600 text-white hover:bg-emerald-500"
                       : "bg-white/10 text-white/20",
                   )}
                 >

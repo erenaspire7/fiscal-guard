@@ -1,7 +1,16 @@
 import React, { useState } from "react";
-import { X, Wallet, Plus, Trash2, Calendar, ShieldCheck } from "lucide-react";
+import { Wallet, Plus, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { env } from "@/config/env";
 
 interface CategoryEntry {
@@ -25,8 +34,8 @@ export default function AddBudgetModal({
 }: AddBudgetModalProps) {
   const [name, setName] = useState("");
   const [totalMonthly, setTotalMonthly] = useState("");
-  const [periodStart, setPeriodStart] = useState("");
-  const [periodEnd, setPeriodEnd] = useState("");
+  const [periodStart, setPeriodStart] = useState<Date>();
+  const [periodEnd, setPeriodEnd] = useState<Date>();
   const [categories, setCategories] = useState<CategoryEntry[]>([
     {
       id: Math.random().toString(36).substr(2, 9),
@@ -35,8 +44,6 @@ export default function AddBudgetModal({
     },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  if (!isOpen) return null;
 
   const addCategory = () => {
     setCategories([
@@ -90,8 +97,8 @@ export default function AddBudgetModal({
         body: JSON.stringify({
           name,
           total_monthly: parseFloat(totalMonthly),
-          period_start: periodStart,
-          period_end: periodEnd,
+          period_start: periodStart?.toISOString().split("T")[0],
+          period_end: periodEnd?.toISOString().split("T")[0],
           categories: categoriesMap,
         }),
       });
@@ -108,109 +115,90 @@ export default function AddBudgetModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <Card className="w-full max-w-xl bg-[#0A1210] border-white/5 shadow-2xl rounded-[32px] overflow-hidden max-h-[90vh] flex flex-col animate-in slide-in-from-bottom-8 duration-500 text-foreground">
-        <div className="absolute top-6 right-6 z-10">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="rounded-full hover:bg-white/5 text-muted-foreground hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
-
-        <CardContent className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
-          <div className="space-y-2">
-            <div className="w-12 h-12 bg-[#0F2922] rounded-2xl flex items-center justify-center mb-4 border border-primary/20">
-              <Wallet className="w-6 h-6 text-primary shadow-[0_0_10px_rgba(16,185,129,0.4)]" />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <form onSubmit={handleSubmit}>
+        <DialogContent className="bg-[#040d07] border-white/5 text-white sm:max-w-xl max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl">
+          <DialogHeader>
+            <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-4 border border-emerald-500/20">
+              <Wallet className="w-6 h-6 text-emerald-500 fill-emerald-500/20" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-white">
+            <DialogTitle className="text-2xl font-semibold tracking-tight text-white">
               Establish Budget
-            </h2>
-            <p className="text-sm text-muted-foreground">
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-400">
               Define the boundaries of your financial guard for this period.
-            </p>
-          </div>
+            </DialogDescription>
+          </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="space-y-6 mt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Budget Name */}
               <div className="space-y-2 sm:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 ml-1">
+                <Label className="text-sm font-medium text-gray-300 ml-1">
                   Budget Reference Name
-                </label>
-                <input
+                </Label>
+                <Input
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Q1 2026 Strategic Plan"
-                  className="w-full bg-[#020403] border border-white/10 rounded-2xl px-4 py-4 focus:outline-none focus:border-primary/50 transition-all font-medium text-white placeholder:text-muted-foreground/50"
+                  className="w-full bg-[#010402] border-white/5 rounded-xl px-4 py-3 text-sm font-medium text-white placeholder:text-gray-500 shadow-inner focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
                 />
               </div>
 
               {/* Total Limit */}
               <div className="space-y-2 sm:col-span-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 ml-1">
+                <Label className="text-sm font-medium text-gray-300 ml-1">
                   Total Monthly Limit ($)
-                </label>
+                </Label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-primary opacity-60">
                     $
                   </span>
-                  <input
+                  <Input
                     required
                     type="number"
                     value={totalMonthly}
                     onChange={(e) => setTotalMonthly(e.target.value)}
                     placeholder="4000"
-                    className="w-full bg-[#020403] border border-white/10 rounded-2xl pl-8 pr-4 py-4 focus:outline-none focus:border-primary/50 transition-all font-bold text-xl text-white placeholder:text-muted-foreground/50"
+                    className="w-full bg-[#010402] border-white/5 rounded-xl pl-8 pr-4 py-4 font-bold text-xl text-white placeholder:text-gray-500 shadow-inner"
                   />
                 </div>
               </div>
 
               {/* Period Start */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 ml-1">
+                <Label className="text-sm font-medium text-gray-300 ml-1">
                   Activation Date
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary opacity-40" />
-                  <input
-                    required
-                    type="date"
-                    value={periodStart}
-                    onChange={(e) => setPeriodStart(e.target.value)}
-                    className="w-full bg-[#020403] border border-white/10 rounded-2xl pl-10 pr-4 py-4 focus:outline-none focus:border-primary/50 transition-all text-xs font-bold text-white placeholder:text-muted-foreground/50"
-                  />
-                </div>
+                </Label>
+                <DatePicker
+                  date={periodStart}
+                  onDateChange={setPeriodStart}
+                  placeholder="Select start date"
+                  className="w-full bg-[#010402] border-white/5 rounded-xl px-4 py-4 text-xs font-bold text-white shadow-inner h-auto"
+                />
               </div>
 
               {/* Period End */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 ml-1">
+                <Label className="text-sm font-medium text-gray-300 ml-1">
                   Expiration Date
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary opacity-40" />
-                  <input
-                    required
-                    type="date"
-                    value={periodEnd}
-                    onChange={(e) => setPeriodEnd(e.target.value)}
-                    className="w-full bg-[#020403] border border-white/10 rounded-2xl pl-10 pr-4 py-4 focus:outline-none focus:border-primary/50 transition-all text-xs font-bold text-white placeholder:text-muted-foreground/50"
-                  />
-                </div>
+                </Label>
+                <DatePicker
+                  date={periodEnd}
+                  onDateChange={setPeriodEnd}
+                  placeholder="Select end date"
+                  className="w-full bg-[#010402] border-white/5 rounded-xl px-4 py-4 text-xs font-bold text-white shadow-inner h-auto"
+                />
               </div>
             </div>
 
             {/* Dynamic Categories */}
             <div className="space-y-4">
               <div className="flex justify-between items-center px-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
+                <Label className="text-sm font-medium text-gray-300">
                   Category Allocations
-                </label>
+                </Label>
                 <button
                   type="button"
                   onClick={addCategory}
@@ -226,20 +214,20 @@ export default function AddBudgetModal({
                     key={category.id}
                     className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300"
                   >
-                    <input
+                    <Input
                       required
                       placeholder="Category Name"
                       value={category.name}
                       onChange={(e) =>
                         updateCategory(category.id, "name", e.target.value)
                       }
-                      className="flex-1 bg-[#020403] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 text-white placeholder:text-muted-foreground/50"
+                      className="flex-1 bg-[#010402] border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-500 shadow-inner"
                     />
                     <div className="relative w-32">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-primary/60">
                         $
                       </span>
-                      <input
+                      <Input
                         required
                         type="number"
                         placeholder="Limit"
@@ -247,7 +235,7 @@ export default function AddBudgetModal({
                         onChange={(e) =>
                           updateCategory(category.id, "limit", e.target.value)
                         }
-                        className="w-full bg-[#020403] border border-white/10 rounded-xl pl-6 pr-3 py-3 text-sm focus:outline-none focus:border-primary/50 font-bold text-white placeholder:text-muted-foreground/50"
+                        className="w-full bg-[#010402] border-white/5 rounded-xl pl-6 pr-3 py-3 text-sm font-bold text-white placeholder:text-gray-500 shadow-inner"
                       />
                     </div>
                     <Button
@@ -265,23 +253,25 @@ export default function AddBudgetModal({
               </div>
             </div>
 
-            <Button
-              disabled={isSubmitting}
-              type="submit"
-              className="w-full h-14 rounded-2xl bg-primary text-[#020403] font-black uppercase tracking-widest hover:bg-primary/90 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50 gap-2 mt-4"
-            >
-              {isSubmitting ? (
-                "Deploying Guard..."
-              ) : (
-                <>
-                  <ShieldCheck className="w-5 h-5" />
-                  Activate Budget
-                </>
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+            <div className="flex justify-end">
+              <Button
+                disabled={isSubmitting}
+                type="submit"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 px-6 rounded-xl transition-all shadow-lg shadow-emerald-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating budget...
+                  </>
+                ) : (
+                  "Create Budget"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </form>
+    </Dialog>
   );
 }

@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import {
   AreaChart,
@@ -14,7 +13,6 @@ import {
 } from "recharts";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Tooltip,
@@ -23,8 +21,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  Plus,
-  ShieldCheck,
+  Shield,
   Wallet,
   Utensils,
   Film,
@@ -37,7 +34,6 @@ import { ThemeBackgrounds, DEFAULT_THEME } from "@/lib/themes";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { data, isLoading } = useDashboardData();
 
   // Generate chart data or use defaults
@@ -120,8 +116,8 @@ export default function Dashboard() {
                 alt="Profile"
                 className="w-12 h-12 rounded-full border border-white/10 shadow-lg object-cover"
               />
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full border-[3px] border-[#020403] flex items-center justify-center">
-                <ShieldCheck className="w-2.5 h-2.5 text-[#020403] fill-current" />
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-[3px] border-[#020804] flex items-center justify-center">
+                <Shield className="w-2.5 h-2.5 text-[#020804] fill-current" />
               </div>
             </div>
             <div>
@@ -129,24 +125,12 @@ export default function Dashboard() {
                 {user?.name || "Welcome Back"}
               </h1>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-primary opacity-90">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 opacity-90">
                   Guard Active
                 </p>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-6">
-            <p className="hidden md:block text-xs font-medium text-muted-foreground/60">
-              Live guard overview • Updated just now
-            </p>
-            <Button
-              onClick={() => navigate("/chat")}
-              className="rounded-full bg-primary text-[#020403] hover:bg-primary/90 transition-all gap-2 px-6 py-5 font-black uppercase tracking-wider text-xs shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-            >
-              <Plus className="w-4 h-4 stroke-[4px]" />
-              Analyze
-            </Button>
           </div>
         </header>
 
@@ -155,18 +139,18 @@ export default function Dashboard() {
           {/* Left Column: Stats & Analysis */}
           <div className="lg:col-span-1 space-y-6">
             {/* Guard Score Card */}
-            <Card className="bg-[#0A1210] border border-white/5 shadow-xl rounded-[24px] relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-32 bg-primary/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+            <Card className="bg-[#040d07] border border-white/5 shadow-2xl rounded-[24px] relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-32 bg-emerald-500/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
               <CardContent className="p-8 relative">
                 <div className="flex justify-between items-start mb-6">
                   <div className="flex items-center gap-2">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
                       Guard Score
                     </p>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
-                          <Info className="w-3 h-3 text-muted-foreground/40 hover:text-primary transition-colors" />
+                          <Info className="w-3 h-3 text-gray-500 hover:text-emerald-500 transition-colors" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-[200px] text-xs">
@@ -181,10 +165,10 @@ export default function Dashboard() {
 
                 <div className="flex items-end gap-3 mb-4">
                   <div className="flex items-baseline">
-                    <span className="text-7xl font-black tracking-tighter text-primary drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                    <span className="text-7xl font-black tracking-tighter text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                       {data?.guard_score || (isLoading ? "..." : "0")}
                     </span>
-                    <span className="text-2xl font-bold text-muted-foreground/40 ml-2">
+                    <span className="text-2xl font-bold text-gray-500 ml-2">
                       / 100
                     </span>
                   </div>
@@ -193,7 +177,7 @@ export default function Dashboard() {
                       className={cn(
                         "font-bold text-lg px-2 py-1 rounded-md border",
                         trendAnalysis.avgChange >= 0
-                          ? "text-primary border-primary/20 bg-primary/5"
+                          ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/10"
                           : "text-red-400 border-red-400/20 bg-red-400/5",
                       )}
                     >
@@ -235,18 +219,18 @@ export default function Dashboard() {
                 </p>
 
                 <div className="flex flex-wrap gap-2">
-                  <div className="bg-[#0F1A16] border border-white/5 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                  <div className="bg-[#020804] border border-white/5 px-3 py-1.5 rounded-lg flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                    <span className="text-[10px] font-bold uppercase text-gray-500">
                       {data?.allocation_health.filter(
                         (i) => i.status === "Over Budget",
                       ).length || 0}{" "}
                       critical budgets over limit
                     </span>
                   </div>
-                  <div className="bg-[#0F1A16] border border-white/5 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                  <div className="bg-[#020804] border border-white/5 px-3 py-1.5 rounded-lg flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                    <span className="text-[10px] font-bold uppercase text-gray-500">
                       {data?.allocation_health.filter(
                         (i) => i.status === "Near Capacity",
                       ).length || 0}{" "}
@@ -258,12 +242,12 @@ export default function Dashboard() {
             </Card>
 
             {/* Growth Analysis Card */}
-            <Card className="bg-[#0A1210] border border-white/5 shadow-xl rounded-[24px] overflow-hidden flex flex-col">
+            <Card className="bg-[#040d07] border border-white/5 shadow-2xl rounded-[24px] overflow-hidden flex flex-col">
               <CardContent className="p-8 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
                         Growth Analysis
                       </p>
                     </div>
@@ -273,7 +257,7 @@ export default function Dashboard() {
                         <span
                           className={cn(
                             data?.status === "Thriving"
-                              ? "text-primary"
+                              ? "text-emerald-500"
                               : "text-red-400",
                           )}
                         >
@@ -281,7 +265,7 @@ export default function Dashboard() {
                         </span>
                       </h2>
                     </div>
-                    <p className="text-primary text-xs font-medium mt-1 italic opacity-80">
+                    <p className="text-emerald-500 text-xs font-medium mt-1 italic opacity-80">
                       {data?.trend.length || 0} checkpoints active •{" "}
                       {trendAnalysis.velocity === "improving"
                         ? "Decision quality improving"
@@ -290,8 +274,8 @@ export default function Dashboard() {
                           : "Decision quality stable"}
                     </p>
                   </div>
-                  <div className="bg-[#020403] border border-white/5 px-3 py-1.5 rounded-lg text-[10px] font-bold">
-                    <span className="text-primary uppercase">
+                  <div className="bg-[#020804] border border-white/5 px-3 py-1.5 rounded-lg text-[10px] font-bold">
+                    <span className="text-emerald-500 uppercase">
                       Last 7 Decisions
                     </span>
                   </div>
@@ -413,7 +397,7 @@ export default function Dashboard() {
                             const score = Number(payload[0].value);
                             const colorClass =
                               score >= 7
-                                ? "text-primary"
+                                ? "text-emerald-500"
                                 : score >= 4
                                   ? "text-yellow-400"
                                   : "text-red-400";
@@ -424,8 +408,8 @@ export default function Dashboard() {
                                   ? "Moderate Risk"
                                   : "High Risk";
                             return (
-                              <div className="bg-[#0A1210]/90 backdrop-blur-md border border-white/10 p-4 rounded-xl shadow-2xl">
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 font-bold">
+                              <div className="bg-[#040d07]/90 backdrop-blur-md border border-white/10 p-4 rounded-xl shadow-2xl">
+                                <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold">
                                   {payload[0].payload.date}
                                 </p>
                                 <div className="space-y-1">
@@ -483,14 +467,14 @@ export default function Dashboard() {
                               cy={cy}
                               r={5}
                               fill={color}
-                              stroke="#0A1210"
+                              stroke="#040d07"
                               strokeWidth={2}
                             />
                           );
                         }}
                         activeDot={{
                           r: 7,
-                          fill: "#0A1210",
+                          fill: "#040d07",
                           stroke: "#10b981",
                           strokeWidth: 3,
                         }}
@@ -502,20 +486,20 @@ export default function Dashboard() {
                 {/* Legend */}
                 <div className="flex items-center justify-center gap-6 mt-2 pt-2 border-t border-white/5">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-primary" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500">
                       Low Risk (7-10)
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500">
                       Moderate (4-6)
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500">
                       High Risk (0-3)
                     </span>
                   </div>
@@ -526,13 +510,13 @@ export default function Dashboard() {
 
           {/* Right Column: Allocation Health */}
           <div className="lg:col-span-1">
-            <Card className="bg-[#0A1210] border border-white/5 shadow-xl rounded-[24px] h-full">
+            <Card className="bg-[#040d07] border border-white/5 shadow-2xl rounded-[24px] h-full">
               <CardContent className="p-8 h-full flex flex-col">
                 <div className="flex justify-between items-center mb-8">
                   <h3 className="text-lg font-bold text-white uppercase tracking-wide">
                     Allocation Health
                   </h3>
-                  <button className="text-primary text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">
+                  <button className="text-emerald-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">
                     Details
                   </button>
                 </div>
@@ -544,14 +528,14 @@ export default function Dashboard() {
                         ? "text-red-500"
                         : item.status === "Near Capacity"
                           ? "text-yellow-400"
-                          : "text-muted-foreground";
+                          : "text-gray-400";
 
                     const progressColor =
                       item.status === "Over Budget"
                         ? "bg-red-500"
                         : item.status === "Near Capacity"
                           ? "bg-yellow-400"
-                          : "bg-primary";
+                          : "bg-emerald-500";
 
                     const statusText =
                       item.status === "Over Budget"
@@ -566,10 +550,10 @@ export default function Dashboard() {
                           <div className="flex items-center gap-3">
                             <div
                               className={cn(
-                                "p-1.5 rounded-lg border border-white/5 bg-[#0F1A16]",
+                                "p-1.5 rounded-lg border border-white/5 bg-emerald-500/10",
                                 item.status === "Over Budget"
                                   ? "text-red-500"
-                                  : "text-primary",
+                                  : "text-emerald-500",
                               )}
                             >
                               {getCategoryIcon(item.label)}
@@ -634,9 +618,9 @@ export default function Dashboard() {
             {data?.recent_intercepts.map((item) => (
               <div
                 key={item.decision_id}
-                className="bg-[#0A1210] border border-white/5 p-5 rounded-2xl flex items-center gap-5 group hover:bg-[#0F1A16] transition-colors"
+                className="bg-[#040d07] border border-white/5 p-5 rounded-2xl flex items-center gap-5 group hover:border-emerald-500/20 hover:shadow-emerald-900/10 transition-all shadow-lg"
               >
-                <div className="w-10 h-10 bg-[#0F2922] rounded-xl flex items-center justify-center text-primary border border-white/5">
+                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 border border-white/5">
                   {getCategoryIcon(item.category)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -652,7 +636,7 @@ export default function Dashboard() {
                   <div
                     className={cn(
                       "w-6 h-6 rounded-full flex items-center justify-center",
-                      item.score >= 7 ? "bg-primary" : "bg-red-500",
+                      item.score >= 7 ? "bg-emerald-500" : "bg-red-500",
                     )}
                   >
                     <span className="text-[#020403] text-[10px] font-black">
@@ -672,20 +656,7 @@ export default function Dashboard() {
             )}
           </div>
         </section>
-
-        <footer className="pt-12 pb-4 text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">
-            Powered by Strands & Opik
-          </p>
-        </footer>
       </main>
-
-      {/* Floating Shield for Mobile/All */}
-      <div className="fixed bottom-24 right-6 md:bottom-8 md:right-8 z-40 md:hidden">
-        <div className="w-14 h-14 bg-[#0F2922] border border-primary/20 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-          <ShieldCheck className="w-6 h-6 text-primary" />
-        </div>
-      </div>
 
       <div className="md:hidden">
         <Navbar />

@@ -1,34 +1,36 @@
 import { Link } from "react-router-dom";
-import { Shield, Activity } from "lucide-react";
+import { Shield } from "lucide-react";
 
 const LandingPage = () => {
   return (
-    <div className="min-h-screen bg-[#021206] text-white font-sans overflow-x-hidden selection:bg-green-500 selection:text-black">
+    <div className="min-h-screen bg-[#020804] text-white font-sans overflow-x-hidden selection:bg-emerald-500/30 selection:text-white">
       {/* Navbar */}
       <nav className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto w-full relative z-10">
         <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-green-500" />
-          <span className="font-bold tracking-widest text-sm text-white">
-            FISCAL GUARD
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+            <Shield className="w-4 h-4 fill-emerald-500/20" />
+          </div>
+          <span className="font-semibold text-sm text-white tracking-wide">
+            Fiscal Guard
           </span>
         </div>
 
-        <div className="hidden md:flex items-center gap-8 text-[11px] font-semibold text-gray-400 tracking-wider uppercase">
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
           <a
             href="#features"
-            className="hover:text-green-400 transition-colors"
+            className="hover:text-emerald-400 transition-colors"
           >
             Features
           </a>
           <a
             href="#insights"
-            className="hover:text-green-400 transition-colors"
+            className="hover:text-emerald-400 transition-colors"
           >
             Insights
           </a>
           <a
             href="#security"
-            className="hover:text-green-400 transition-colors"
+            className="hover:text-emerald-400 transition-colors"
           >
             Security
           </a>
@@ -36,38 +38,38 @@ const LandingPage = () => {
 
         <Link
           to="/login"
-          className="bg-green-500 hover:bg-green-400 text-black px-6 py-2 rounded-sm font-bold text-[11px] tracking-wider transition-all transform hover:scale-105"
+          className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl font-medium text-sm transition-all shadow-lg shadow-emerald-900/20"
         >
-          LOGIN
+          Sign In
         </Link>
       </nav>
 
       {/* Hero Section */}
       <div className="relative pt-20 pb-32 flex flex-col items-center justify-center text-center px-4">
         {/* Background Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-150 bg-green-900/10 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-150 bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
 
-        <div className="mb-10 relative z-10">
-          <div className="w-20 h-20 rounded-full border border-green-500/20 flex items-center justify-center bg-green-500/5 mx-auto shadow-[0_0_30px_rgba(34,197,94,0.1)]">
-            <Shield className="w-9 h-9 text-green-500" />
+        <div className="mb-8 relative z-10">
+          <div className="w-16 h-16 rounded-2xl border border-emerald-500/20 flex items-center justify-center bg-emerald-500/10 mx-auto shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+            <Shield className="w-8 h-8 text-emerald-500 fill-emerald-500/20" />
           </div>
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6 relative z-10 leading-[0.9]">
-          PREVENT BUYER'S
+        <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 relative z-10 leading-[1.1]">
+          Prevent Buyer's
           <br />
-          <span className="text-green-500">REMORSE</span>
+          <span className="text-emerald-500">Remorse</span>
         </h1>
 
-        <p className="text-gray-400 max-w-xl mx-auto text-base mb-12 leading-relaxed relative z-10 font-medium">
-          Your AI Financial Companion. Fiscal Guard intervenes at the moment of
-          decision to analyze your budget, goals, and spending patterns{" "}
-          <strong>before</strong> you buy.
+        <p className="text-gray-400 max-w-xl mx-auto text-lg mb-10 leading-relaxed relative z-10">
+          Fiscal Guard is an AI-powered financial decision assistant that
+          analyzes your budget, goals, and spending patterns before you buy.
+          Intervening at the moment of decision.
         </p>
 
         <Link
           to="/register"
-          className="relative z-10 bg-green-500 hover:bg-green-400 text-black px-8 py-4 rounded-sm font-bold text-xs tracking-[0.15em] uppercase transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(34,197,94,0.3)]"
+          className="relative z-10 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-medium text-sm transition-all shadow-lg shadow-emerald-900/20 hover:scale-105"
         >
           Activate Guard
         </Link>
@@ -75,58 +77,76 @@ const LandingPage = () => {
 
       {/* Stats Section */}
       <div className="max-w-4xl mx-auto px-4 mb-40 relative z-10">
-        <div className="bg-[#031c0a] border border-green-500/10 rounded-sm p-12 text-center relative overflow-hidden group">
+        <div className="bg-[#040d07] border border-white/5 rounded-3xl p-12 pb-16 text-center relative overflow-hidden group shadow-2xl">
           <div className="absolute inset-0 bg-linear-to-b from-transparent to-black/50 pointer-events-none" />
 
-          <h3 className="text-green-500 text-[10px] font-bold tracking-[0.2em] uppercase mb-4 opacity-80">
+          <h3 className="text-emerald-500 text-xs font-semibold uppercase tracking-wider mb-8">
             The Impulse Problem
           </h3>
 
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-2">
-            <span className="text-5xl md:text-7xl font-bold tracking-tight text-white group-hover:text-green-50 transition-colors">
-              $21,000
+          <div className="mb-12">
+            <span className="text-6xl md:text-8xl font-bold tracking-tight text-white block mb-4">
+              $3,381
             </span>
-            <div className="flex items-center gap-1.5 text-green-500 md:self-start md:mt-2">
-              <Activity className="w-3 h-3" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">
-                Avg
-              </span>
-            </div>
+            <p className="text-gray-500 text-sm">
+              Average annual spend on impulse purchases in the U.S.
+            </p>
           </div>
 
-          <p className="text-gray-500 italic text-xs mt-4">
-            Average amount Americans spend yearly on purchases they later
-            regret.
-          </p>
+          <div className="flex flex-col md:flex-row justify-center gap-16 md:gap-32 px-4">
+            <div className="flex flex-col items-center">
+              <span className="text-4xl font-bold text-white mb-2">64%</span>
+              <p className="text-gray-500 text-xs max-w-[150px]">
+                Of people regret their impulse decisions.
+              </p>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-4xl font-bold text-white mb-2">32%</span>
+              <p className="text-gray-500 text-xs max-w-[150px]">
+                Have delayed a major milestone due to impulse buying.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Features Section */}
       <div className="max-w-7xl mx-auto px-4 pb-40 relative z-10" id="features">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tighter">
-          ACTIVE <span className="text-green-500">INTERVENTION</span>
-        </h2>
-        <p className="text-gray-400 mb-16 max-w-xl text-sm leading-relaxed">
-          Powered by Strands + Gemini 2.5 and Opik observability to guide your
-          financial decisions.
-        </p>
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
+            Active <span className="text-emerald-500">Intervention</span>
+          </h2>
+          <p className="text-gray-400 max-w-2xl mx-auto text-sm leading-relaxed">
+            Powered by a Multi-Agent System (Strands + Gemini 2.5) and Real-Time
+            Observability (Opik).
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1 */}
-          <div className="group bg-[#051108] rounded border border-white/5 hover:border-green-500/30 transition-all duration-300">
-            <div className="h-40 overflow-hidden relative">
-              <div className="absolute inset-0 bg-green-900/20 mix-blend-overlay z-10" />
+          <div className="group bg-[#040d07] rounded-3xl border border-white/5 hover:border-emerald-500/20 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-emerald-900/10">
+            <div className="h-48 overflow-hidden relative">
+              <div className="absolute inset-0 bg-emerald-900/20 mix-blend-overlay z-10" />
+              <a
+                href="https://unsplash.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-3 right-3 z-20 text-[10px] text-white/60 hover:text-white bg-black/40 hover:bg-black/60 px-2 py-1 rounded-lg backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+              >
+                Unsplash
+              </a>
               <img
-                src="https://images.unsplash.com/photo-1639322537228-f710d846310a?auto=format&fit=crop&q=80&w=800"
+                src="https://images.unsplash.com/photo-1755282464684-6568f7f76b5d?q=80&w=2370&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                 alt="AI Chat"
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-80 grayscale group-hover:grayscale-0"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100 grayscale group-hover:grayscale-0"
               />
             </div>
             <div className="p-8">
-              <h3 className="font-bold text-xs mb-3 uppercase tracking-widest text-white">
-                Shield (Agent Chat)
+              <h3 className="font-semibold text-sm mb-3 text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-500" />
+                SHIELD (AGENT CHAT)
               </h3>
-              <p className="text-gray-400 text-[13px] leading-relaxed">
+              <p className="text-gray-400 text-sm leading-relaxed">
                 Direct chat for real-time purchase analysis. Checks Budget,
                 Goals, and Regret Patterns before you spend.
               </p>
@@ -134,20 +154,29 @@ const LandingPage = () => {
           </div>
 
           {/* Card 2 */}
-          <div className="group bg-[#051108] rounded border border-white/5 hover:border-green-500/30 transition-all duration-300">
-            <div className="h-40 overflow-hidden relative">
-              <div className="absolute inset-0 bg-green-900/20 mix-blend-overlay z-10" />
+          <div className="group bg-[#040d07] rounded-3xl border border-white/5 hover:border-emerald-500/20 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-emerald-900/10">
+            <div className="h-48 overflow-hidden relative">
+              <div className="absolute inset-0 bg-emerald-900/20 mix-blend-overlay z-10" />
+              <a
+                href="https://unsplash.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-3 right-3 z-20 text-[10px] text-white/60 hover:text-white bg-black/40 hover:bg-black/60 px-2 py-1 rounded-lg backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+              >
+                Unsplash
+              </a>
               <img
-                src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=800"
+                src="https://images.unsplash.com/photo-1496096265110-f83ad7f96608?q=80&w=2370&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                 alt="Dashboard"
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-80 grayscale group-hover:grayscale-0"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100 grayscale group-hover:grayscale-0"
               />
             </div>
             <div className="p-8">
-              <h3 className="font-bold text-xs mb-3 uppercase tracking-widest text-white">
-                Command & Insights
+              <h3 className="font-semibold text-sm mb-3 text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-500" />
+                COMMAND & INSIGHTS
               </h3>
-              <p className="text-gray-400 text-[13px] leading-relaxed">
+              <p className="text-gray-400 text-sm leading-relaxed">
                 Track your Guard Score (0-100) and identify regret triggers.
                 Close the loop on past decisions.
               </p>
@@ -155,20 +184,29 @@ const LandingPage = () => {
           </div>
 
           {/* Card 3 */}
-          <div className="group bg-[#051108] rounded border border-white/5 hover:border-green-500/30 transition-all duration-300">
-            <div className="h-40 overflow-hidden relative">
-              <div className="absolute inset-0 bg-green-900/20 mix-blend-overlay z-10" />
+          <div className="group bg-[#040d07] rounded-3xl border border-white/5 hover:border-emerald-500/20 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-emerald-900/10">
+            <div className="h-48 overflow-hidden relative">
+              <div className="absolute inset-0 bg-emerald-900/20 mix-blend-overlay z-10" />
+              <a
+                href="https://unsplash.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-3 right-3 z-20 text-[10px] text-white/60 hover:text-white bg-black/40 hover:bg-black/60 px-2 py-1 rounded-lg backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+              >
+                Unsplash
+              </a>
               <img
                 src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800"
                 alt="Budgets"
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-80 grayscale group-hover:grayscale-0"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100 grayscale group-hover:grayscale-0"
               />
             </div>
             <div className="p-8">
-              <h3 className="font-bold text-xs mb-3 uppercase tracking-widest text-white">
-                Vault
+              <h3 className="font-semibold text-sm mb-3 text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-500" />
+                VAULT
               </h3>
-              <p className="text-gray-400 text-[13px] leading-relaxed">
+              <p className="text-gray-400 text-sm leading-relaxed">
                 Manage smart budgets and goals. Secure your assets and
                 contribute to long-term wealth.
               </p>
@@ -178,14 +216,14 @@ const LandingPage = () => {
       </div>
 
       {/* Bottom CTA */}
-      <div className="py-32 relative overflow-hidden bg-[#031106]">
+      <div className="py-32 relative overflow-hidden bg-[#040d07]">
         {/* Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-100 bg-green-500/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-100 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="relative z-10 text-center px-4">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 tracking-tighter">
-            READY TO MASTER{" "}
-            <span className="text-green-500">YOUR SPENDING?</span>
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 tracking-tight">
+            Ready to master{" "}
+            <span className="text-emerald-500">your spending?</span>
           </h2>
           <p className="text-gray-400 mb-12 max-w-md mx-auto text-sm">
             Join users who are making smarter financial decisions with Fiscal
@@ -193,7 +231,7 @@ const LandingPage = () => {
           </p>
           <Link
             to="/register"
-            className="bg-green-500 hover:bg-green-400 text-black px-10 py-4 rounded-sm font-bold text-xs tracking-[0.15em] uppercase transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(34,197,94,0.3)]"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-medium text-sm transition-all shadow-lg shadow-emerald-900/20 hover:scale-105"
           >
             Activate Guard
           </Link>
@@ -201,19 +239,10 @@ const LandingPage = () => {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-12 bg-[#020d04] text-[10px] font-bold text-gray-600 tracking-widest uppercase">
+      <footer className="border-t border-white/5 py-12 bg-[#020804] text-sm text-gray-500">
         <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div>Fiscal Guard © {new Date().getFullYear()}</div>
-          <div className="flex gap-8">
-            <a href="#" className="hover:text-green-500 transition-colors">
-              Privacy Protocol
-            </a>
-            <a href="#" className="hover:text-green-500 transition-colors">
-              Terminal Terms
-            </a>
-            <a href="#" className="hover:text-green-500 transition-colors">
-              API Access
-            </a>
+          <div className="font-medium">
+            Fiscal Guard © {new Date().getFullYear()}
           </div>
         </div>
       </footer>

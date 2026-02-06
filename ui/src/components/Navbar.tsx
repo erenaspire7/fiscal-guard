@@ -1,10 +1,11 @@
+import { type ElementType } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutGrid,
-  BarChart3,
+  LayoutDashboard,
+  PieChart,
   Shield,
   Wallet,
-  Settings,
+  Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,30 +16,34 @@ export default function Navbar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-xl border-t border-white/5 px-6 py-4 flex justify-between items-center z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-[#020804]/90 backdrop-blur-xl border-t border-white/5 px-6 py-4 flex justify-between items-center z-50">
       <NavItem
-        icon={LayoutGrid}
+        icon={LayoutDashboard}
         label="Command"
         active={isActive("/dashboard")}
         onClick={() => navigate("/dashboard")}
       />
       <NavItem
-        icon={BarChart3}
+        icon={PieChart}
         label="Insights"
         active={isActive("/insights")}
         onClick={() => navigate("/insights")}
       />
 
       <div className="relative -mt-12">
-        <div className={cn(
-          "absolute inset-0 blur-2xl rounded-full scale-150 transition-colors duration-500",
-          isActive("/chat") ? "bg-primary/40" : "bg-primary/20"
-        )} />
+        <div
+          className={cn(
+            "absolute inset-0 blur-2xl rounded-full scale-150 transition-colors duration-500",
+            isActive("/chat") ? "bg-emerald-500/40" : "bg-emerald-500/20",
+          )}
+        />
         <button
           onClick={() => navigate("/chat")}
           className={cn(
-            "relative w-16 h-16 rounded-full flex items-center justify-center shadow-primary-glow border-[6px] border-background transition-all hover:scale-105 active:scale-95",
-            isActive("/chat") ? "bg-primary text-background" : "bg-card text-primary border-white/5"
+            "relative w-16 h-16 rounded-full flex items-center justify-center shadow-lg shadow-emerald-900/20 border-[6px] border-[#020804] transition-all hover:scale-105 active:scale-95",
+            isActive("/chat")
+              ? "bg-emerald-600 text-white"
+              : "bg-[#040d07] text-emerald-500 border-white/5",
           )}
         >
           <Shield className="w-8 h-8" fill="currentColor" />
@@ -52,7 +57,7 @@ export default function Navbar() {
         onClick={() => navigate("/vault")}
       />
       <NavItem
-        icon={Settings}
+        icon={Settings2}
         label="Setup"
         active={isActive("/setup")}
         onClick={() => navigate("/setup")}
@@ -67,7 +72,7 @@ function NavItem({
   active = false,
   onClick,
 }: {
-  icon: any;
+  icon: ElementType;
   label: string;
   active?: boolean;
   onClick: () => void;
@@ -77,15 +82,19 @@ function NavItem({
       onClick={onClick}
       className={cn(
         "flex flex-col items-center gap-1.5 transition-all relative outline-none",
-        active ? "opacity-100 text-primary" : "opacity-40 text-foreground hover:opacity-70"
+        active
+          ? "opacity-100 text-emerald-500"
+          : "opacity-40 text-gray-400 hover:opacity-70",
       )}
     >
-      <Icon className={cn("w-5 h-5 transition-transform", active && "scale-110")} />
+      <Icon
+        className={cn("w-5 h-5 transition-transform", active && "scale-110")}
+      />
       <span className="text-[9px] font-bold uppercase tracking-widest">
         {label}
       </span>
       {active && (
-        <div className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full shadow-primary-glow" />
+        <div className="absolute -bottom-1 w-1 h-1 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
       )}
     </button>
   );

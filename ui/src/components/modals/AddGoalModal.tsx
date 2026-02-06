@@ -1,7 +1,16 @@
 import React, { useState } from "react";
-import { X, Target, Calendar, Award } from "lucide-react";
+import { Target, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { env } from "@/config/env";
 
 interface AddGoalModalProps {
@@ -19,11 +28,9 @@ export default function AddGoalModal({
 }: AddGoalModalProps) {
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
-  const [deadline, setDeadline] = useState("");
+  const [deadline, setDeadline] = useState<Date>();
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +48,7 @@ export default function AddGoalModal({
           goal_name: name,
           target_amount: parseFloat(target),
           priority,
-          deadline: deadline || null,
+          deadline: deadline ? deadline.toISOString().split("T")[0] : null,
         }),
       });
 
@@ -50,7 +57,7 @@ export default function AddGoalModal({
         onClose();
         setName("");
         setTarget("");
-        setDeadline("");
+        setDeadline(undefined);
       }
     } catch (error) {
       console.error("Failed to create goal:", error);
@@ -60,64 +67,53 @@ export default function AddGoalModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <Card className="w-full max-w-md bg-[#0A1210] border-white/5 shadow-2xl rounded-[32px] overflow-hidden animate-in slide-in-from-bottom-8 duration-500 text-foreground">
-        <div className="absolute top-4 right-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="rounded-full hover:bg-white/5 text-muted-foreground hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
-
-        <CardContent className="p-8 space-y-8">
-          <div className="space-y-2">
-            <div className="w-12 h-12 bg-[#0F2922] rounded-2xl flex items-center justify-center mb-4 border border-primary/20">
-              <Target className="w-6 h-6 text-primary shadow-[0_0_10px_rgba(16,185,129,0.4)]" />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <form onSubmit={handleSubmit}>
+        <DialogContent className="bg-[#040d07] border-white/5 text-white sm:max-w-md overflow-x-hidden shadow-xl">
+          <DialogHeader>
+            <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-4 border border-emerald-500/20">
+              <Target className="w-6 h-6 text-emerald-500 fill-emerald-500/20" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-white">
+            <DialogTitle className="text-2xl font-semibold tracking-tight text-white">
               New Asset Goal
-            </h2>
-            <p className="text-sm text-muted-foreground">
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-400">
               Define a new target for the Fiscal Guard to protect.
-            </p>
-          </div>
+            </DialogDescription>
+          </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6 mt-4">
             <div className="space-y-4">
               {/* Goal Name */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 ml-1">
+                <Label className="text-sm font-medium text-gray-300 ml-1">
                   Goal Name
-                </label>
-                <input
+                </Label>
+                <Input
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Home Downpayment"
-                  className="w-full bg-[#020403] border border-white/10 rounded-2xl px-4 py-4 focus:outline-none focus:border-primary/50 transition-all font-medium text-white placeholder:text-muted-foreground/50"
+                  className="w-full bg-[#010402] border-white/5 rounded-xl px-4 py-4 font-medium text-white placeholder:text-gray-500 shadow-inner"
                 />
               </div>
 
               {/* Target Amount */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 ml-1">
+                <Label className="text-sm font-medium text-gray-300 ml-1">
                   Target Amount ($)
-                </label>
+                </Label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-primary opacity-60">
                     $
                   </span>
-                  <input
+                  <Input
                     required
                     type="number"
                     value={target}
                     onChange={(e) => setTarget(e.target.value)}
                     placeholder="5000"
-                    className="w-full bg-[#020403] border border-white/10 rounded-2xl pl-8 pr-4 py-4 focus:outline-none focus:border-primary/50 transition-all font-bold text-white placeholder:text-muted-foreground/50"
+                    className="w-full bg-[#010402] border-white/5 rounded-xl pl-8 pr-4 py-4 font-bold text-white placeholder:text-gray-500 shadow-inner"
                   />
                 </div>
               </div>
@@ -125,31 +121,28 @@ export default function AddGoalModal({
               <div className="grid grid-cols-2 gap-4">
                 {/* Deadline */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 ml-1">
+                  <Label className="text-sm font-medium text-gray-300 ml-1">
                     Deadline
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary opacity-40" />
-                    <input
-                      type="date"
-                      value={deadline}
-                      onChange={(e) => setDeadline(e.target.value)}
-                      className="w-full bg-[#020403] border border-white/10 rounded-2xl pl-10 pr-4 py-4 focus:outline-none focus:border-primary/50 transition-all text-xs font-bold text-white placeholder:text-muted-foreground/50"
-                    />
-                  </div>
+                  </Label>
+                  <DatePicker
+                    date={deadline}
+                    onDateChange={setDeadline}
+                    placeholder="Select deadline"
+                    className="w-full bg-[#010402] border-white/5 rounded-xl px-4 py-4 text-xs font-bold text-white shadow-inner h-auto"
+                  />
                 </div>
 
                 {/* Priority */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 ml-1">
+                  <Label className="text-sm font-medium text-gray-300 ml-1">
                     Priority
-                  </label>
+                  </Label>
                   <select
                     value={priority}
                     onChange={(e) =>
                       setPriority(e.target.value as "low" | "medium" | "high")
                     }
-                    className="w-full bg-[#020403] border border-white/10 rounded-2xl px-4 py-4 focus:outline-none focus:border-primary/50 transition-all text-xs font-bold appearance-none text-white"
+                    className="w-full bg-[#010402] border border-white/5 rounded-xl px-4 py-4 focus:outline-none focus:border-primary/50 transition-all text-xs font-bold appearance-none text-white shadow-inner"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -159,23 +152,25 @@ export default function AddGoalModal({
               </div>
             </div>
 
-            <Button
-              disabled={isSubmitting}
-              type="submit"
-              className="w-full h-14 rounded-2xl bg-primary text-[#020403] font-black uppercase tracking-widest hover:bg-primary/90 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50 gap-2"
-            >
-              {isSubmitting ? (
-                "Initializing..."
-              ) : (
-                <>
-                  <Award className="w-5 h-5" />
-                  Establish Goal
-                </>
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+            <div className="flex justify-end">
+              <Button
+                disabled={isSubmitting}
+                type="submit"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 px-6 rounded-xl transition-all shadow-lg shadow-emerald-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating goal...
+                  </>
+                ) : (
+                  "Create Goal"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </form>
+    </Dialog>
   );
 }

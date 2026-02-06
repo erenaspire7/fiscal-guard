@@ -4,9 +4,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import AddGoalModal from "@/components/modals/AddGoalModal";
 import AddBudgetModal from "@/components/modals/AddBudgetModal";
 import DeleteConfirmationModal from "@/components/modals/DeleteConfirmationModal";
+import AddProgressModal from "@/components/modals/AddProgressModal";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { env } from "@/config/env";
 import {
@@ -46,8 +48,6 @@ export default function Vault() {
     id: string;
     name: string;
   } | null>(null);
-  const [progressAmount, setProgressAmount] = useState("");
-  const [isSubmittingProgress, setIsSubmittingProgress] = useState(false);
 
   const totalBudget = useMemo(() => {
     if (budgets.length === 0) return 0;
@@ -89,41 +89,12 @@ export default function Vault() {
 
   const handleAddProgress = (goalId: string, goalName: string) => {
     setSelectedGoal({ id: goalId, name: goalName });
-    setProgressAmount("");
     setProgressModalOpen(true);
   };
 
-  const submitProgress = async () => {
-    if (!token || !selectedGoal || !progressAmount) return;
-
-    const amount = parseFloat(progressAmount);
-    if (isNaN(amount) || amount <= 0) return;
-
-    setIsSubmittingProgress(true);
-    try {
-      const response = await fetch(
-        `${env.apiUrl}/goals/${selectedGoal.id}/progress`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ amount }),
-        },
-      );
-
-      if (response.ok) {
-        refresh();
-        setProgressModalOpen(false);
-        setSelectedGoal(null);
-        setProgressAmount("");
-      }
-    } catch (error) {
-      console.error("Failed to add progress:", error);
-    } finally {
-      setIsSubmittingProgress(false);
-    }
+  const handleProgressClose = () => {
+    setProgressModalOpen(false);
+    setSelectedGoal(null);
   };
 
   // Helper to get icon based on budget name
@@ -134,7 +105,7 @@ export default function Vault() {
     if (lower.includes("grocery") || lower.includes("groceries"))
       return <ShoppingBag className="w-5 h-5 text-yellow-400" />;
     if (lower.includes("entertainment") || lower.includes("fun"))
-      return <Film className="w-5 h-5 text-primary" />;
+      return <Film className="w-5 h-5 text-emerald-500" />;
     if (lower.includes("shopping"))
       return <ShoppingBag className="w-5 h-5 text-orange-400" />;
     if (
@@ -143,7 +114,7 @@ export default function Vault() {
       lower.includes("gas")
     )
       return <Car className="w-5 h-5 text-blue-400" />;
-    return <PieChart className="w-5 h-5 text-primary" />;
+    return <PieChart className="w-5 h-5 text-emerald-500" />;
   };
 
   // Helper to get icon based on goal name
@@ -154,24 +125,24 @@ export default function Vault() {
       lower.includes("home") ||
       lower.includes("down payment")
     )
-      return <Home className="w-6 h-6 text-primary" />;
+      return <Home className="w-6 h-6 text-emerald-500" />;
     if (lower.includes("emergency") || lower.includes("safety"))
-      return <Heart className="w-6 h-6 text-primary" />;
+      return <Heart className="w-6 h-6 text-emerald-500" />;
     if (
       lower.includes("vacation") ||
       lower.includes("travel") ||
       lower.includes("trip")
     )
-      return <Plane className="w-6 h-6 text-primary" />;
+      return <Plane className="w-6 h-6 text-emerald-500" />;
     if (lower.includes("car") || lower.includes("vehicle"))
-      return <Car className="w-6 h-6 text-primary" />;
+      return <Car className="w-6 h-6 text-emerald-500" />;
     if (
       lower.includes("education") ||
       lower.includes("school") ||
       lower.includes("college")
     )
-      return <GraduationCap className="w-6 h-6 text-primary" />;
-    return <Target className="w-6 h-6 text-primary" />;
+      return <GraduationCap className="w-6 h-6 text-emerald-500" />;
+    return <Target className="w-6 h-6 text-emerald-500" />;
   };
 
   return (
@@ -185,39 +156,24 @@ export default function Vault() {
 
       <main className="px-6 py-8 md:p-12 max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <header className="flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-primary opacity-80">
-              Financial Assets
-            </p>
-            <h1 className="text-3xl font-bold tracking-tight text-white">
-              Vault
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsBudgetModalOpen(true)}
-              className="hidden md:flex rounded-xl border-white/10 hover:bg-white/5 hover:text-white gap-2 text-xs font-bold"
-            >
-              <Plus className="w-4 h-4" /> Budget
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsGoalModalOpen(true)}
-              className="hidden md:flex rounded-xl border-primary/20 hover:bg-primary/10 text-primary gap-2 text-xs font-bold"
-            >
-              <Plus className="w-4 h-4" /> Goal
-            </Button>
+        <header>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 opacity-80">
+                Financial Assets
+              </p>
+              <h1 className="text-3xl font-bold tracking-tight text-white">
+                Vault
+              </h1>
+            </div>
+            {/* Mobile FAB */}
             <Button
               size="icon"
               onClick={() => {
                 if (activeTab === "budgets") setIsBudgetModalOpen(true);
                 else setIsGoalModalOpen(true);
               }}
-              className="md:hidden rounded-full bg-primary text-[#020403] hover:bg-primary/90 w-12 h-12"
+              className="md:hidden rounded-full bg-emerald-600 text-white hover:bg-emerald-500 w-12 h-12 shadow-lg shadow-emerald-900/20"
             >
               <Plus className="w-6 h-6 stroke-[3px]" />
             </Button>
@@ -226,9 +182,9 @@ export default function Vault() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="bg-[#0A1210] border border-white/5 rounded-[24px] p-6">
+          <Card className="bg-[#040d07] border border-white/5 rounded-[24px] p-6 shadow-xl">
             <CardContent className="p-0 flex flex-col gap-3">
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-2 text-gray-500">
                 <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center">
                   <Wallet className="w-4 h-4" />
                 </div>
@@ -243,7 +199,7 @@ export default function Vault() {
                   maximumFractionDigits: 2,
                 })}
               </p>
-              <p className="text-[10px] text-muted-foreground/60 font-medium">
+              <p className="text-[10px] text-gray-500 font-medium">
                 Monthly allocation across{" "}
                 {budgets.length > 0
                   ? Object.keys(budgets[0].categories).length
@@ -252,24 +208,24 @@ export default function Vault() {
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-[#0A1210] border border-primary/10 rounded-[24px] p-6">
+          <Card className="bg-[#040d07] border border-emerald-500/10 rounded-[24px] p-6 shadow-xl">
             <CardContent className="p-0 flex flex-col gap-3">
-              <div className="flex items-center gap-2 text-primary/80">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Target className="w-4 h-4 text-primary" />
+              <div className="flex items-center gap-2 text-emerald-500/80">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                  <Target className="w-4 h-4 text-emerald-500" />
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider">
                   Goals Saved
                 </span>
               </div>
-              <p className="text-4xl font-black text-primary tracking-tight">
+              <p className="text-4xl font-black text-emerald-500 tracking-tight">
                 $
                 {goalsSaved.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </p>
-              <div className="flex items-center gap-1.5 text-[10px] text-primary/60 font-medium">
+              <div className="flex items-center gap-1.5 text-[10px] text-emerald-500/60 font-medium">
                 <TrendingUp className="w-3 h-3" />
                 <span>
                   {goals.length} active {goals.length === 1 ? "goal" : "goals"}{" "}
@@ -281,14 +237,14 @@ export default function Vault() {
         </div>
 
         {/* Mobile Tab Toggle */}
-        <div className="md:hidden bg-card/10 p-1 rounded-2xl flex">
+        <div className="md:hidden bg-white/5 p-1 rounded-2xl flex">
           <button
             onClick={() => setActiveTab("budgets")}
             className={cn(
               "flex-1 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all",
               activeTab === "budgets"
-                ? "bg-primary text-[#020403]"
-                : "text-muted-foreground opacity-50",
+                ? "bg-emerald-600 text-white"
+                : "text-gray-500 opacity-50",
             )}
           >
             Budgets
@@ -298,8 +254,8 @@ export default function Vault() {
             className={cn(
               "flex-1 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all",
               activeTab === "goals"
-                ? "bg-primary text-[#020403]"
-                : "text-muted-foreground opacity-50",
+                ? "bg-emerald-600 text-white"
+                : "text-gray-500 opacity-50",
             )}
           >
             Goals
@@ -314,18 +270,32 @@ export default function Vault() {
           )}
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold flex items-center gap-2 text-white">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                <PieChart className="w-4 h-4 text-primary" />
-              </div>
-              Active Budgets
-            </h3>
-            <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">
-              {budgets.length > 0
-                ? Object.keys(budgets[0].categories).length
-                : 0}{" "}
-              categories
-            </span>
+            <div>
+              <h3 className="text-lg font-bold flex items-center gap-2 text-white">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                  <PieChart className="w-4 h-4 text-emerald-500" />
+                </div>
+                Active Budgets
+              </h3>
+              <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider ml-10 mt-1">
+                {budgets.length > 0
+                  ? Object.keys(budgets[0].categories).length
+                  : 0}{" "}
+                categories
+              </p>
+            </div>
+            {/* Create Budget Button Group */}
+            <ButtonGroup className="hidden md:flex">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsBudgetModalOpen(true)}
+                className="border-white/10 hover:bg-white/10 hover:text-white text-xs font-bold gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Create Budget
+              </Button>
+            </ButtonGroup>
           </div>
 
           {isLoading ? (
@@ -333,7 +303,7 @@ export default function Vault() {
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div
                   key={i}
-                  className="bg-[#0A1210] border border-white/5 rounded-[20px] p-5 animate-pulse"
+                  className="bg-[#040d07] border border-white/5 rounded-[20px] p-5 animate-pulse"
                 >
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-xl bg-white/10" />
@@ -356,8 +326,8 @@ export default function Vault() {
                   .replace(/\b\w/g, (l) => l.toUpperCase());
                 const percent = Math.min((spent / limit) * 100, 100);
                 const actualPercent = (spent / limit) * 100;
-                let colorClass = "bg-primary";
-                let textClass = "text-primary";
+                let colorClass = "bg-emerald-500";
+                let textClass = "text-emerald-500";
                 let statusText = `${Math.round(percent)}% USED`;
                 let borderClass = "border-white/5 hover:border-white/10";
 
@@ -377,7 +347,7 @@ export default function Vault() {
                   <div
                     key={name}
                     className={cn(
-                      "bg-[#0A1210] border rounded-[20px] p-5 relative group hover:bg-[#0F1A16] transition-all duration-300",
+                      "bg-[#040d07] border rounded-[20px] p-5 relative group hover:border-emerald-500/20 hover:shadow-emerald-900/10 transition-all duration-300 shadow-lg",
                       borderClass,
                     )}
                   >
@@ -398,7 +368,7 @@ export default function Vault() {
                             ? "bg-red-500/10"
                             : actualPercent > 85
                               ? "bg-yellow-400/10"
-                              : "bg-white/5 group-hover:bg-primary/10",
+                              : "bg-white/5 group-hover:bg-emerald-500/10",
                         )}
                       >
                         {getBudgetIcon(name)}
@@ -452,14 +422,14 @@ export default function Vault() {
               })}
             </div>
           ) : (
-            <div className="bg-[#0A1210] border border-white/5 rounded-[24px] p-10 text-center">
+            <div className="bg-[#040d07] border border-white/5 rounded-[24px] p-10 text-center shadow-xl">
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
-                <Wallet className="w-8 h-8 text-muted-foreground/30" />
+                <Wallet className="w-8 h-8 text-gray-500/30" />
               </div>
-              <p className="text-muted-foreground font-medium mb-1">
+              <p className="text-gray-500 font-medium mb-1">
                 No budgets active
               </p>
-              <p className="text-[10px] text-muted-foreground/50">
+              <p className="text-[10px] text-gray-500/50">
                 Create your first budget to start tracking
               </p>
             </div>
@@ -474,15 +444,29 @@ export default function Vault() {
           )}
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold flex items-center gap-2 text-white">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Target className="w-4 h-4 text-primary" />
-              </div>
-              Active Goals
-            </h3>
-            <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-wider">
-              {goals.length} {goals.length === 1 ? "goal" : "goals"}
-            </span>
+            <div>
+              <h3 className="text-lg font-bold flex items-center gap-2 text-white">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                  <Target className="w-4 h-4 text-emerald-500" />
+                </div>
+                Active Goals
+              </h3>
+              <p className="text-[10px] font-bold text-gray-500/40 uppercase tracking-wider ml-10 mt-1">
+                {goals.length} {goals.length === 1 ? "goal" : "goals"}
+              </p>
+            </div>
+            {/* Add New Goal Button Group */}
+            <ButtonGroup className="hidden md:flex">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsGoalModalOpen(true)}
+                className="border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-500 hover:text-emerald-400 text-xs font-bold gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add New Goal
+              </Button>
+            </ButtonGroup>
           </div>
 
           {isLoading ? (
@@ -490,7 +474,7 @@ export default function Vault() {
               {[1, 2].map((i) => (
                 <div
                   key={i}
-                  className="bg-[#0A1210] border border-white/5 rounded-[20px] p-5 flex gap-5 animate-pulse"
+                  className="bg-[#040d07] border border-white/5 rounded-[20px] p-5 flex gap-5 animate-pulse"
                 >
                   <div className="w-16 h-16 rounded-full bg-white/10 shrink-0" />
                   <div className="flex-1 space-y-3">
@@ -513,9 +497,9 @@ export default function Vault() {
                   <div
                     key={goal.goal_id}
                     className={cn(
-                      "bg-[#0A1210] border rounded-[20px] p-5 flex gap-5 relative group hover:bg-[#0F1A16] transition-all duration-300",
+                      "bg-[#040d07] border rounded-[20px] p-5 flex gap-5 relative group hover:border-emerald-500/20 hover:shadow-emerald-900/10 transition-all duration-300 shadow-lg",
                       isComplete
-                        ? "border-primary/20"
+                        ? "border-emerald-500/20"
                         : "border-white/5 hover:border-white/10",
                     )}
                   >
@@ -524,8 +508,7 @@ export default function Vault() {
                       className="absolute top-4 right-4 text-muted-foreground/20 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
-
+                    </button>{" "}
                     {/* Circular Progress */}
                     <div className="relative w-16 h-16 shrink-0">
                       <svg
@@ -551,30 +534,29 @@ export default function Vault() {
                           strokeDasharray={175.9}
                           strokeDashoffset={175.9 - (175.9 * percent) / 100}
                           strokeLinecap="round"
-                          className="text-primary transition-all duration-1000"
+                          className="text-emerald-500 transition-all duration-1000"
                         />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
                         {isComplete ? (
-                          <Sparkles className="w-5 h-5 text-primary" />
+                          <Sparkles className="w-5 h-5 text-emerald-500" />
                         ) : (
                           getGoalIcon(goal.goal_name)
                         )}
                       </div>
                     </div>
-
                     <div className="flex-1 flex flex-col justify-center min-w-0">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <h4 className="font-bold text-white truncate">
                           {goal.goal_name}
                         </h4>
                         {isComplete && (
-                          <span className="shrink-0 text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-2 py-1 rounded-md">
+                          <span className="shrink-0 text-[9px] font-black uppercase tracking-wider text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">
                             Complete!
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground/60 font-medium mb-2">
+                      <p className="text-[10px] text-gray-500/60 font-medium mb-2">
                         Target:{" "}
                         {goal.deadline
                           ? new Date(goal.deadline).toLocaleDateString(
@@ -597,14 +579,19 @@ export default function Vault() {
                           </p>
                         </div>
                         {!isComplete && (
-                          <button
-                            onClick={() =>
-                              handleAddProgress(goal.goal_id, goal.goal_name)
-                            }
-                            className="bg-[#0F2922] hover:bg-primary/20 text-primary border border-primary/20 hover:border-primary/40 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-all duration-200"
-                          >
-                            <Plus className="w-3 h-3" /> Add $
-                          </button>
+                          <ButtonGroup>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                handleAddProgress(goal.goal_id, goal.goal_name)
+                              }
+                              className="border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-500 hover:text-emerald-400 text-xs font-bold gap-2"
+                            >
+                              <Plus className="w-3 h-3" />
+                              Add Progress
+                            </Button>
+                          </ButtonGroup>
                         )}
                       </div>
                     </div>
@@ -613,14 +600,12 @@ export default function Vault() {
               })}
             </div>
           ) : (
-            <div className="bg-[#0A1210] border border-white/5 rounded-[24px] p-10 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/5 flex items-center justify-center">
-                <Target className="w-8 h-8 text-primary/30" />
+            <div className="bg-[#040d07] border border-white/5 rounded-[24px] p-10 text-center shadow-xl">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-500/5 flex items-center justify-center">
+                <Target className="w-8 h-8 text-emerald-500/30" />
               </div>
-              <p className="text-muted-foreground font-medium mb-1">
-                No active goals
-              </p>
-              <p className="text-[10px] text-muted-foreground/50">
+              <p className="text-gray-500 font-medium mb-1">No active goals</p>
+              <p className="text-[10px] text-gray-500/50">
                 Set your first goal to start saving
               </p>
             </div>
@@ -657,92 +642,14 @@ export default function Vault() {
         }? This action cannot be undone.`}
       />
 
-      {/* Add Progress Modal */}
-      {progressModalOpen && (
-        <div className="fixed inset-0 bg-black/70 flex items-end md:items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-[#0A1210] border border-white/10 w-full max-w-md rounded-t-[32px] md:rounded-[32px] p-8 space-y-6 animate-slide-up">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white">Add Progress</h3>
-                  <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-bold">
-                    Goal Contribution
-                  </p>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Contributing to{" "}
-                <span className="text-primary font-bold">
-                  {selectedGoal?.name}
-                </span>
-              </p>
-            </div>
-            <div className="space-y-3">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                Amount ($)
-              </label>
-              <div className="relative">
-                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-2xl font-bold text-muted-foreground/40">
-                  $
-                </span>
-                <input
-                  type="number"
-                  value={progressAmount}
-                  onChange={(e) => setProgressAmount(e.target.value)}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  autoFocus
-                  className="w-full bg-[#020403] text-white border border-white/10 rounded-2xl py-5 pl-12 pr-5 text-2xl font-bold focus:outline-none focus:border-primary/50 transition-all"
-                />
-              </div>
-              {progressAmount && parseFloat(progressAmount) > 0 && (
-                <p className="text-[10px] text-primary/60 font-medium">
-                  This will be added to your goal savings
-                </p>
-              )}
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Button
-                onClick={() => {
-                  setProgressModalOpen(false);
-                  setSelectedGoal(null);
-                  setProgressAmount("");
-                }}
-                variant="outline"
-                className="flex-1 h-14 rounded-xl border-white/10 hover:bg-white/5 hover:text-white font-bold"
-                disabled={isSubmittingProgress}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={submitProgress}
-                disabled={
-                  !progressAmount ||
-                  isSubmittingProgress ||
-                  parseFloat(progressAmount) <= 0
-                }
-                className="flex-1 h-14 rounded-xl bg-primary text-[#020403] hover:bg-primary/90 font-bold text-sm"
-              >
-                {isSubmittingProgress ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-[#020403]/30 border-t-[#020403] rounded-full animate-spin" />
-                    Adding...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add Progress
-                  </span>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddProgressModal
+        isOpen={progressModalOpen && selectedGoal !== null}
+        onClose={handleProgressClose}
+        onSuccess={refresh}
+        token={token}
+        goalId={selectedGoal?.id || ""}
+        goalName={selectedGoal?.name || ""}
+      />
     </div>
   );
 }
