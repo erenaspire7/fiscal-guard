@@ -17,6 +17,7 @@ from core.models.cart import (
     CartItem,
     ItemDecisionResult,
 )
+from core.models.context import UserFinancialContext
 from core.models.decision import (
     BudgetCategory,
     DecisionFeedback,
@@ -51,6 +52,7 @@ class DecisionService:
         user_id: UUID,
         request: PurchaseDecisionRequest,
         session_id: Optional[str] = None,
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> PurchaseDecisionResponse:
         """Create a new purchase decision.
 
@@ -61,6 +63,7 @@ class DecisionService:
             user_id: User making the purchase request
             request: Purchase request details
             session_id: Optional session ID for prompt override testing
+            financial_context: Pre-fetched financial context (budget, goals, decisions)
 
         Returns:
             Purchase decision response with decision and ID
@@ -70,9 +73,8 @@ class DecisionService:
 
         # Use the AI agent to analyze the purchase
         # This is automatically traced via OpenTelemetry
-        # Note: The agent may modify the request object if user_message was provided
         decision, clarification_question, related_decision_id = agent.analyze_purchase(
-            user_id, request
+            user_id, request, financial_context
         )
 
         # If we need clarification, don't save yet - return response asking for confirmation

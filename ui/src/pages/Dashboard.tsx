@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useInsightsData } from "@/hooks/useInsightsData";
 import {
   AreaChart,
   Area,
@@ -21,6 +22,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Shield,
   Wallet,
   Utensils,
@@ -28,17 +38,57 @@ import {
   ShoppingBag,
   ShoppingCart,
   Info,
+  Zap,
+  Calendar,
+  Smile,
+  Frown,
+  Meh,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeBackgrounds, DEFAULT_THEME } from "@/lib/themes";
+import { env } from "@/config/env";
+
+type TimeWindow = "30day" | "all";
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const { data, isLoading } = useDashboardData();
+  const { user, token } = useAuth();
+  const { data: dashboardData, isLoading: dashboardLoading } =
+    useDashboardData();
+
+  // Reflections state
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>("30day");
+  const [submittingFeedback, setSubmittingFeedback] = useState<string | null>(
+    null,
+  );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [editingFeedback, setEditingFeedback] = useState<string | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+
+  const itemsPerPage = 4;
+
+  const startDate = useMemo(() => {
+    if (timeWindow === "30day") {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return date;
+    }
+    return null;
+  }, [timeWindow]);
+
+  const offset = (currentPage - 1) * itemsPerPage;
+  const {
+    data: insightsData,
+    isLoading: insightsLoading,
+    refresh,
+  } = useInsightsData({
+    startDate,
+    limit: itemsPerPage,
+    offset,
+  });
 
   // Generate chart data or use defaults
   const sparklineData = useMemo(() => {
-    if (!data?.trend || data.trend.length === 0) {
+    if (!dashboardData?.trend || dashboardData.trend.length === 0) {
       const defaults = [4, 7, 5, 8, 6, 9, 7, 8];
       return defaults.map((val, i) => ({
         date: `Day ${i + 1}`,
@@ -47,22 +97,22 @@ export default function Dashboard() {
       }));
     }
 
-    return data.trend.map((item, i) => {
+    return dashboardData.trend.map((item, i) => {
       const it = item as any;
       const score = typeof it === "number" ? it : it.score;
       const name = typeof it === "object" ? it.item_name : "Decision";
       const date = typeof it === "object" ? it.date : `Day ${i + 1}`;
 
       return {
-        index: i, // Unique identifier for each entry
+        index: i,
         date: date,
         score: score,
         item: name,
       };
     });
-  }, [data]);
+  }, [dashboardData]);
 
-  // Calculate trend velocity (average change between consecutive scores)
+  // Calculate trend velocity
   const trendAnalysis = useMemo(() => {
     if (sparklineData.length < 2) {
       return { velocity: "stable", avgChange: 0, direction: "neutral" };
@@ -94,6 +144,89 @@ export default function Dashboard() {
     return <Wallet className="w-4 h-4" />;
   };
 
+  // Pagination
+  const paginatedReflections = insightsData?.reflections || [];
+  const totalItems = insightsData?.total_reflections || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const handleTimeWindowChange = (window: TimeWindow) => {
+    setTimeWindow(window);
+    setCurrentPage(1);
+  };
+
+  const handleFeedback = async (
+    decisionId: string,
+    actualPurchase: boolean,
+    regretLevel: number,
+  ) => {
+    if (!token || submittingFeedback) return;
+
+    setSubmittingFeedback(decisionId);
+    try {
+      const response = await fetch(
+        `${env.apiUrl}/decisions/${decisionId}/feedback`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            actual_purchase: actualPurchase,
+            regret_level: regretLevel,
+            feedback: null,
+          }),
+        },
+      );
+
+      if (response.ok) {
+        refresh();
+      }
+    } catch (error) {
+      console.error("Failed to submit feedback:", error);
+    } finally {
+      setSubmittingFeedback(null);
+    }
+  };
+
+  const handleUpdateFeedback = async (
+    decisionId: string,
+    actualPurchase: boolean,
+    regretLevel: number,
+    feedback: string,
+  ) => {
+    if (!token || submittingFeedback) return;
+
+    setSubmittingFeedback(decisionId);
+    try {
+      const response = await fetch(
+        `${env.apiUrl}/decisions/${decisionId}/feedback`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            actual_purchase: actualPurchase,
+            regret_level: regretLevel,
+            feedback: feedback || null,
+          }),
+        },
+      );
+
+      if (response.ok) {
+        setEditingFeedback(null);
+        setFeedbackText("");
+        refresh();
+      }
+    } catch (error) {
+      console.error("Failed to update feedback:", error);
+    } finally {
+      setSubmittingFeedback(null);
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -103,47 +236,48 @@ export default function Dashboard() {
     >
       <Sidebar />
 
-      <main className="px-6 py-8 md:p-12 max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <img
-                src={
-                  user?.picture ||
-                  `https://api.dicebear.com/7.x/notionists-neutral/svg?seed=${user?.name || "User"}`
-                }
-                alt="Profile"
-                className="w-12 h-12 rounded-full border border-white/10 shadow-lg object-cover"
-              />
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-[3px] border-[#020804] flex items-center justify-center">
-                <Shield className="w-2.5 h-2.5 text-[#020804] fill-current" />
+      <main className="px-6 py-8 md:p-12 max-w-7xl mx-auto">
+        {/* Two-column layout: left content + right reflections */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
+          {/* Left Column */}
+          <div className="space-y-8">
+            {/* Header */}
+            <header className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <img
+                    src={
+                      user?.picture ||
+                      `https://api.dicebear.com/7.x/notionists-neutral/svg?seed=${user?.name || "User"}`
+                    }
+                    alt="Profile"
+                    className="w-12 h-12 rounded-full border border-white/10 shadow-lg object-cover"
+                  />
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-[3px] border-[#020804] flex items-center justify-center">
+                    <Shield className="w-2.5 h-2.5 text-[#020804] fill-current" />
+                  </div>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white leading-tight">
+                    {user?.name || "Welcome Back"}
+                  </h1>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 opacity-90">
+                      Guard Active
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white leading-tight">
-                {user?.name || "Welcome Back"}
-              </h1>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 opacity-90">
-                  Guard Active
-                </p>
-              </div>
-            </div>
-          </div>
-        </header>
+            </header>
 
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column: Stats & Analysis */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Guard Score Card */}
-            <Card className="bg-[#040d07] border border-white/5 shadow-2xl rounded-[24px] relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-32 bg-emerald-500/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
-              <CardContent className="p-8 relative">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex items-center gap-2">
+            {/* Hero Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Guard Score */}
+              <Card className="bg-[#040d07] border border-white/5 shadow-2xl rounded-[24px] relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-32 bg-emerald-500/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+                <CardContent className="p-6 relative">
+                  <div className="flex items-center gap-2 mb-4">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
                       Guard Score
                     </p>
@@ -161,21 +295,21 @@ export default function Dashboard() {
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                </div>
 
-                <div className="flex items-end gap-3 mb-4">
-                  <div className="flex items-baseline">
-                    <span className="text-7xl font-black tracking-tighter text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                      {data?.guard_score || (isLoading ? "..." : "0")}
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-5xl font-black tracking-tighter text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                      {dashboardData?.guard_score ||
+                        (dashboardLoading ? "..." : "0")}
                     </span>
-                    <span className="text-2xl font-bold text-gray-500 ml-2">
+                    <span className="text-xl font-bold text-gray-500">
                       / 100
                     </span>
                   </div>
-                  <div className="mb-2">
+
+                  <div>
                     <span
                       className={cn(
-                        "font-bold text-lg px-2 py-1 rounded-md border",
+                        "inline-block font-bold text-sm px-2 py-1 rounded-md border",
                         trendAnalysis.avgChange >= 0
                           ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/10"
                           : "text-red-400 border-red-400/20 bg-red-400/5",
@@ -185,70 +319,159 @@ export default function Dashboard() {
                       {Math.round(trendAnalysis.avgChange * 10)}%
                     </span>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Capital Retained */}
+              <Card className="bg-[#040d07] border border-white/5 shadow-2xl rounded-[24px] relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <CardContent className="p-6 relative z-10 flex items-center justify-between">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                      Capital Retained
+                    </p>
+                    <h3 className="text-3xl font-black text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                      $
+                      {insightsData?.total_capital_retained.toLocaleString() ||
+                        "0"}
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium">
+                      So Far
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500">
+                    <Zap className="w-6 h-6" fill="currentColor" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Intercepts */}
+              <Card className="bg-[#040d07] border border-white/5 shadow-2xl rounded-[24px] relative overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                      Intercepts
+                    </p>
+                  </div>
+
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-5xl font-black tracking-tighter text-white">
+                      {insightsData?.intercepted_count || "0"}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-gray-500 font-medium">
+                    Purchases paused for review (all time)
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Budget Health */}
+            <Card className="bg-[#040d07] border border-white/5 shadow-2xl rounded-[24px]">
+              <CardContent className="p-5">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                    Budget Health
+                  </h3>
                 </div>
-                <p className="text-muted-foreground text-sm font-medium mb-6">
-                  {(() => {
-                    if (!data) return "Loading financial status...";
 
-                    const overBudgetCount = data.allocation_health.filter(
-                      (item) => item.status === "Over Budget",
-                    ).length;
-                    const nearCapacityCount = data.allocation_health.filter(
-                      (item) => item.status === "Near Capacity",
-                    ).length;
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
+                  {dashboardData?.allocation_health.map((item, idx) => {
+                    const statusColor =
+                      item.status === "Over Budget"
+                        ? "text-red-500"
+                        : item.status === "Near Capacity"
+                          ? "text-yellow-400"
+                          : "text-gray-400";
 
-                    // Critical: Over budget categories exist
-                    if (overBudgetCount > 0) {
-                      return `Vigilance required • ${overBudgetCount} ${overBudgetCount === 1 ? "category" : "categories"} over budget`;
-                    }
+                    const progressColor =
+                      item.status === "Over Budget"
+                        ? "bg-red-500"
+                        : item.status === "Near Capacity"
+                          ? "bg-yellow-400"
+                          : "bg-emerald-500";
 
-                    // Warning: Near capacity
-                    if (nearCapacityCount > 0) {
-                      return `Attention needed • ${nearCapacityCount} ${nearCapacityCount === 1 ? "category" : "categories"} near capacity`;
-                    }
+                    const statusText =
+                      item.status === "Over Budget"
+                        ? "OVER BUDGET"
+                        : item.status === "Near Capacity"
+                          ? "NEAR CAPACITY"
+                          : "HEALTHY";
 
-                    // Guard score based messages
-                    if (data.guard_score >= 80) {
-                      return "Financial health is optimal • Keep it up";
-                    } else if (data.guard_score >= 60) {
-                      return "Financial health is stable • Stay consistent";
-                    } else {
-                      return "Vigilance required • Decision quality needs improvement";
-                    }
-                  })()}
-                </p>
+                    return (
+                      <div key={idx} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={cn(
+                                "p-1 rounded-md border border-white/5 bg-emerald-500/10",
+                                item.status === "Over Budget"
+                                  ? "text-red-500"
+                                  : "text-emerald-500",
+                              )}
+                            >
+                              {getCategoryIcon(item.label)}
+                            </div>
+                            <span className="font-bold text-white text-xs">
+                              {item.label}
+                            </span>
+                          </div>
+                          <span
+                            className={cn(
+                              "text-[8px] font-black uppercase tracking-wider",
+                              statusColor,
+                            )}
+                          >
+                            {statusText}
+                          </span>
+                        </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <div className="bg-[#020804] border border-white/5 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                    <span className="text-[10px] font-bold uppercase text-gray-500">
-                      {data?.allocation_health.filter(
-                        (i) => i.status === "Over Budget",
-                      ).length || 0}{" "}
-                      critical budgets over limit
-                    </span>
-                  </div>
-                  <div className="bg-[#020804] border border-white/5 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-                    <span className="text-[10px] font-bold uppercase text-gray-500">
-                      {data?.allocation_health.filter(
-                        (i) => i.status === "Near Capacity",
-                      ).length || 0}{" "}
-                      near capacity
-                    </span>
-                  </div>
+                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all duration-1000",
+                              progressColor,
+                            )}
+                            style={{
+                              width: `${Math.min(100, item.percentage)}%`,
+                            }}
+                          />
+                        </div>
+
+                        <div className="flex justify-between items-center text-[9px] text-muted-foreground/40">
+                          <span>
+                            <span className="font-bold text-white">
+                              ${item.utilized}
+                            </span>{" "}
+                            / ${item.limit}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {(!dashboardData ||
+                    dashboardData.allocation_health.length === 0) &&
+                    !dashboardLoading && (
+                      <div className="col-span-full flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-2 min-h-50">
+                        <Wallet className="w-8 h-8" />
+                        <span className="text-xs uppercase tracking-widest">
+                          No allocations set
+                        </span>
+                      </div>
+                    )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Growth Analysis Card */}
+            {/* Growth Analysis Chart */}
             <Card className="bg-[#040d07] border border-white/5 shadow-2xl rounded-[24px] overflow-hidden flex flex-col">
               <CardContent className="p-8 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                        Growth Analysis
+                        Decision Quality Over Time
                       </p>
                     </div>
                     <div className="flex items-baseline gap-2">
@@ -256,17 +479,18 @@ export default function Dashboard() {
                         Status:{" "}
                         <span
                           className={cn(
-                            data?.status === "Thriving"
+                            dashboardData?.status === "Thriving"
                               ? "text-emerald-500"
                               : "text-red-400",
                           )}
                         >
-                          {data?.status || (isLoading ? "..." : "At Risk")}
+                          {dashboardData?.status ||
+                            (dashboardLoading ? "..." : "At Risk")}
                         </span>
                       </h2>
                     </div>
                     <p className="text-emerald-500 text-xs font-medium mt-1 italic opacity-80">
-                      {data?.trend.length || 0} checkpoints active •{" "}
+                      {dashboardData?.trend.length || 0} checkpoints active •{" "}
                       {trendAnalysis.velocity === "improving"
                         ? "Decision quality improving"
                         : trendAnalysis.velocity === "declining"
@@ -281,11 +505,11 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="w-full h-[200px] mt-4 relative">
+                <div className="w-full h-[150px] mt-4 relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                       data={sparklineData}
-                      margin={{ top: 10, right: 80, left: 10, bottom: 60 }}
+                      margin={{ top: 10, right: 80, left: 10, bottom: 10 }}
                     >
                       <defs>
                         <linearGradient
@@ -508,154 +732,278 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Right Column: Allocation Health */}
-          <div className="lg:col-span-1">
-            <Card className="bg-[#040d07] border border-white/5 shadow-2xl rounded-[24px] h-full">
-              <CardContent className="p-8 h-full flex flex-col">
-                <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-lg font-bold text-white uppercase tracking-wide">
-                    Allocation Health
-                  </h3>
-                  <button className="text-emerald-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">
-                    Details
-                  </button>
-                </div>
+          {/* Right Column - Reflections */}
+          <div className="space-y-6">
+            {/* Reflections Header */}
+            <div className="flex flex-col gap-4">
+              <h2 className="text-2xl font-bold tracking-tight text-white">
+                Purchase Reflections
+              </h2>
 
-                <div className="space-y-7 flex-1">
-                  {data?.allocation_health.map((item, idx) => {
-                    const statusColor =
-                      item.status === "Over Budget"
-                        ? "text-red-500"
-                        : item.status === "Near Capacity"
-                          ? "text-yellow-400"
-                          : "text-gray-400";
-
-                    const progressColor =
-                      item.status === "Over Budget"
-                        ? "bg-red-500"
-                        : item.status === "Near Capacity"
-                          ? "bg-yellow-400"
-                          : "bg-emerald-500";
-
-                    const statusText =
-                      item.status === "Over Budget"
-                        ? "OVER BUDGET"
-                        : item.status === "Near Capacity"
-                          ? "NEAR CAPACITY"
-                          : "HEALTHY";
-
-                    return (
-                      <div key={idx} className="space-y-2">
-                        <div className="flex justify-between items-center mb-1">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={cn(
-                                "p-1.5 rounded-lg border border-white/5 bg-emerald-500/10",
-                                item.status === "Over Budget"
-                                  ? "text-red-500"
-                                  : "text-emerald-500",
-                              )}
-                            >
-                              {getCategoryIcon(item.label)}
-                            </div>
-                            <span className="font-bold text-white text-sm">
-                              {item.label}
-                            </span>
-                          </div>
-                          <div className="text-sm">
-                            <span className="font-bold text-white">
-                              ${item.utilized}
-                            </span>
-                            <span className="text-muted-foreground/40 text-xs font-medium ml-1">
-                              utilized
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div
-                            className={cn(
-                              "h-full rounded-full transition-all duration-1000",
-                              progressColor,
-                            )}
-                            style={{
-                              width: `${Math.min(100, item.percentage)}%`,
-                            }}
-                          />
-                        </div>
-
-                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider">
-                          <span className="text-muted-foreground/30">
-                            Budget Limit: ${item.limit}
-                          </span>
-                          <span className={statusColor}>{statusText}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {(!data || data.allocation_health.length === 0) &&
-                    !isLoading && (
-                      <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-2 min-h-50">
-                        <Wallet className="w-8 h-8" />
-                        <span className="text-xs uppercase tracking-widest">
-                          No allocations set
-                        </span>
-                      </div>
-                    )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Bottom Section: Intercepted Decisions */}
-        <section className="space-y-6 pt-4">
-          <h3 className="text-lg font-bold text-white">
-            Intercepted decisions
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {data?.recent_intercepts.map((item) => (
-              <div
-                key={item.decision_id}
-                className="bg-[#040d07] border border-white/5 p-5 rounded-2xl flex items-center gap-5 group hover:border-emerald-500/20 hover:shadow-emerald-900/10 transition-all shadow-lg"
-              >
-                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 border border-white/5">
-                  {getCategoryIcon(item.category)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-white text-sm truncate">
-                    {item.item_name}
-                  </h4>
-                  <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-wider mt-0.5">
-                    {new Date(item.created_at).toLocaleDateString()} •{" "}
-                    {item.category}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "w-6 h-6 rounded-full flex items-center justify-center",
-                      item.score >= 7 ? "bg-emerald-500" : "bg-red-500",
-                    )}
-                  >
-                    <span className="text-[#020403] text-[10px] font-black">
-                      {item.score}
-                    </span>
-                  </div>
-                  <p className="font-bold text-white text-base">
-                    ${item.amount.toFixed(2)}
-                  </p>
-                </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleTimeWindowChange("30day")}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors",
+                    timeWindow === "30day"
+                      ? "bg-emerald-500 text-[#020804] hover:bg-emerald-400"
+                      : "text-gray-400 hover:text-white",
+                  )}
+                >
+                  30-Day
+                </button>
+                <button
+                  onClick={() => handleTimeWindowChange("all")}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors",
+                    timeWindow === "all"
+                      ? "bg-emerald-500 text-[#020804] hover:bg-emerald-400"
+                      : "text-gray-400 hover:text-white",
+                  )}
+                >
+                  All Time
+                </button>
               </div>
-            ))}
-            {(!data || data.recent_intercepts.length === 0) && !isLoading && (
-              <div className="col-span-full py-12 text-center text-muted-foreground/50 text-sm italic">
-                No intercepted decisions recorded yet.
+            </div>
+
+            {/* Reflections List */}
+            <div className="space-y-4">
+              {paginatedReflections.map((item) => (
+                <div
+                  key={item.decision_id}
+                  className="bg-[#040d07] border border-white/5 p-6 rounded-[24px] flex flex-col gap-4 hover:border-emerald-500/20 hover:shadow-emerald-900/10 transition-all shadow-lg group"
+                >
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-lg font-bold text-white">
+                          {item.item_name}
+                        </h4>
+                        <p className="text-xs text-emerald-500 font-medium">
+                          {new Date(item.created_at).toLocaleDateString()} • $
+                          {item.amount.toLocaleString()}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          "text-[8px] font-black px-2 py-1 rounded-md tracking-tighter border",
+                          item.score >= 7
+                            ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/20"
+                            : "bg-orange-500/20 text-orange-400 border-orange-500/20",
+                        )}
+                      >
+                        AI: {item.score >= 7 ? "LOW RISK" : "HIGH RISK"}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest opacity-50">
+                        {item.regret_level === null
+                          ? "Rate Satisfaction"
+                          : "Satisfaction"}
+                      </p>
+                      <div className="flex gap-2">
+                        {[
+                          {
+                            val: 2,
+                            Icon: Smile,
+                            colorClass: "text-emerald-500",
+                          },
+                          {
+                            val: 5,
+                            Icon: Smile,
+                            colorClass: "text-emerald-500",
+                          },
+                          { val: 7, Icon: Meh, colorClass: "text-emerald-500" },
+                          { val: 8, Icon: Meh, colorClass: "text-orange-400" },
+                          {
+                            val: 10,
+                            Icon: Frown,
+                            colorClass: "text-orange-400",
+                          },
+                        ].map(({ val, Icon, colorClass }) => (
+                          <button
+                            key={val}
+                            onClick={() =>
+                              handleFeedback(
+                                item.decision_id,
+                                item.actual_purchase ?? true,
+                                val,
+                              )
+                            }
+                            disabled={submittingFeedback === item.decision_id}
+                            className="focus:outline-none hover:scale-110 transition-transform disabled:opacity-50"
+                          >
+                            <Icon
+                              className={cn(
+                                "w-4 h-4 transition-colors",
+                                item.regret_level !== null &&
+                                  ((item.regret_level <= 3 && val <= 3) ||
+                                    (item.regret_level > 3 &&
+                                      item.regret_level <= 5 &&
+                                      val === 5) ||
+                                    (item.regret_level > 5 &&
+                                      item.regret_level <= 7 &&
+                                      val === 7) ||
+                                    (item.regret_level > 7 &&
+                                      item.regret_level < 9 &&
+                                      val === 8) ||
+                                    (item.regret_level >= 9 && val === 10))
+                                  ? colorClass
+                                  : "text-gray-500 opacity-20 hover:opacity-60",
+                              )}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {editingFeedback === item.decision_id ? (
+                      <div className="mt-2 space-y-2">
+                        <textarea
+                          value={feedbackText}
+                          onChange={(e) => setFeedbackText(e.target.value)}
+                          placeholder="Add your reflection..."
+                          className="w-full bg-[#020804] border border-white/10 rounded-lg p-2 text-sm text-white placeholder:text-gray-500/50 focus:outline-none focus:border-emerald-500/50 resize-none"
+                          rows={2}
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => {
+                              setEditingFeedback(null);
+                              setFeedbackText("");
+                            }}
+                            className="px-3 py-1 text-xs text-gray-500 hover:text-white transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleUpdateFeedback(
+                                item.decision_id,
+                                item.actual_purchase ?? true,
+                                item.regret_level ?? 5,
+                                feedbackText,
+                              )
+                            }
+                            disabled={submittingFeedback === item.decision_id}
+                            className="px-3 py-1 text-xs bg-emerald-600 text-white rounded-md hover:bg-emerald-500 transition-colors disabled:opacity-50"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : item.user_feedback ? (
+                      <div className="mt-2 pl-3 border-l-2 border-emerald-500/30 group/feedback">
+                        <p className="text-xs italic text-gray-500/80">
+                          "{item.user_feedback}"
+                        </p>
+                        <button
+                          onClick={() => {
+                            setEditingFeedback(item.decision_id);
+                            setFeedbackText(item.user_feedback || "");
+                          }}
+                          className="mt-1 text-[10px] font-bold text-emerald-500/70 hover:text-emerald-500 transition-colors"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditingFeedback(item.decision_id);
+                          setFeedbackText("");
+                        }}
+                        className="text-xs font-bold text-emerald-500/70 hover:text-emerald-500 transition-colors mt-2"
+                      >
+                        + Add reflection...
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {paginatedReflections.length === 0 && !insightsLoading && (
+                <p className="text-center text-gray-500 text-sm py-10">
+                  No reflections found
+                  {timeWindow === "30day"
+                    ? " in the last 30 days"
+                    : " in your history"}
+                  .
+                </p>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="pt-2">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
+                        className={cn(
+                          "cursor-pointer bg-[#040d07] border border-white/5 text-white hover:bg-emerald-500/10 hover:text-emerald-500",
+                          currentPage === 1 && "opacity-50 cursor-not-allowed",
+                        )}
+                      />
+                    </PaginationItem>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => {
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => setCurrentPage(page)}
+                                isActive={currentPage === page}
+                                className={cn(
+                                  "cursor-pointer bg-[#040d07] border border-white/5 text-white hover:bg-emerald-500/10 hover:text-emerald-500",
+                                  currentPage === page &&
+                                    "bg-emerald-500/20 text-emerald-500 border-emerald-500/20",
+                                )}
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        } else if (
+                          page === currentPage - 2 ||
+                          page === currentPage + 2
+                        ) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationEllipsis className="text-gray-500" />
+                            </PaginationItem>
+                          );
+                        }
+                        return null;
+                      },
+                    )}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() =>
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        className={cn(
+                          "cursor-pointer bg-[#040d07] border border-white/5 text-white hover:bg-emerald-500/10 hover:text-emerald-500",
+                          currentPage === totalPages &&
+                            "opacity-50 cursor-not-allowed",
+                        )}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
             )}
           </div>
-        </section>
+        </div>
       </main>
 
       <div className="md:hidden">

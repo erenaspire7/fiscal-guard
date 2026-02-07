@@ -41,17 +41,14 @@ export default function AddProgressModal({
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(
-        `${env.apiUrl}/goals/${goalId}/progress`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ amount: amountValue }),
+      const response = await fetch(`${env.apiUrl}/goals/${goalId}/progress`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({ amount: amountValue }),
+      });
 
       if (response.ok) {
         onSuccess();
@@ -72,8 +69,8 @@ export default function AddProgressModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <form onSubmit={handleSubmit}>
-        <DialogContent className="bg-[#040d07] border-white/5 text-white sm:max-w-md overflow-x-hidden shadow-xl">
+      <DialogContent className="bg-[#040d07] border-white/5 text-white sm:max-w-md overflow-x-hidden shadow-xl">
+        <form onSubmit={handleSubmit}>
           <DialogHeader>
             <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-4 border border-emerald-500/20">
               <TrendingUp className="w-6 h-6 text-emerald-500" />
@@ -141,8 +138,8 @@ export default function AddProgressModal({
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </form>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }

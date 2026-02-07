@@ -163,6 +163,33 @@ class BudgetService:
         self.db.refresh(budget)
         return budget
 
+    def add_category(
+        self, budget_id: UUID, user_id: UUID, category: str, limit: float
+    ) -> Optional[Budget]:
+        """Add a new category to a budget."""
+        budget = self.get_budget(budget_id, user_id)
+        if not budget:
+            return None
+
+        if category in budget.categories:
+            return budget  # Already exists
+
+        categories_copy = budget.categories.copy()
+        categories_copy[category] = {"limit": float(limit), "spent": 0}
+        budget.categories = categories_copy
+
+        total_limit = sum(cat["limit"] for cat in categories_copy.values())
+        budget.total_monthly = Decimal(str(total_limit))
+
+        from sqlalchemy.orm.attributes import flag_modified
+
+        flag_modified(budget, "categories")
+
+        budget.updated_at = datetime.utcnow()
+        self.db.commit()
+        self.db.refresh(budget)
+        return budget
+
     def add_budget_item(
         self,
         budget_id: UUID,

@@ -105,9 +105,6 @@ export default function Setup() {
                   {user?.name || user?.email?.split("@")[0] || "User"}
                 </h2>
                 <p className="text-sm text-emerald-500 font-bold opacity-90 flex items-center gap-2">
-                  {/*TODO: Change*/}
-                  {/*Premium Guard Member
-                  <span className="w-1 h-1 rounded-full bg-white/30" />*/}
                   <span className="text-gray-500 font-normal">Since 2024</span>
                 </p>
               </div>

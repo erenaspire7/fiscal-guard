@@ -10,7 +10,7 @@ from strands import Agent
 from strands.models.gemini import GeminiModel
 
 from core.config import settings
-from core.database.models import Budget, Goal, PurchaseDecision
+from core.models.context import UserFinancialContext
 from core.models.conversation import ConversationIntent, ConversationMessage
 from core.observability.pii_redaction import create_trace_attributes
 
@@ -69,17 +69,20 @@ Classify the user's message into ONE of these intents:
    - "I saved $200 this month"
    - "Put $100 toward house down payment"
 
-5. **log_expense**: User wants to log a past expense
+5. **log_expense**: User wants to log one or more past expenses
    - "I spent $100 on groceries"
    - "Log $50 for gas"
    - "Just bought a coffee for $5"
    - "I used $100 dollars in transport for this month"
+   - "$500 on rent, $100 on utilities, and $50 on the phone bill"
 
-6. **budget_modification**: User wants to change their budget limits
+6. **budget_modification**: User wants to change their budget limits or add a new budget category
    - "Increase my dining budget by $50"
    - "Lower the shopping limit to $200"
    - "Add $100 to groceries for this month"
    - "I need to reduce my transport budget"
+   - "Add a general category to my budget"
+   - "Yes please" (in response to "Would you like me to add a category?")
 
 7. **general_question**: General financial advice or questions
    - "What should I focus on financially?"
@@ -108,8 +111,10 @@ Extract relevant entities based on the intent:
 - For purchase_feedback: purchased (bool), regret_level (1-10), payment_source (budget/savings/goal)
 - For budget_query: category (must be one of the valid categories above)
 - For goal_update: goal_name, amount
-- For log_expense: amount, category (must be one of the valid categories above), item_name
-- For budget_modification: category (must be one of the valid categories above), amount, operation (increase/decrease/set)
+- For log_expense: If the message contains ONE expense, extract: amount, category (must be one of the valid categories above), item_name. If the message contains MULTIPLE expenses, extract: items (a JSON array where each element has amount, category, item_name). Examples:
+  * Single: {"amount": 100, "category": "groceries", "item_name": "weekly groceries"}
+  * Multiple: {"items": [{"amount": 500, "category": "general", "item_name": "rent"}, {"amount": 100, "category": "general", "item_name": "utilities"}]}
+- For budget_modification: category (must be one of the valid categories above, or a new category name if operation is "add"), amount, operation (increase/decrease/set/add). Use operation "add" when the user wants to create a new budget category.
 - For general_question: topic, question_type, keywords
 - For small_talk: no entities needed
 
@@ -153,6 +158,7 @@ Be intelligent about context - if the user says "I bought it" right after asking
         conversation_history: List[ConversationMessage],
         user_id: UUID,
         session_id: Optional[str] = None,
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationIntent:
         """Classify user intent with context.
 
@@ -161,6 +167,7 @@ Be intelligent about context - if the user says "I bought it" right after asking
             conversation_history: Recent conversation messages
             user_id: User ID for context gathering
             session_id: Optional session ID for prompt override testing
+            financial_context: Pre-fetched financial context (budget, goals, decisions)
 
         Returns:
             Classified intent with extracted entities
@@ -169,10 +176,14 @@ Be intelligent about context - if the user says "I bought it" right after asking
         if session_id and session_id != self.session_id:
             classifier = IntentClassifier(self.db_session, session_id)
             return classifier.classify(
-                user_message, conversation_history, user_id, session_id
+                user_message,
+                conversation_history,
+                user_id,
+                session_id,
+                financial_context,
             )
-        # Build context from conversation history
-        context = self._build_context(conversation_history, user_id)
+        # Build slim context for classification (only what the LLM needs to route)
+        context = self._format_slim_context(conversation_history, financial_context)
 
         # Create trace attributes with PII redaction
         trace_attributes = create_trace_attributes(
@@ -212,21 +223,28 @@ Provide the intent classification with extracted entities."""
         json_data = json.loads(json_str)
         return ConversationIntent(**json_data)
 
-    def _build_context(
-        self, conversation_history: List[ConversationMessage], user_id: UUID
+    def _format_slim_context(
+        self,
+        conversation_history: List[ConversationMessage],
+        financial_context: Optional[UserFinancialContext],
     ) -> str:
-        """Build context string including history, budget, goals, and recent decisions.
+        """Build a slim context string for intent classification.
+
+        Only includes what the LLM needs for routing — not full budget breakdowns.
+        - Last 3 conversation messages (for follow-up detection)
+        - Budget category names only (for matching mentions like "groceries")
+        - Recent decision item names from last 24h (for purchase_feedback detection)
 
         Args:
             conversation_history: Recent messages
-            user_id: User ID
+            financial_context: Pre-fetched financial context
 
         Returns:
-            Context string for the agent
+            Slim context string for the classifier
         """
         context_parts = []
 
-        # Add conversation history (last 3 messages)
+        # Add conversation history (last 3 messages for follow-up detection)
         if conversation_history:
             recent_messages = conversation_history[-3:]
             context_parts.append("RECENT CONVERSATION:")
@@ -235,70 +253,39 @@ Provide the intent classification with extracted entities."""
         else:
             context_parts.append("RECENT CONVERSATION: None (first message)")
 
-        # Get recent decisions (last 24 hours)
-        twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
-        recent_decisions = (
-            self.db_session.query(PurchaseDecision)
-            .filter(
-                PurchaseDecision.user_id == user_id,
-                PurchaseDecision.created_at > twenty_four_hours_ago,
-            )
-            .order_by(PurchaseDecision.created_at.desc())
-            .limit(5)
-            .all()
-        )
-
-        if recent_decisions:
-            context_parts.append("\nRECENT PURCHASE DECISIONS:")
-            for decision in recent_decisions:
+        if financial_context:
+            # Budget: category names only (enough for the LLM to match mentions)
+            category_names = financial_context.get_category_names()
+            if category_names:
                 context_parts.append(
-                    f"  - {decision.item_name} for ${decision.amount} (Score: {decision.score}/10, Category: {decision.decision_category})"
+                    f"\nBUDGET CATEGORIES: {', '.join(category_names)}"
                 )
-        else:
-            context_parts.append("\nRECENT PURCHASE DECISIONS: None")
+            else:
+                context_parts.append("\nBUDGET CATEGORIES: None")
 
-        # Get active budget
-        active_budget = (
-            self.db_session.query(Budget)
-            .filter(
-                Budget.user_id == user_id,
-                Budget.period_end >= datetime.utcnow(),
-            )
-            .order_by(Budget.created_at.desc())
-            .first()
-        )
-
-        if active_budget:
-            context_parts.append("\nACTIVE BUDGET:")
-            context_parts.append(f"  Total Monthly: ${active_budget.total_monthly}")
-            context_parts.append("  Categories:")
-            for category, details in active_budget.categories.items():
-                spent = details.get("spent", 0)
-                limit = details.get("limit", 0)
-                remaining = limit - spent
+            # Recent decisions: item names from last 24h only (for "I bought it" detection)
+            twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+            recent_items = [
+                d.item_name
+                for d in financial_context.recent_decisions
+                if d.created_at >= twenty_four_hours_ago
+            ]
+            if recent_items:
                 context_parts.append(
-                    f"    - {category}: ${spent}/${limit} (${remaining} remaining)"
+                    f"\nRECENT DECISIONS (last 24h): {', '.join(recent_items)}"
                 )
-        else:
-            context_parts.append("\nACTIVE BUDGET: None")
+            else:
+                context_parts.append("\nRECENT DECISIONS (last 24h): None")
 
-        # Get active goals
-        active_goals = (
-            self.db_session.query(Goal)
-            .filter(Goal.user_id == user_id, Goal.is_completed == False)
-            .order_by(Goal.created_at.desc())
-            .limit(5)
-            .all()
-        )
-
-        if active_goals:
-            context_parts.append("\nACTIVE GOALS:")
-            for goal in active_goals:
-                remaining = goal.target_amount - goal.current_amount
-                context_parts.append(
-                    f"  - {goal.goal_name}: ${goal.current_amount}/${goal.target_amount} (${remaining} remaining)"
-                )
+            # Goal names only (for matching goal update mentions)
+            if financial_context.active_goals:
+                goal_names = [g.goal_name for g in financial_context.active_goals]
+                context_parts.append(f"\nACTIVE GOALS: {', '.join(goal_names)}")
+            else:
+                context_parts.append("\nACTIVE GOALS: None")
         else:
-            context_parts.append("\nACTIVE GOALS: None")
+            context_parts.append("\nBUDGET CATEGORIES: Unknown")
+            context_parts.append("\nRECENT DECISIONS (last 24h): Unknown")
+            context_parts.append("\nACTIVE GOALS: Unknown")
 
         return "\n".join(context_parts)

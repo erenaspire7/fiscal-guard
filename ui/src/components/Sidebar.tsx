@@ -36,15 +36,9 @@ export default function Sidebar() {
         <nav className="space-y-1">
           <SidebarItem
             icon={LayoutDashboard}
-            label="Command"
+            label="Dashboard"
             active={isActive("/dashboard")}
             onClick={() => navigate("/dashboard")}
-          />
-          <SidebarItem
-            icon={PieChart}
-            label="Insights"
-            active={isActive("/insights")}
-            onClick={() => navigate("/insights")}
           />
           <SidebarItem
             icon={MessageSquareText}

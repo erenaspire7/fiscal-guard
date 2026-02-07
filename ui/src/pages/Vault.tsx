@@ -39,8 +39,9 @@ export default function Vault() {
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{
-    type: "budgets" | "goals";
+    type: "budgets" | "goals" | "category";
     id: string;
+    categoryKey?: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [progressModalOpen, setProgressModalOpen] = useState(false);
@@ -63,21 +64,62 @@ export default function Vault() {
     setDeleteModalOpen(true);
   };
 
+  const handleDeleteCategory = (categoryKey: string) => {
+    if (budgets.length === 0) return;
+    setItemToDelete({
+      type: "category",
+      id: budgets[0].budget_id,
+      categoryKey,
+    });
+    setDeleteModalOpen(true);
+  };
+
   const confirmDelete = async () => {
     if (!token || !itemToDelete) return;
 
     setIsDeleting(true);
     try {
-      const response = await fetch(
-        `${env.apiUrl}/${itemToDelete.type}/${itemToDelete.id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      if (response.ok) {
-        refresh();
-        setDeleteModalOpen(false);
+      if (itemToDelete.type === "category" && itemToDelete.categoryKey) {
+        // Remove a single category via PUT
+        const budget = budgets[0];
+        const updatedCategories = { ...budget.categories };
+        delete updatedCategories[itemToDelete.categoryKey];
+
+        const newTotal = Object.values(updatedCategories).reduce(
+          (sum, cat) => sum + Number(cat.limit),
+          0,
+        );
+
+        const response = await fetch(
+          `${env.apiUrl}/budgets/${itemToDelete.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              categories: updatedCategories,
+              total_monthly: newTotal,
+            }),
+          },
+        );
+        if (response.ok) {
+          refresh();
+          setDeleteModalOpen(false);
+        }
+      } else {
+        const response = await fetch(
+          `${env.apiUrl}/${itemToDelete.type}/${itemToDelete.id}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        if (response.ok) {
+          refresh();
+          setDeleteModalOpen(false);
+        }
       }
     } catch (error) {
       console.error("Delete failed:", error);
@@ -284,7 +326,7 @@ export default function Vault() {
                 categories
               </p>
             </div>
-            {/* Create Budget Button Group */}
+            {/* Create Budget / Add Category Button Group */}
             <ButtonGroup className="hidden md:flex">
               <Button
                 size="sm"
@@ -293,7 +335,7 @@ export default function Vault() {
                 className="border-white/10 hover:bg-white/10 hover:text-white text-xs font-bold gap-2"
               >
                 <Plus className="w-4 h-4" />
-                Create Budget
+                {budgets.length > 0 ? "Add Category" : "Create Budget"}
               </Button>
             </ButtonGroup>
           </div>
@@ -352,9 +394,7 @@ export default function Vault() {
                     )}
                   >
                     <button
-                      onClick={() =>
-                        handleDelete("budgets", budgets[0].budget_id)
-                      }
+                      onClick={() => handleDeleteCategory(name)}
                       className="absolute top-4 right-4 text-muted-foreground/20 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -622,6 +662,7 @@ export default function Vault() {
         onClose={() => setIsBudgetModalOpen(false)}
         onSuccess={refresh}
         token={token}
+        existingBudget={budgets.length > 0 ? budgets[0] : null}
       />
 
       <AddGoalModal
@@ -636,9 +677,13 @@ export default function Vault() {
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={confirmDelete}
         isDeleting={isDeleting}
-        title={`Delete ${itemToDelete?.type === "budgets" ? "Budget" : "Goal"}`}
+        title={`Delete ${itemToDelete?.type === "category" ? "Category" : itemToDelete?.type === "budgets" ? "Budget" : "Goal"}`}
         description={`Are you sure you want to remove this ${
-          itemToDelete?.type === "budgets" ? "budget plan" : "financial goal"
+          itemToDelete?.type === "category"
+            ? "budget category"
+            : itemToDelete?.type === "budgets"
+              ? "budget plan"
+              : "financial goal"
         }? This action cannot be undone.`}
       />
 

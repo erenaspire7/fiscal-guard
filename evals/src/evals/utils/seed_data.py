@@ -288,7 +288,7 @@ def generate_months(num_months: int = 6) -> list[tuple[int, int, str]]:
 
     # Generate past months (num_months - 2) + current month + next month
     # This gives us historical data plus an active budget
-    for i in range(num_months - 2, -2, -1):  # Changed range to include next month
+    for i in range(num_months - 2, -1, -1):
         y = today.year
         m = today.month - i
         while m <= 0:
@@ -356,9 +356,11 @@ def seed_character_data(
         # Create decisions
         for idx, dec in enumerate(decisions):
             # Spread decisions throughout the month
+            today = datetime.utcnow()
             days_in_month = (period_end - period_start).days
+            max_day_offset = min(days_in_month, (today - datetime(year, month, 1)).days)
             day_offset = (
-                (days_in_month // len(decisions)) * idx if len(decisions) > 0 else 0
+                (max_day_offset // len(decisions)) * idx if len(decisions) > 0 else 0
             )
             transaction_date = datetime(year, month, 1) + timedelta(days=day_offset)
 

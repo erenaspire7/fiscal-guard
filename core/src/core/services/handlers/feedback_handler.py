@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
 from core.database.models import Budget, Goal, PurchaseDecision
+from core.models.context import UserFinancialContext
 from core.models.conversation import (
     ConversationIntent,
     ConversationMessage,
@@ -31,6 +32,7 @@ class PurchaseFeedbackHandler:
         user_id: UUID,
         intent: ConversationIntent,
         conversation_history: List[ConversationMessage],
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationResponse:
         """Process purchase feedback and update records.
 
@@ -38,6 +40,7 @@ class PurchaseFeedbackHandler:
             user_id: User ID
             intent: Classified intent with entities
             conversation_history: Recent conversation messages
+            financial_context: Pre-fetched financial context
 
         Returns:
             Conversation response
@@ -150,7 +153,7 @@ class PurchaseFeedbackHandler:
             category = related_decision.category
             if category:
                 budget_status = self._update_budget_spent(
-                    user_id, category, float(related_decision.amount)
+                    user_id, category, float(related_decision.amount), financial_context
                 )
                 if budget_status:
                     response_parts.append(budget_status)
@@ -160,7 +163,10 @@ class PurchaseFeedbackHandler:
             goal_name = intent.extracted_entities.get("goal_name")
             if goal_name:
                 goal_status = self._deduct_from_goal(
-                    user_id, goal_name, float(related_decision.amount)
+                    user_id,
+                    goal_name,
+                    float(related_decision.amount),
+                    financial_context,
                 )
                 if goal_status:
                     response_parts.append(goal_status)
@@ -350,7 +356,11 @@ class PurchaseFeedbackHandler:
             self.db.commit()
 
     def _update_budget_spent(
-        self, user_id: UUID, category: str, amount: float
+        self,
+        user_id: UUID,
+        category: str,
+        amount: float,
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> Optional[str]:
         """Update budget category spent amount.
 
@@ -358,20 +368,30 @@ class PurchaseFeedbackHandler:
             user_id: User ID
             category: Budget category
             amount: Amount to add to spent
+            financial_context: Pre-fetched financial context
 
         Returns:
             Status message if successful
         """
-        # Get active budget
-        active_budget = (
-            self.db.query(Budget)
-            .filter(
-                Budget.user_id == user_id,
-                Budget.period_end >= datetime.utcnow(),
+        # Use context to get budget_id, then load ORM object for write
+        budget_ctx = financial_context.active_budget if financial_context else None
+
+        if budget_ctx and category in budget_ctx.categories:
+            active_budget = (
+                self.db.query(Budget)
+                .filter(Budget.budget_id == budget_ctx.budget_id)
+                .first()
             )
-            .order_by(Budget.created_at.desc())
-            .first()
-        )
+        else:
+            active_budget = (
+                self.db.query(Budget)
+                .filter(
+                    Budget.user_id == user_id,
+                    Budget.period_start <= datetime.utcnow().date(),
+                    Budget.period_end >= datetime.utcnow().date(),
+                )
+                .first()
+            )
 
         if not active_budget or category not in active_budget.categories:
             return None
@@ -404,7 +424,11 @@ class PurchaseFeedbackHandler:
         return status
 
     def _deduct_from_goal(
-        self, user_id: UUID, goal_name: str, amount: float
+        self,
+        user_id: UUID,
+        goal_name: str,
+        amount: float,
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> Optional[str]:
         """Deduct amount from goal if funds came from there.
 
@@ -412,23 +436,42 @@ class PurchaseFeedbackHandler:
             user_id: User ID
             goal_name: Goal name
             amount: Amount to deduct
+            financial_context: Pre-fetched financial context
 
         Returns:
             Status message if successful
         """
-        # Find goal by name (case-insensitive partial match)
-        goal = (
-            self.db.query(Goal)
-            .filter(Goal.user_id == user_id, Goal.is_completed == False)
-            .all()
-        )
-
-        matching_goal = None
         goal_name_lower = goal_name.lower()
-        for g in goal:
-            if goal_name_lower in g.name.lower() or g.name.lower() in goal_name_lower:
-                matching_goal = g
-                break
+        matching_goal = None
+
+        # Use context for name matching, then load ORM object by ID for write
+        goal_contexts = financial_context.active_goals if financial_context else []
+        if goal_contexts:
+            for g in goal_contexts:
+                if (
+                    goal_name_lower in g.goal_name.lower()
+                    or g.goal_name.lower() in goal_name_lower
+                ):
+                    matching_goal = (
+                        self.db.query(Goal)
+                        .filter(Goal.goal_id == g.goal_id, Goal.user_id == user_id)
+                        .first()
+                    )
+                    break
+        else:
+            # Fallback to DB query
+            goals = (
+                self.db.query(Goal)
+                .filter(Goal.user_id == user_id, Goal.is_completed == False)
+                .all()
+            )
+            for g in goals:
+                if (
+                    goal_name_lower in g.goal_name.lower()
+                    or g.goal_name.lower() in goal_name_lower
+                ):
+                    matching_goal = g
+                    break
 
         if not matching_goal:
             return None

@@ -140,9 +140,7 @@ if [ "$SKIP_SEED" = false ]; then
     # Run seed script (Python-based, bypasses API for speed)
     echo -e "${BLUE}📊 Creating demo users and data...${NC}"
 
-    # Use the project root's virtual environment and set PYTHONPATH
-    export PYTHONPATH="${PWD}/e2e-tests:${PYTHONPATH}"
-    .venv/bin/python e2e-tests/seed.py
+    uv run python -m evals.utils.seed_data
     SEED_EXIT_CODE=$?
 
     if [ $SEED_EXIT_CODE -eq 0 ]; then

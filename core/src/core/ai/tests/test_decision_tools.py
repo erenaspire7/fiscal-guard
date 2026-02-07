@@ -163,10 +163,10 @@ class TestCheckBudget:
 
     def test_check_budget_within_limit(self, db_session, user_id, sample_budget):
         """Test checking a purchase within budget."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_budget = tools[0]
 
-        result = check_budget(user_id=str(user_id), category="groceries", amount=100.0)
+        result = check_budget(category="groceries", amount=100.0)
 
         assert result["has_budget"] is True
         assert result["category"] == "groceries"
@@ -178,10 +178,10 @@ class TestCheckBudget:
 
     def test_check_budget_would_exceed(self, db_session, user_id, sample_budget):
         """Test checking a purchase that would exceed budget."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_budget = tools[0]
 
-        result = check_budget(user_id=str(user_id), category="clothing", amount=100.0)
+        result = check_budget(category="clothing", amount=100.0)
 
         assert result["has_budget"] is True
         assert result["would_exceed"] is True
@@ -191,43 +191,36 @@ class TestCheckBudget:
 
     def test_check_budget_no_budget(self, db_session, user_id):
         """Test checking budget when user has no budget."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_budget = tools[0]
 
-        result = check_budget(user_id=str(user_id), category="groceries", amount=100.0)
+        result = check_budget(category="groceries", amount=100.0)
 
         assert result["has_budget"] is False
         assert "no active budget" in result["impact_description"].lower()
 
     def test_check_budget_category_not_found(self, db_session, user_id, sample_budget):
         """Test checking a category that doesn't exist in budget."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_budget = tools[0]
 
-        result = check_budget(user_id=str(user_id), category="travel", amount=500.0)
+        result = check_budget(category="travel", amount=500.0)
 
         assert result["has_budget"] is False
         assert "not found in budget" in result["impact_description"].lower()
 
     def test_check_budget_invalid_user_id(self, db_session):
         """Test with invalid user ID format."""
-        tools = create_decision_tools(db_session)
-        check_budget = tools[0]
-
-        result = check_budget(
-            user_id="invalid-uuid", category="groceries", amount=100.0
-        )
-
-        assert result["has_budget"] is False
-        assert "invalid user id" in result["impact_description"].lower()
+        with pytest.raises(ValueError):
+            create_decision_tools(db_session, "invalid-uuid")
 
     def test_check_budget_high_percentage(self, db_session, user_id, sample_budget):
         """Test checking budget when nearing limit."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_budget = tools[0]
 
         # Clothing is at 180/200 = 90%, adding 10 would be 190/200 = 95%
-        result = check_budget(user_id=str(user_id), category="clothing", amount=10.0)
+        result = check_budget(category="clothing", amount=10.0)
 
         assert result["has_budget"] is True
         assert result["would_exceed"] is False
@@ -240,10 +233,10 @@ class TestCheckGoals:
 
     def test_check_goals_with_goals(self, db_session, user_id, sample_goals):
         """Test checking goals when user has goals."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_goals = tools[1]
 
-        result = check_goals(user_id=str(user_id))
+        result = check_goals()
 
         assert result["total_goals"] == 2  # Only active goals
         assert result["active_goals"] == 2
@@ -255,10 +248,10 @@ class TestCheckGoals:
 
     def test_check_goals_no_goals(self, db_session, user_id):
         """Test checking goals when user has no goals."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_goals = tools[1]
 
-        result = check_goals(user_id=str(user_id))
+        result = check_goals()
 
         assert result["total_goals"] == 0
         assert result["active_goals"] == 0
@@ -268,20 +261,15 @@ class TestCheckGoals:
 
     def test_check_goals_invalid_user_id(self, db_session):
         """Test with invalid user ID."""
-        tools = create_decision_tools(db_session)
-        check_goals = tools[1]
-
-        result = check_goals(user_id="invalid-uuid")
-
-        assert result["total_goals"] == 0
-        assert "invalid user id" in result["impact_description"].lower()
+        with pytest.raises(ValueError):
+            create_decision_tools(db_session, "invalid-uuid")
 
     def test_check_goals_structure(self, db_session, user_id, sample_goals):
         """Test the structure of returned goals."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_goals = tools[1]
 
-        result = check_goals(user_id=str(user_id))
+        result = check_goals()
 
         goals = result["goals"]
         assert len(goals) > 0
@@ -300,10 +288,10 @@ class TestAnalyzeSpending:
 
     def test_analyze_spending_with_budget(self, db_session, user_id, sample_budget):
         """Test spending analysis with active budget."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         analyze_spending = tools[2]
 
-        result = analyze_spending(user_id=str(user_id))
+        result = analyze_spending()
 
         assert result["total_budget"] == 3000.0
         # Total spent: 250 + 180 + 50 + 1500 = 1980
@@ -315,10 +303,10 @@ class TestAnalyzeSpending:
 
     def test_analyze_spending_no_budget(self, db_session, user_id):
         """Test spending analysis with no budget."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         analyze_spending = tools[2]
 
-        result = analyze_spending(user_id=str(user_id))
+        result = analyze_spending()
 
         assert result["total_budget"] == 0.0
         assert result["total_spent"] == 0.0
@@ -328,10 +316,10 @@ class TestAnalyzeSpending:
         self, db_session, user_id, sample_budget, sample_goals
     ):
         """Test that financial health score is calculated."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         analyze_spending = tools[2]
 
-        result = analyze_spending(user_id=str(user_id))
+        result = analyze_spending()
 
         # Health score should be a reasonable value
         assert 0 <= result["financial_health_score"] <= 100
@@ -342,10 +330,10 @@ class TestAnalyzeSpending:
         self, db_session, user_id, sample_budget
     ):
         """Test that appropriate health descriptions are generated."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         analyze_spending = tools[2]
 
-        result = analyze_spending(user_id=str(user_id))
+        result = analyze_spending()
 
         description = result["analysis_description"].lower()
 
@@ -364,10 +352,10 @@ class TestCheckPastDecisions:
 
     def test_check_past_decisions_all(self, db_session, user_id, sample_decisions):
         """Test retrieving all past decisions."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_past_decisions = tools[3]
 
-        result = check_past_decisions(user_id=str(user_id), limit=10)
+        result = check_past_decisions(limit=10)
 
         assert result["total_decisions"] == 4
         assert len(result["decisions"]) == 4
@@ -378,12 +366,10 @@ class TestCheckPastDecisions:
         self, db_session, user_id, sample_decisions
     ):
         """Test filtering decisions by category."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_past_decisions = tools[3]
 
-        result = check_past_decisions(
-            user_id=str(user_id), category="entertainment", limit=10
-        )
+        result = check_past_decisions(category="entertainment", limit=10)
 
         assert result["total_decisions"] == 2
         assert all(d["category"] == "entertainment" for d in result["decisions"])
@@ -392,22 +378,20 @@ class TestCheckPastDecisions:
         self, db_session, user_id, sample_decisions
     ):
         """Test filtering decisions by amount range."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_past_decisions = tools[3]
 
-        result = check_past_decisions(
-            user_id=str(user_id), min_amount=100.0, max_amount=200.0, limit=10
-        )
+        result = check_past_decisions(min_amount=100.0, max_amount=200.0, limit=10)
 
         assert result["total_decisions"] == 1  # Only fancy dinner at $120
         assert result["decisions"][0]["amount"] == 120.0
 
     def test_check_past_decisions_limit(self, db_session, user_id, sample_decisions):
         """Test that limit parameter works."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_past_decisions = tools[3]
 
-        result = check_past_decisions(user_id=str(user_id), limit=2)
+        result = check_past_decisions(limit=2)
 
         assert len(result["decisions"]) == 2
         # Should be ordered by most recent
@@ -415,10 +399,10 @@ class TestCheckPastDecisions:
 
     def test_check_past_decisions_no_decisions(self, db_session, user_id):
         """Test when user has no past decisions."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_past_decisions = tools[3]
 
-        result = check_past_decisions(user_id=str(user_id))
+        result = check_past_decisions()
 
         assert result["total_decisions"] == 0
         assert len(result["decisions"]) == 0
@@ -426,10 +410,10 @@ class TestCheckPastDecisions:
 
     def test_check_past_decisions_insights(self, db_session, user_id, sample_decisions):
         """Test that insights are generated."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         check_past_decisions = tools[3]
 
-        result = check_past_decisions(user_id=str(user_id))
+        result = check_past_decisions()
 
         insights = result["insights"]
         assert len(insights) > 0
@@ -442,10 +426,10 @@ class TestAnalyzeRegrets:
 
     def test_analyze_regrets_with_regrets(self, db_session, user_id, sample_decisions):
         """Test regret analysis with regretted purchases."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         analyze_regrets = tools[4]
 
-        result = analyze_regrets(user_id=str(user_id))
+        result = analyze_regrets()
 
         assert result["total_purchases"] == 4
         assert (
@@ -457,10 +441,10 @@ class TestAnalyzeRegrets:
 
     def test_analyze_regrets_by_category(self, db_session, user_id, sample_decisions):
         """Test regret analysis filtered by category."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         analyze_regrets = tools[4]
 
-        result = analyze_regrets(user_id=str(user_id), category="clothing")
+        result = analyze_regrets(category="clothing")
 
         assert result["total_purchases"] == 1
         assert result["regretted_purchases"] == 1
@@ -468,10 +452,10 @@ class TestAnalyzeRegrets:
 
     def test_analyze_regrets_no_regrets(self, db_session, user_id):
         """Test when user has no purchase history."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         analyze_regrets = tools[4]
 
-        result = analyze_regrets(user_id=str(user_id))
+        result = analyze_regrets()
 
         assert result["total_purchases"] == 0
         assert result["regretted_purchases"] == 0
@@ -479,10 +463,10 @@ class TestAnalyzeRegrets:
 
     def test_analyze_regrets_patterns(self, db_session, user_id, sample_decisions):
         """Test that regret patterns are identified."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         analyze_regrets = tools[4]
 
-        result = analyze_regrets(user_id=str(user_id))
+        result = analyze_regrets()
 
         patterns = result["common_regret_patterns"]
         assert len(patterns) > 0
@@ -493,10 +477,10 @@ class TestAnalyzeRegrets:
         self, db_session, user_id, sample_decisions
     ):
         """Test that recommendations are provided."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         analyze_regrets = tools[4]
 
-        result = analyze_regrets(user_id=str(user_id))
+        result = analyze_regrets()
 
         recommendations = result["recommendations"]
         assert len(recommendations) > 0
@@ -521,10 +505,10 @@ class TestAnalyzeRegrets:
         db_session.add(decision)
         db_session.commit()
 
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
         analyze_regrets = tools[4]
 
-        result = analyze_regrets(user_id=str(user_id))
+        result = analyze_regrets()
 
         assert result["total_purchases"] == 1
         assert result["purchases_with_feedback"] == 0
@@ -536,12 +520,10 @@ class TestToolOutputSchemas:
 
     def test_all_tools_return_valid_schemas(self, db_session, user_id):
         """Test that all tools return outputs matching their schemas."""
-        tools = create_decision_tools(db_session)
+        tools = create_decision_tools(db_session, str(user_id))
 
         # check_budget
-        budget_result = tools[0](
-            user_id=str(user_id), category="groceries", amount=100.0
-        )
+        budget_result = tools[0](category="groceries", amount=100.0)
         assert isinstance(budget_result, dict)
         assert all(
             key in budget_result
@@ -558,7 +540,7 @@ class TestToolOutputSchemas:
         )
 
         # check_goals
-        goals_result = tools[1](user_id=str(user_id))
+        goals_result = tools[1]()
         assert isinstance(goals_result, dict)
         assert all(
             key in goals_result
@@ -574,7 +556,7 @@ class TestToolOutputSchemas:
         )
 
         # analyze_spending
-        spending_result = tools[2](user_id=str(user_id))
+        spending_result = tools[2]()
         assert isinstance(spending_result, dict)
         assert all(
             key in spending_result
@@ -589,7 +571,7 @@ class TestToolOutputSchemas:
         )
 
         # check_past_decisions
-        decisions_result = tools[3](user_id=str(user_id))
+        decisions_result = tools[3]()
         assert isinstance(decisions_result, dict)
         assert all(
             key in decisions_result
@@ -603,7 +585,7 @@ class TestToolOutputSchemas:
         )
 
         # analyze_regrets
-        regrets_result = tools[4](user_id=str(user_id))
+        regrets_result = tools[4]()
         assert isinstance(regrets_result, dict)
         assert all(
             key in regrets_result

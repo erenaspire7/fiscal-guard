@@ -19,11 +19,17 @@ interface CategoryEntry {
   limit: string;
 }
 
+interface ExistingBudget {
+  budget_id: string;
+  categories: Record<string, { limit: number; spent: number }>;
+}
+
 interface AddBudgetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   token: string | null;
+  existingBudget?: ExistingBudget | null;
 }
 
 export default function AddBudgetModal({
@@ -31,19 +37,21 @@ export default function AddBudgetModal({
   onClose,
   onSuccess,
   token,
+  existingBudget,
 }: AddBudgetModalProps) {
   const [name, setName] = useState("");
-  const [totalMonthly, setTotalMonthly] = useState("");
   const [periodStart, setPeriodStart] = useState<Date>();
   const [periodEnd, setPeriodEnd] = useState<Date>();
   const [categories, setCategories] = useState<CategoryEntry[]>([
     {
       id: Math.random().toString(36).substr(2, 9),
-      name: "Groceries",
+      name: "",
       limit: "",
     },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isAddCategoryMode = !!existingBudget;
 
   const addCategory = () => {
     setCategories([
@@ -70,45 +78,108 @@ export default function AddBudgetModal({
     );
   };
 
+  const resetForm = () => {
+    setCategories([
+      {
+        id: Math.random().toString(36).substr(2, 9),
+        name: "",
+        limit: "",
+      },
+    ]);
+    setName("");
+    setPeriodStart(undefined);
+    setPeriodEnd(undefined);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
 
     setIsSubmitting(true);
     try {
-      // Format categories into the expected Record<string, CategoryBudget>
-      const categoriesMap: Record<string, { limit: number; spent: number }> =
-        {};
-      categories.forEach((cat) => {
-        if (cat.name) {
-          categoriesMap[cat.name.toLowerCase().replace(/\s+/g, "_")] = {
-            limit: parseFloat(cat.limit) || 0,
-            spent: 0,
-          };
+      if (isAddCategoryMode) {
+        // Merge new categories into existing budget
+        const mergedCategories: Record<
+          string,
+          { limit: number; spent: number }
+        > = { ...existingBudget.categories };
+
+        categories.forEach((cat) => {
+          if (cat.name) {
+            const key = cat.name.toLowerCase().replace(/\s+/g, "_");
+            mergedCategories[key] = {
+              limit: parseFloat(cat.limit) || 0,
+              spent: 0,
+            };
+          }
+        });
+
+        const newTotal = Object.values(mergedCategories).reduce(
+          (sum, cat) => sum + Number(cat.limit),
+          0,
+        );
+
+        const response = await fetch(
+          `${env.apiUrl}/budgets/${existingBudget.budget_id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              categories: mergedCategories,
+              total_monthly: newTotal,
+            }),
+          },
+        );
+
+        if (response.ok) {
+          onSuccess();
+          onClose();
+          resetForm();
         }
-      });
+      } else {
+        // Create a brand new budget
+        const categoriesMap: Record<string, { limit: number; spent: number }> =
+          {};
+        categories.forEach((cat) => {
+          if (cat.name) {
+            categoriesMap[cat.name.toLowerCase().replace(/\s+/g, "_")] = {
+              limit: parseFloat(cat.limit) || 0,
+              spent: 0,
+            };
+          }
+        });
 
-      const response = await fetch(`${env.apiUrl}/budgets`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name,
-          total_monthly: parseFloat(totalMonthly),
-          period_start: periodStart?.toISOString().split("T")[0],
-          period_end: periodEnd?.toISOString().split("T")[0],
-          categories: categoriesMap,
-        }),
-      });
+        const derivedTotal = Object.values(categoriesMap).reduce(
+          (sum, cat) => sum + Number(cat.limit),
+          0,
+        );
 
-      if (response.ok) {
-        onSuccess();
-        onClose();
+        const response = await fetch(`${env.apiUrl}/budgets`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name,
+            total_monthly: derivedTotal,
+            period_start: periodStart?.toISOString().split("T")[0],
+            period_end: periodEnd?.toISOString().split("T")[0],
+            categories: categoriesMap,
+          }),
+        });
+
+        if (response.ok) {
+          onSuccess();
+          onClose();
+          resetForm();
+        }
       }
     } catch (error) {
-      console.error("Failed to create budget:", error);
+      console.error("Failed to save budget:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -116,88 +187,74 @@ export default function AddBudgetModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <form onSubmit={handleSubmit}>
-        <DialogContent className="bg-[#040d07] border-white/5 text-white sm:max-w-xl max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl">
+      <DialogContent className="bg-[#040d07] border-white/5 text-white sm:max-w-xl max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl">
+        <form onSubmit={handleSubmit}>
           <DialogHeader>
             <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-4 border border-emerald-500/20">
               <Wallet className="w-6 h-6 text-emerald-500 fill-emerald-500/20" />
             </div>
             <DialogTitle className="text-2xl font-semibold tracking-tight text-white">
-              Establish Budget
+              {isAddCategoryMode ? "Add Category" : "Establish Budget"}
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-400">
-              Define the boundaries of your financial guard for this period.
+              {isAddCategoryMode
+                ? "Add a new spending category to your current budget."
+                : "Define the boundaries of your financial guard for this period."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 mt-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* Budget Name */}
-              <div className="space-y-2 sm:col-span-2">
-                <Label className="text-sm font-medium text-gray-300 ml-1">
-                  Budget Reference Name
-                </Label>
-                <Input
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Q1 2026 Strategic Plan"
-                  className="w-full bg-[#010402] border-white/5 rounded-xl px-4 py-3 text-sm font-medium text-white placeholder:text-gray-500 shadow-inner focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
-                />
-              </div>
-
-              {/* Total Limit */}
-              <div className="space-y-2 sm:col-span-2">
-                <Label className="text-sm font-medium text-gray-300 ml-1">
-                  Total Monthly Limit ($)
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-primary opacity-60">
-                    $
-                  </span>
+            {!isAddCategoryMode && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Budget Name */}
+                <div className="space-y-2 sm:col-span-2">
+                  <Label className="text-sm font-medium text-gray-300 ml-1">
+                    Budget Reference Name
+                  </Label>
                   <Input
                     required
-                    type="number"
-                    value={totalMonthly}
-                    onChange={(e) => setTotalMonthly(e.target.value)}
-                    placeholder="4000"
-                    className="w-full bg-[#010402] border-white/5 rounded-xl pl-8 pr-4 py-4 font-bold text-xl text-white placeholder:text-gray-500 shadow-inner"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Q1 2026 Strategic Plan"
+                    className="w-full bg-[#010402] border-white/5 rounded-xl px-4 py-3 text-sm font-medium text-white placeholder:text-gray-500 shadow-inner focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
+                  />
+                </div>
+
+                {/* Period Start */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-300 ml-1">
+                    Activation Date
+                  </Label>
+                  <DatePicker
+                    date={periodStart}
+                    onDateChange={setPeriodStart}
+                    placeholder="Select start date"
+                    className="w-full bg-[#010402] border-white/5 rounded-xl px-4 py-4 text-xs font-bold text-white shadow-inner h-auto"
+                  />
+                </div>
+
+                {/* Period End */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-300 ml-1">
+                    Expiration Date
+                  </Label>
+                  <DatePicker
+                    date={periodEnd}
+                    onDateChange={setPeriodEnd}
+                    placeholder="Select end date"
+                    className="w-full bg-[#010402] border-white/5 rounded-xl px-4 py-4 text-xs font-bold text-white shadow-inner h-auto"
                   />
                 </div>
               </div>
-
-              {/* Period Start */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-300 ml-1">
-                  Activation Date
-                </Label>
-                <DatePicker
-                  date={periodStart}
-                  onDateChange={setPeriodStart}
-                  placeholder="Select start date"
-                  className="w-full bg-[#010402] border-white/5 rounded-xl px-4 py-4 text-xs font-bold text-white shadow-inner h-auto"
-                />
-              </div>
-
-              {/* Period End */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-300 ml-1">
-                  Expiration Date
-                </Label>
-                <DatePicker
-                  date={periodEnd}
-                  onDateChange={setPeriodEnd}
-                  placeholder="Select end date"
-                  className="w-full bg-[#010402] border-white/5 rounded-xl px-4 py-4 text-xs font-bold text-white shadow-inner h-auto"
-                />
-              </div>
-            </div>
+            )}
 
             {/* Dynamic Categories */}
             <div className="space-y-4">
               <div className="flex justify-between items-center px-1">
                 <Label className="text-sm font-medium text-gray-300">
-                  Category Allocations
+                  {isAddCategoryMode
+                    ? "New Categories"
+                    : "Category Allocations"}
                 </Label>
                 <button
                   type="button"
@@ -262,16 +319,18 @@ export default function AddBudgetModal({
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Creating budget...
+                    {isAddCategoryMode ? "Adding..." : "Creating budget..."}
                   </>
+                ) : isAddCategoryMode ? (
+                  "Add Category"
                 ) : (
                   "Create Budget"
                 )}
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </form>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }

@@ -168,7 +168,7 @@ class TestCreateDecision:
         decision_service.create_decision(user_id, sample_purchase_request)
 
         decision_service.agent.analyze_purchase.assert_called_once_with(
-            user_id, sample_purchase_request
+            user_id, sample_purchase_request, None
         )
 
     def test_create_decision_strong_no(self, decision_service, user_id):

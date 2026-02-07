@@ -6,10 +6,9 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AuthCallback from "./pages/AuthCallback";
 import AuthError from "./pages/AuthError";
-import Dashboard from "./pages/Dashboard";
 import AgentChat from "./pages/AgentChat";
 import Vault from "./pages/Vault";
-import Insights from "./pages/Insights";
+import Dashboard from "./pages/Dashboard";
 import Setup from "./pages/Setup";
 import AgentConfiguration from "./pages/AgentConfiguration";
 import LandingPage from "./pages/LandingPage";
@@ -59,14 +58,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <Vault />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/insights"
-            element={
-              <ProtectedRoute>
-                <Insights />
               </ProtectedRoute>
             }
           />

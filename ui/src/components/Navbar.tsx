@@ -1,12 +1,6 @@
 import { type ElementType } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard,
-  PieChart,
-  Shield,
-  Wallet,
-  Settings2,
-} from "lucide-react";
+import { LayoutDashboard, Shield, Wallet, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Navbar() {
@@ -16,40 +10,19 @@ export default function Navbar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#020804]/90 backdrop-blur-xl border-t border-white/5 px-6 py-4 flex justify-between items-center z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-[#020804]/90 backdrop-blur-xl border-t border-white/5 px-6 py-4 flex justify-around items-center z-50">
       <NavItem
         icon={LayoutDashboard}
-        label="Command"
+        label="Dashboard"
         active={isActive("/dashboard")}
         onClick={() => navigate("/dashboard")}
       />
       <NavItem
-        icon={PieChart}
-        label="Insights"
-        active={isActive("/insights")}
-        onClick={() => navigate("/insights")}
+        icon={Shield}
+        label="Guard"
+        active={isActive("/chat")}
+        onClick={() => navigate("/chat")}
       />
-
-      <div className="relative -mt-12">
-        <div
-          className={cn(
-            "absolute inset-0 blur-2xl rounded-full scale-150 transition-colors duration-500",
-            isActive("/chat") ? "bg-emerald-500/40" : "bg-emerald-500/20",
-          )}
-        />
-        <button
-          onClick={() => navigate("/chat")}
-          className={cn(
-            "relative w-16 h-16 rounded-full flex items-center justify-center shadow-lg shadow-emerald-900/20 border-[6px] border-[#020804] transition-all hover:scale-105 active:scale-95",
-            isActive("/chat")
-              ? "bg-emerald-600 text-white"
-              : "bg-[#040d07] text-emerald-500 border-white/5",
-          )}
-        >
-          <Shield className="w-8 h-8" fill="currentColor" />
-        </button>
-      </div>
-
       <NavItem
         icon={Wallet}
         label="Vault"

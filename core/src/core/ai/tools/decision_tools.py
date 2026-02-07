@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from strands import tool
 
 from core.database.models import Budget, Goal, PurchaseDecision
+from core.models.context import UserFinancialContext
 
 
 class BudgetCheckInput(BaseModel):
@@ -103,15 +104,71 @@ class RegretAnalysisOutput(BaseModel):
     recommendations: str
 
 
-def create_decision_tools(db_session: Session, user_id: str):
+def _build_budget_impact_description(
+    category: str, spent: float, limit: float, amount: float
+) -> str:
+    """Build a human-readable budget impact description."""
+    remaining = limit - spent
+    new_spent = spent + amount
+    percentage_used = (new_spent / limit * 100) if limit > 0 else 0
+    would_exceed = new_spent > limit
+
+    if would_exceed:
+        overage = new_spent - limit
+        impact = (
+            f"This purchase would put you ${overage:.2f} over budget in {category}. "
+        )
+        impact += (
+            f"You've spent ${spent:.2f} of ${limit:.2f}, leaving ${remaining:.2f}. "
+        )
+        impact += (
+            f"After this purchase, you'd be at {percentage_used:.1f}% of your budget."
+        )
+    elif percentage_used > 80:
+        impact = f"This purchase is within budget but would use {percentage_used:.1f}% of your {category} budget. "
+        impact += (
+            f"You'd have ${limit - new_spent:.2f} remaining for the rest of the period."
+        )
+    else:
+        impact = f"This purchase fits comfortably within your {category} budget. "
+        impact += f"You'd be at {percentage_used:.1f}% of budget with ${limit - new_spent:.2f} remaining."
+
+    return impact
+
+
+def _build_goals_impact_description(
+    goals_data: list[dict], total_remaining: float
+) -> str:
+    """Build a human-readable goals impact description."""
+    high_priority_goals = [g for g in goals_data if g["priority"] == "high"]
+    if high_priority_goals:
+        impact = f"User has {len(high_priority_goals)} high-priority goal(s): "
+        impact += ", ".join([g["name"] for g in high_priority_goals[:3]])
+        impact += f". Total remaining to reach all goals: ${total_remaining:.2f}. "
+        impact += "Consider if this purchase delays progress toward these goals."
+    else:
+        impact = f"User has {len(goals_data)} active goal(s) with ${total_remaining:.2f} remaining to reach them. "
+        impact += "Consider if this money could be better allocated toward goals."
+    return impact
+
+
+def create_decision_tools(
+    db_session: Session,
+    user_id: str,
+    financial_context: Optional[UserFinancialContext] = None,
+):
     """Create decision tools with database session and bound user_id.
 
     The user_id is injected into the tools so it doesn't need to be passed
     by the LLM, preventing PII leakage in prompts.
 
+    If financial_context is provided, tools use pre-fetched data instead of
+    querying the database, falling back to DB queries when context is absent.
+
     Args:
         db_session: Database session
         user_id: User ID to bind to the tools
+        financial_context: Pre-fetched financial context (optional)
     """
 
     # Validate and convert user_id once
@@ -131,7 +188,45 @@ def create_decision_tools(db_session: Session, user_id: str):
         Returns:
             Budget analysis including current spending, limits, and impact
         """
-        # Get current active budget (latest budget that includes today)
+        category_lower = category.lower()
+
+        # Use pre-fetched context if available
+        if financial_context and financial_context.has_budget:
+            budget_ctx = financial_context.active_budget
+
+            if category_lower not in budget_ctx.categories:
+                return {
+                    "category": category,
+                    "has_budget": False,
+                    "current_spent": 0.0,
+                    "limit": 0.0,
+                    "remaining": 0.0,
+                    "percentage_used": 0.0,
+                    "would_exceed": True,
+                    "impact_description": f"Category '{category}' not found in budget. User should add this category or use an existing one.",
+                }
+
+            cat_data = budget_ctx.categories[category_lower]
+            spent = float(cat_data.spent)
+            limit = float(cat_data.limit)
+            remaining = float(cat_data.remaining)
+            new_spent = spent + amount
+            percentage_used = (new_spent / limit * 100) if limit > 0 else 0
+
+            return {
+                "category": category,
+                "has_budget": True,
+                "current_spent": spent,
+                "limit": limit,
+                "remaining": remaining,
+                "percentage_used": round(percentage_used, 1),
+                "would_exceed": new_spent > limit,
+                "impact_description": _build_budget_impact_description(
+                    category, spent, limit, amount
+                ),
+            }
+
+        # Fallback: query DB
         today = date.today()
         budget = (
             db_session.query(Budget)
@@ -156,10 +251,7 @@ def create_decision_tools(db_session: Session, user_id: str):
                 "impact_description": "No active budget found for user. Cannot verify if purchase fits budget.",
             }
 
-        # Check if category exists in budget
-        category_lower = category.lower()
         category_data = budget.categories.get(category_lower)
-
         if not category_data:
             return {
                 "category": category,
@@ -172,27 +264,11 @@ def create_decision_tools(db_session: Session, user_id: str):
                 "impact_description": f"Category '{category}' not found in budget. User should add this category or use an existing one.",
             }
 
-        # Calculate budget impact
         limit = float(category_data.get("limit", 0))
         spent = float(category_data.get("spent", 0))
         remaining = limit - spent
         new_spent = spent + amount
         percentage_used = (new_spent / limit * 100) if limit > 0 else 0
-        would_exceed = new_spent > limit
-
-        if would_exceed:
-            overage = new_spent - limit
-            impact = f"This purchase would put you ${overage:.2f} over budget in {category}. "
-            impact += (
-                f"You've spent ${spent:.2f} of ${limit:.2f}, leaving ${remaining:.2f}. "
-            )
-            impact += f"After this purchase, you'd be at {percentage_used:.1f}% of your budget."
-        elif percentage_used > 80:
-            impact = f"This purchase is within budget but would use {percentage_used:.1f}% of your {category} budget. "
-            impact += f"You'd have ${limit - new_spent:.2f} remaining for the rest of the period."
-        else:
-            impact = f"This purchase fits comfortably within your {category} budget. "
-            impact += f"You'd be at {percentage_used:.1f}% of budget with ${limit - new_spent:.2f} remaining."
 
         return {
             "category": category,
@@ -201,8 +277,10 @@ def create_decision_tools(db_session: Session, user_id: str):
             "limit": limit,
             "remaining": remaining,
             "percentage_used": round(percentage_used, 1),
-            "would_exceed": would_exceed,
-            "impact_description": impact,
+            "would_exceed": new_spent > limit,
+            "impact_description": _build_budget_impact_description(
+                category, spent, limit, amount
+            ),
         }
 
     @tool
@@ -212,7 +290,49 @@ def create_decision_tools(db_session: Session, user_id: str):
         Returns:
             Summary of all user goals and their status
         """
-        # Get all active goals
+        # Use pre-fetched context if available
+        if financial_context and financial_context.has_goals:
+            goals_data = []
+            total_target = 0.0
+            total_current = 0.0
+
+            for goal in financial_context.active_goals:
+                target = float(goal.target_amount)
+                current = float(goal.current_amount)
+                remaining = float(goal.remaining)
+
+                total_target += target
+                total_current += current
+
+                goals_data.append(
+                    {
+                        "name": goal.goal_name,
+                        "target": target,
+                        "current": current,
+                        "remaining": remaining,
+                        "percentage": round(goal.percentage_complete, 1),
+                        "priority": goal.priority,
+                        "deadline": goal.deadline.isoformat()
+                        if goal.deadline
+                        else None,
+                    }
+                )
+
+            total_remaining = total_target - total_current
+
+            return {
+                "goals": goals_data,
+                "total_goals": len(goals_data),
+                "active_goals": len(goals_data),
+                "total_target": round(total_target, 2),
+                "total_current": round(total_current, 2),
+                "total_remaining": round(total_remaining, 2),
+                "impact_description": _build_goals_impact_description(
+                    goals_data, total_remaining
+                ),
+            }
+
+        # Fallback: query DB
         goals = (
             db_session.query(Goal)
             .filter(Goal.user_id == user_uuid, Goal.is_completed == False)
@@ -244,29 +364,19 @@ def create_decision_tools(db_session: Session, user_id: str):
             total_target += target
             total_current += current
 
-            goal_dict = {
-                "name": goal.goal_name,
-                "target": target,
-                "current": current,
-                "remaining": remaining,
-                "percentage": round(percentage, 1),
-                "priority": goal.priority,
-                "deadline": goal.deadline.isoformat() if goal.deadline else None,
-            }
-            goals_data.append(goal_dict)
+            goals_data.append(
+                {
+                    "name": goal.goal_name,
+                    "target": target,
+                    "current": current,
+                    "remaining": remaining,
+                    "percentage": round(percentage, 1),
+                    "priority": goal.priority,
+                    "deadline": goal.deadline.isoformat() if goal.deadline else None,
+                }
+            )
 
         total_remaining = total_target - total_current
-
-        # Build impact description
-        high_priority_goals = [g for g in goals_data if g["priority"] == "high"]
-        if high_priority_goals:
-            impact = f"User has {len(high_priority_goals)} high-priority goal(s): "
-            impact += ", ".join([g["name"] for g in high_priority_goals[:3]])
-            impact += f". Total remaining to reach all goals: ${total_remaining:.2f}. "
-            impact += "Consider if this purchase delays progress toward these goals."
-        else:
-            impact = f"User has {len(goals_data)} active goal(s) with ${total_remaining:.2f} remaining to reach them. "
-            impact += "Consider if this money could be better allocated toward goals."
 
         return {
             "goals": goals_data,
@@ -275,7 +385,9 @@ def create_decision_tools(db_session: Session, user_id: str):
             "total_target": round(total_target, 2),
             "total_current": round(total_current, 2),
             "total_remaining": round(total_remaining, 2),
-            "impact_description": impact,
+            "impact_description": _build_goals_impact_description(
+                goals_data, total_remaining
+            ),
         }
 
     @tool
@@ -285,7 +397,62 @@ def create_decision_tools(db_session: Session, user_id: str):
         Returns:
             Overall financial health analysis
         """
-        # Get current active budget
+        # Use pre-fetched context if available
+        if financial_context and financial_context.has_budget:
+            budget_ctx = financial_context.active_budget
+            total_budget = float(budget_ctx.total_monthly)
+            total_spent = float(budget_ctx.total_spent)
+            total_remaining = float(budget_ctx.total_remaining)
+            percentage_spent = budget_ctx.percentage_used
+
+            budget_score = max(0, 100 - percentage_spent) * 0.5
+
+            if financial_context.has_goals:
+                goal_pcts = [
+                    g.percentage_complete for g in financial_context.active_goals
+                ]
+                avg_goal_progress = sum(goal_pcts) / len(goal_pcts)
+                goal_score = avg_goal_progress * 0.3
+            else:
+                goal_score = 15
+
+            remaining_score = (
+                min(
+                    100,
+                    (total_remaining / total_budget * 100) if total_budget > 0 else 0,
+                )
+                * 0.2
+            )
+            financial_health_score = budget_score + goal_score + remaining_score
+
+            if percentage_spent < 50:
+                health_status = "excellent"
+            elif percentage_spent < 75:
+                health_status = "good"
+            elif percentage_spent < 90:
+                health_status = "fair"
+            else:
+                health_status = "concerning"
+
+            description = f"Financial health is {health_status}. "
+            description += f"You've spent ${total_spent:.2f} of ${total_budget:.2f} ({percentage_spent:.1f}%) this period. "
+            description += f"${total_remaining:.2f} remaining. "
+
+            if percentage_spent > 80:
+                description += "You're using most of your budget, so be cautious with additional purchases."
+            elif percentage_spent < 50:
+                description += "You have plenty of budget flexibility."
+
+            return {
+                "total_budget": round(total_budget, 2),
+                "total_spent": round(total_spent, 2),
+                "total_remaining": round(total_remaining, 2),
+                "percentage_spent": round(percentage_spent, 1),
+                "financial_health_score": round(financial_health_score, 1),
+                "analysis_description": description,
+            }
+
+        # Fallback: query DB
         today = date.today()
         budget = (
             db_session.query(Budget)
@@ -308,7 +475,6 @@ def create_decision_tools(db_session: Session, user_id: str):
                 "analysis_description": "No active budget found. Cannot analyze spending patterns.",
             }
 
-        # Calculate totals
         total_budget = float(budget.total_monthly)
         total_spent = sum(
             float(cat.get("spent", 0)) for cat in budget.categories.values()
@@ -316,11 +482,8 @@ def create_decision_tools(db_session: Session, user_id: str):
         total_remaining = total_budget - total_spent
         percentage_spent = (total_spent / total_budget * 100) if total_budget > 0 else 0
 
-        # Calculate financial health score (0-100)
-        # Factors: budget adherence (50%), goal progress (30%), remaining budget (20%)
         budget_score = max(0, 100 - percentage_spent) * 0.5
 
-        # Get goal progress
         goals = (
             db_session.query(Goal)
             .filter(Goal.user_id == user_uuid, Goal.is_completed == False)
@@ -337,13 +500,11 @@ def create_decision_tools(db_session: Session, user_id: str):
             avg_goal_progress = sum(goal_percentages) / len(goal_percentages)
             goal_score = avg_goal_progress * 0.3
         else:
-            goal_score = 15  # Neutral score if no goals
+            goal_score = 15
 
         remaining_score = min(100, (total_remaining / total_budget * 100)) * 0.2
-
         financial_health_score = budget_score + goal_score + remaining_score
 
-        # Build description
         if percentage_spent < 50:
             health_status = "excellent"
         elif percentage_spent < 75:
@@ -389,7 +550,6 @@ def create_decision_tools(db_session: Session, user_id: str):
         Returns:
             Past decisions with patterns and insights
         """
-        # Build query
         query = db_session.query(PurchaseDecision).filter(
             PurchaseDecision.user_id == user_uuid
         )
@@ -403,7 +563,6 @@ def create_decision_tools(db_session: Session, user_id: str):
         if max_amount is not None:
             query = query.filter(PurchaseDecision.amount <= max_amount)
 
-        # Get decisions
         decisions = (
             query.order_by(PurchaseDecision.created_at.desc()).limit(limit).all()
         )
@@ -417,7 +576,6 @@ def create_decision_tools(db_session: Session, user_id: str):
                 "insights": "No past decisions found matching criteria.",
             }
 
-        # Extract decision data
         decisions_data = []
         total_score = 0
         category_counts = {}
@@ -439,7 +597,6 @@ def create_decision_tools(db_session: Session, user_id: str):
 
             total_score += d.score
 
-            # Track category patterns
             cat = d.category or "uncategorized"
             category_counts[cat] = category_counts.get(cat, 0) + 1
             if cat not in category_scores:
@@ -448,17 +605,14 @@ def create_decision_tools(db_session: Session, user_id: str):
 
         avg_score = total_score / len(decisions)
 
-        # Build insights
         insights_parts = []
 
-        # Most common category
         if category_counts:
             most_common_cat = max(category_counts, key=category_counts.get)
             insights_parts.append(
                 f"Most frequently considered: {most_common_cat} ({category_counts[most_common_cat]} times)"
             )
 
-        # Score trends
         if category_scores:
             for cat, scores in category_scores.items():
                 avg_cat_score = sum(scores) / len(scores)
@@ -471,7 +625,6 @@ def create_decision_tools(db_session: Session, user_id: str):
                         f"Historically good scores for {cat} purchases (avg {avg_cat_score:.1f}/10)"
                     )
 
-        # Regret tracking
         with_feedback = [d for d in decisions if d.actual_purchase is not None]
         if with_feedback:
             purchased = [d for d in with_feedback if d.actual_purchase]
@@ -503,7 +656,6 @@ def create_decision_tools(db_session: Session, user_id: str):
         Returns:
             Regret analysis with patterns and recommendations
         """
-        # Build query
         query = db_session.query(PurchaseDecision).filter(
             PurchaseDecision.user_id == user_uuid
         )
@@ -524,22 +676,18 @@ def create_decision_tools(db_session: Session, user_id: str):
                 "recommendations": "No purchase history found.",
             }
 
-        # Analyze feedback
         with_feedback = [d for d in all_decisions if d.actual_purchase is not None]
         purchased = [d for d in with_feedback if d.actual_purchase]
         regretted = [d for d in purchased if d.regret_level and d.regret_level >= 6]
 
         regret_rate = (len(regretted) / len(purchased) * 100) if purchased else 0
 
-        # Calculate average regret for purchases
         regret_levels = [d.regret_level for d in purchased if d.regret_level]
         avg_regret = sum(regret_levels) / len(regret_levels) if regret_levels else 0
 
-        # Find patterns in regretted purchases
         patterns = []
 
         if regretted:
-            # Category patterns
             regret_categories = {}
             for d in regretted:
                 cat = d.category or "uncategorized"
@@ -549,19 +697,16 @@ def create_decision_tools(db_session: Session, user_id: str):
                 most_regretted = max(regret_categories, key=regret_categories.get)
                 patterns.append(f"Most regrets in {most_regretted} category")
 
-            # Amount patterns
             high_amount_regrets = [d for d in regretted if float(d.amount) > 100]
             if len(high_amount_regrets) > len(regretted) * 0.6:
                 patterns.append("Tend to regret expensive purchases (>$100)")
 
-            # Low score purchases
             ignored_warnings = [d for d in regretted if d.score <= 5]
             if ignored_warnings:
                 patterns.append(
                     f"Ignored {len(ignored_warnings)} low-score recommendations and regretted it"
                 )
 
-        # Build recommendations
         if not purchased:
             recommendations = (
                 "No purchase feedback yet. Add feedback to learn patterns."

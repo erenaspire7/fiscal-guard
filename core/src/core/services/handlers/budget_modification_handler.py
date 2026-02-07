@@ -1,13 +1,12 @@
 """Handler for budget modification conversations."""
 
-from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from core.database.models import Budget
+from core.models.context import UserFinancialContext
 from core.models.conversation import (
     ConversationIntent,
     ConversationMessage,
@@ -33,6 +32,7 @@ class BudgetModificationHandler:
         user_id: UUID,
         intent: ConversationIntent,
         conversation_history: List[ConversationMessage],
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationResponse:
         """Process budget modification request.
 
@@ -40,14 +40,14 @@ class BudgetModificationHandler:
             user_id: User ID
             intent: Classified intent with entities
             conversation_history: Recent messages
+            financial_context: Pre-fetched financial context
 
         Returns:
             Conversation response
         """
-        # Get active budget
-        active_budget = self._get_active_budget(user_id)
+        budget_ctx = financial_context.active_budget if financial_context else None
 
-        if not active_budget:
+        if not budget_ctx:
             return ConversationResponse(
                 message="You don't have an active budget set up yet. Would you like to create one?",
                 requires_clarification=True,
@@ -66,8 +66,45 @@ class BudgetModificationHandler:
             )
 
         category = category.lower()
-        if category not in active_budget.categories:
-            valid_cats = ", ".join(active_budget.categories.keys())
+
+        # Handle adding a new category
+        if category not in budget_ctx.categories and operation == "add":
+            limit = Decimal("0")
+            if amount_val:
+                try:
+                    if isinstance(amount_val, str):
+                        limit = Decimal(amount_val.replace("$", "").replace(",", ""))
+                    else:
+                        limit = Decimal(str(amount_val))
+                except (ValueError, TypeError):
+                    pass
+
+            try:
+                updated = self.budget_service.add_category(
+                    budget_id=budget_ctx.budget_id,
+                    user_id=user_id,
+                    category=category,
+                    limit=float(limit),
+                )
+                if not updated:
+                    return ConversationResponse(
+                        message="Sorry, I couldn't add that category."
+                    )
+
+                msg = f"Added **{category}** category to your budget"
+                if limit > 0:
+                    msg += f" with a ${limit:.2f} limit"
+                msg += "."
+                if limit == 0:
+                    msg += " You can set a limit for it anytime."
+                return ConversationResponse(message=msg)
+            except Exception:
+                return ConversationResponse(
+                    message="Something went wrong adding the category."
+                )
+
+        if category not in budget_ctx.categories:
+            valid_cats = ", ".join(budget_ctx.categories.keys())
             return ConversationResponse(
                 message=f"I don't see a '{category}' category. Your active categories are: {valid_cats}.",
                 requires_clarification=True,
@@ -93,7 +130,7 @@ class BudgetModificationHandler:
             )
 
         # Calculate new limit
-        current_limit = Decimal(str(active_budget.categories[category]["limit"]))
+        current_limit = Decimal(str(budget_ctx.categories[category].limit))
         new_limit = current_limit
 
         if operation == "increase":
@@ -108,7 +145,7 @@ class BudgetModificationHandler:
         # Update budget
         try:
             updated_budget = self.budget_service.update_category_limit(
-                budget_id=active_budget.budget_id,
+                budget_id=budget_ctx.budget_id,
                 user_id=user_id,
                 category=category,
                 new_limit=float(new_limit),
@@ -135,22 +172,3 @@ class BudgetModificationHandler:
             return ConversationResponse(
                 message="Something went wrong while updating the budget."
             )
-
-    def _get_active_budget(self, user_id: UUID) -> Optional[Budget]:
-        """Get user's active budget.
-
-        Args:
-            user_id: User ID
-
-        Returns:
-            Active budget if found
-        """
-        return (
-            self.db.query(Budget)
-            .filter(
-                Budget.user_id == user_id,
-                Budget.period_end >= datetime.utcnow(),
-            )
-            .order_by(Budget.created_at.desc())
-            .first()
-        )

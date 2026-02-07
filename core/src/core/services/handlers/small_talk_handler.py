@@ -5,7 +5,7 @@ and to gently steer the user back toward actionable intents (budget, goals,
 purchase decisions, logging expenses, etc.).
 """
 
-from typing import List
+from typing import List, Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
@@ -13,6 +13,7 @@ from strands import Agent
 from strands.models.gemini import GeminiModel
 
 from core.config import settings
+from core.models.context import UserFinancialContext
 from core.models.conversation import (
     ConversationIntent,
     ConversationMessage,
@@ -63,6 +64,7 @@ CRITICAL RULES:
         user_id: UUID,
         intent: ConversationIntent,
         conversation_history: List[ConversationMessage],
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationResponse:
         """Generate a short small-talk reply (non-streaming)."""
         trace_attributes = create_trace_attributes(
@@ -100,6 +102,7 @@ Reply briefly and guide them back to something actionable (budget, goals, purcha
         user_id: UUID,
         intent: ConversationIntent,
         conversation_history: List[ConversationMessage],
+        financial_context: Optional[UserFinancialContext] = None,
     ):
         """Generate a short small-talk reply (streaming).
 

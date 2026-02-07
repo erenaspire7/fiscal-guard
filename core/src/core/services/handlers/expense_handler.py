@@ -2,13 +2,13 @@
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from core.database.models import Budget
 from core.models.budget import BudgetItemCreate
+from core.models.context import ActiveBudgetContext, UserFinancialContext
 from core.models.conversation import (
     ConversationIntent,
     ConversationMessage,
@@ -21,11 +21,6 @@ class ExpenseHandler:
     """Handle requests to log expenses."""
 
     def __init__(self, db: Session):
-        """Initialize expense handler.
-
-        Args:
-            db: Database session
-        """
         self.db = db
         self.budget_service = BudgetService(db)
 
@@ -34,79 +29,142 @@ class ExpenseHandler:
         user_id: UUID,
         intent: ConversationIntent,
         conversation_history: List[ConversationMessage],
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationResponse:
-        """Process expense logging request.
+        """Process expense logging request (single or multiple items)."""
+        budget_ctx = financial_context.active_budget if financial_context else None
 
-        Args:
-            user_id: User ID
-            intent: Classified intent with entities
-            conversation_history: Recent messages
-
-        Returns:
-            Conversation response
-        """
-        # Get active budget
-        active_budget = self._get_active_budget(user_id)
-
-        if not active_budget:
+        if not budget_ctx:
             return ConversationResponse(
                 message="You don't have an active budget set up yet. Would you like to create one?",
                 requires_clarification=True,
             )
 
-        entities = intent.extracted_entities
+        items = self._normalize_items(intent.extracted_entities)
 
-        # Validate amount
-        amount_val = entities.get("amount")
-        if not amount_val:
+        if not items:
             return ConversationResponse(
                 message="I couldn't identify the amount. How much did you spend?",
                 requires_clarification=True,
             )
 
+        # Check if ALL items are missing amounts — give a single friendly prompt
+        all_missing_amounts = all(not item.get("amount") for item in items)
+        if all_missing_amounts:
+            item_names = [item.get("item_name") or "item" for item in items]
+            names_str = ", ".join(item_names)
+            return ConversationResponse(
+                message=f"How much did you spend on each? ({names_str})",
+                requires_clarification=True,
+            )
+
+        successes: List[str] = []
+        errors: List[str] = []
+
+        for item in items:
+            success_msg, error_msg = self._log_single_item(user_id, budget_ctx, item)
+            if success_msg:
+                successes.append(success_msg)
+            if error_msg:
+                errors.append(error_msg)
+
+        # Deduplicate errors (e.g. same missing category repeated for each item)
+        unique_errors = list(dict.fromkeys(errors))
+
+        # Build combined response
+        if not successes and unique_errors:
+            return ConversationResponse(
+                message="\n".join(unique_errors),
+                requires_clarification=True,
+            )
+
+        parts = []
+        if len(successes) == 1:
+            parts.append(successes[0])
+        else:
+            parts.append(f"Logged {len(successes)} expenses:")
+            for msg in successes:
+                parts.append(f"- {msg}")
+
+        if unique_errors:
+            parts.append("")
+            for msg in unique_errors:
+                parts.append(msg)
+
+        return ConversationResponse(message="\n".join(parts))
+
+    def _normalize_items(self, entities: dict) -> List[dict]:
+        """Normalize entities into a list of {amount, category, item_name} dicts.
+
+        Supports both multi-item format (items array) and single-item format.
+        Returns items even if amounts are missing (caller handles that case).
+        """
+        # Multi-item path
+        items = entities.get("items")
+        if isinstance(items, list) and len(items) > 0:
+            return items
+
+        # Single-item path — wrap in list if any entity is present
+        if entities.get("amount") is not None or entities.get("item_name"):
+            return [
+                {
+                    "amount": entities.get("amount"),
+                    "category": entities.get("category"),
+                    "item_name": entities.get("item_name"),
+                }
+            ]
+
+        return []
+
+    def _log_single_item(
+        self,
+        user_id: UUID,
+        budget_ctx: ActiveBudgetContext,
+        item: dict,
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """Validate and log a single expense item.
+
+        Returns:
+            (success_message, error_message) — exactly one will be non-None.
+        """
+        # Parse amount
+        amount_val = item.get("amount")
+        if not amount_val:
+            item_name = item.get("item_name") or "an item"
+            return None, f"Couldn't identify the amount for '{item_name}'."
+
         try:
-            # Handle string amounts like "$100" or "100.50"
             if isinstance(amount_val, str):
                 amount_clean = amount_val.replace("$", "").replace(",", "")
                 amount = Decimal(amount_clean)
             else:
                 amount = Decimal(str(amount_val))
         except (ValueError, TypeError):
-            return ConversationResponse(
-                message="I didn't understand that amount. Could you repeat it?",
-                requires_clarification=True,
-            )
+            item_name = item.get("item_name") or "an item"
+            return None, f"Didn't understand the amount for '{item_name}'."
 
-        # Validate category
-        category = entities.get("category")
-
-        # If category is missing, check if it was mentioned in the message or use a default
+        # Resolve category
+        category = item.get("category")
         if not category:
-            # Simple fallback for now: check if "general" exists
-            if "general" in active_budget.categories:
+            if "general" in budget_ctx.categories:
                 category = "general"
             else:
-                return ConversationResponse(
-                    message="Which category should this go under?",
-                    requires_clarification=True,
-                )
+                item_name = item.get("item_name") or "an item"
+                return None, f"Which category should '{item_name}' go under?"
 
-        # Normalize category
         category = category.lower()
 
-        # Check if category exists in budget
-        if category not in active_budget.categories:
-            valid_cats = ", ".join(active_budget.categories.keys())
-            return ConversationResponse(
-                message=f"I don't see a '{category}' category. Your active categories are: {valid_cats}.",
-                requires_clarification=True,
+        if category not in budget_ctx.categories:
+            valid_cats = ", ".join(budget_ctx.categories.keys())
+            return None, (
+                f"There's no '{category}' category in your budget. "
+                f"Your current categories are: {valid_cats}. "
+                f"Would you like me to add a '{category}' category to your budget?"
             )
 
-        # Item name
-        item_name = entities.get("item_name") or "Expense"
+        item_name = item.get("item_name") or "Expense"
 
         try:
-            # Create the budget item
             item_data = BudgetItemCreate(
                 item_name=item_name,
                 amount=amount,
@@ -116,53 +174,27 @@ class ExpenseHandler:
             )
 
             result = self.budget_service.add_budget_item(
-                budget_id=active_budget.budget_id,
+                budget_id=budget_ctx.budget_id,
                 user_id=user_id,
                 item_data=item_data,
             )
 
             if not result:
-                return ConversationResponse(
-                    message="Sorry, I encountered an error logging that expense."
-                )
+                return None, f"Error logging ${amount:.2f} for '{item_name}'."
 
-            # Parse result for feedback
             spent_after = result.category_spent_after
             limit = result.category_limit
             remaining = limit - spent_after
 
-            msg = f"✅ Logged ${amount:.2f} for '{item_name}' in **{category}**."
-            msg += f"\nCategory status: ${spent_after:.2f} / ${limit:.2f} (${remaining:.2f} remaining)."
+            msg = f"Logged ${amount:.2f} for '{item_name}' in **{category}**."
+            msg += f" ({category}: ${spent_after:.2f} / ${limit:.2f}, ${remaining:.2f} remaining)"
 
             if result.exceeded_budget:
-                msg += f"\n⚠️ **Warning:** You are now over budget in this category!"
+                msg += " — **over budget!**"
             elif remaining < (limit * Decimal("0.1")):
-                msg += (
-                    f"\n⚠️ Careful, you have less than 10% remaining in this category."
-                )
+                msg += " — less than 10% remaining"
 
-            return ConversationResponse(message=msg)
+            return msg, None
 
-        except Exception as e:
-            return ConversationResponse(
-                message="Something went wrong while logging the expense."
-            )
-
-    def _get_active_budget(self, user_id: UUID) -> Optional[Budget]:
-        """Get user's active budget.
-
-        Args:
-            user_id: User ID
-
-        Returns:
-            Active budget if found
-        """
-        return (
-            self.db.query(Budget)
-            .filter(
-                Budget.user_id == user_id,
-                Budget.period_end >= datetime.utcnow(),
-            )
-            .order_by(Budget.created_at.desc())
-            .first()
-        )
+        except Exception:
+            return None, f"Something went wrong logging '{item_name}'."

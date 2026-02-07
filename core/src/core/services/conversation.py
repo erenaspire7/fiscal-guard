@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from core.ai.agents.intent_classifier import IntentClassifier
+from core.models.context import UserFinancialContext
 from core.models.conversation import (
     ConversationIntent,
     ConversationMessage,
@@ -13,6 +14,7 @@ from core.models.conversation import (
     ConversationResponse,
 )
 from core.models.decision import PurchaseDecisionRequest
+from core.services.context_builder import ContextBuilder
 from core.services.decision import DecisionService
 from core.services.handlers.budget_modification_handler import BudgetModificationHandler
 from core.services.handlers.budget_query_handler import BudgetQueryHandler
@@ -33,6 +35,7 @@ class ConversationService:
             db: Database session
         """
         self.db = db
+        self.context_builder = ContextBuilder(db)
         self.intent_classifier = IntentClassifier(db)
         self.decision_service = DecisionService(db)
         self.feedback_handler = PurchaseFeedbackHandler(db)
@@ -55,9 +58,16 @@ class ConversationService:
         Returns:
             Conversation response
         """
+        # Build financial context once for the entire request
+        financial_context = self.context_builder.build_context(user_id)
+
         # Classify intent (pass session_id for prompt override)
         intent = self.intent_classifier.classify(
-            request.message, request.conversation_history, user_id, request.session_id
+            request.message,
+            request.conversation_history,
+            user_id,
+            request.session_id,
+            financial_context,
         )
 
         # Check if we need clarification
@@ -69,38 +79,38 @@ class ConversationService:
         # Route to appropriate handler based on intent
         if intent.intent == "purchase_decision":
             return self._handle_purchase_decision(
-                user_id, intent, request.message, request.session_id
+                user_id, intent, request.message, request.session_id, financial_context
             )
 
         elif intent.intent == "purchase_feedback":
             return self._handle_purchase_feedback(
-                user_id, intent, request.conversation_history
+                user_id, intent, request.conversation_history, financial_context
             )
 
         elif intent.intent == "budget_query":
-            return self._handle_budget_query(user_id, intent)
+            return self._handle_budget_query(user_id, intent, financial_context)
 
         elif intent.intent == "goal_update":
-            return self._handle_goal_update(user_id, intent)
+            return self._handle_goal_update(user_id, intent, financial_context)
 
         elif intent.intent == "log_expense":
             return self._handle_log_expense(
-                user_id, intent, request.conversation_history
+                user_id, intent, request.conversation_history, financial_context
             )
 
         elif intent.intent == "budget_modification":
             return self._handle_budget_modification(
-                user_id, intent, request.conversation_history
+                user_id, intent, request.conversation_history, financial_context
             )
 
         elif intent.intent == "small_talk":
             return self.small_talk_handler.handle(
-                user_id, intent, request.conversation_history
+                user_id, intent, request.conversation_history, financial_context
             )
 
         elif intent.intent == "general_question":
             return self._handle_general_question(
-                user_id, intent, request.conversation_history
+                user_id, intent, request.conversation_history, financial_context
             )
 
         else:
@@ -119,9 +129,15 @@ class ConversationService:
         Yields:
             Chunks of response
         """
+        # Build financial context once for the entire request
+        financial_context = self.context_builder.build_context(user_id)
+
         # Classify intent
         intent = self.intent_classifier.classify(
-            request.message, request.conversation_history, user_id
+            request.message,
+            request.conversation_history,
+            user_id,
+            financial_context=financial_context,
         )
 
         # Check if we need clarification
@@ -135,14 +151,14 @@ class ConversationService:
         # Route to appropriate handler based on intent
         if intent.intent == "general_question":
             async for chunk in self.assistant.stream_handle(
-                user_id, intent, request.conversation_history
+                user_id, intent, request.conversation_history, financial_context
             ):
                 yield chunk
             return
 
         if intent.intent == "small_talk":
             async for chunk in self.small_talk_handler.stream_handle(
-                user_id, intent, request.conversation_history
+                user_id, intent, request.conversation_history, financial_context
             ):
                 yield chunk
             return
@@ -150,27 +166,29 @@ class ConversationService:
         # For other intents, use standard handling
         response = None
         if intent.intent == "purchase_decision":
-            response = self._handle_purchase_decision(user_id, intent, request.message)
+            response = self._handle_purchase_decision(
+                user_id, intent, request.message, financial_context=financial_context
+            )
 
         elif intent.intent == "purchase_feedback":
             response = self._handle_purchase_feedback(
-                user_id, intent, request.conversation_history
+                user_id, intent, request.conversation_history, financial_context
             )
 
         elif intent.intent == "budget_query":
-            response = self._handle_budget_query(user_id, intent)
+            response = self._handle_budget_query(user_id, intent, financial_context)
 
         elif intent.intent == "goal_update":
-            response = self._handle_goal_update(user_id, intent)
+            response = self._handle_goal_update(user_id, intent, financial_context)
 
         elif intent.intent == "log_expense":
             response = self._handle_log_expense(
-                user_id, intent, request.conversation_history
+                user_id, intent, request.conversation_history, financial_context
             )
 
         elif intent.intent == "budget_modification":
             response = self._handle_budget_modification(
-                user_id, intent, request.conversation_history
+                user_id, intent, request.conversation_history, financial_context
             )
 
         else:
@@ -193,6 +211,7 @@ class ConversationService:
         intent: ConversationIntent,
         original_message: str,
         session_id: Optional[str] = None,
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationResponse:
         """Handle purchase decision request.
 
@@ -201,6 +220,7 @@ class ConversationService:
             intent: Classified intent
             original_message: Original user message
             session_id: Optional session ID for prompt override testing
+            financial_context: Pre-fetched financial context
 
         Returns:
             Conversation response
@@ -214,12 +234,12 @@ class ConversationService:
             category=entities.get("category"),
             urgency=entities.get("urgency"),
             reason=entities.get("reason"),
-            user_message=original_message,  # Pass original message for extraction if needed
+            user_message=original_message,
         )
 
-        # Use existing decision service (pass session_id for prompt override)
+        # Use existing decision service (pass session_id and financial_context)
         decision_response = self.decision_service.create_decision(
-            user_id, decision_request, session_id
+            user_id, decision_request, session_id, financial_context
         )
 
         # Convert to conversation response
@@ -269,6 +289,7 @@ class ConversationService:
         user_id: UUID,
         intent: ConversationIntent,
         conversation_history: List[ConversationMessage],
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationResponse:
         """Handle purchase feedback.
 
@@ -276,11 +297,14 @@ class ConversationService:
             user_id: User ID
             intent: Classified intent
             conversation_history: Recent messages
+            financial_context: Pre-fetched financial context
 
         Returns:
             Conversation response
         """
-        response = self.feedback_handler.handle(user_id, intent, conversation_history)
+        response = self.feedback_handler.handle(
+            user_id, intent, conversation_history, financial_context
+        )
 
         # Merge context into metadata so it's passed back to the frontend
         if response.context:
@@ -291,83 +315,55 @@ class ConversationService:
         return response
 
     def _handle_budget_query(
-        self, user_id: UUID, intent: ConversationIntent
+        self,
+        user_id: UUID,
+        intent: ConversationIntent,
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationResponse:
-        """Handle budget query.
-
-        Args:
-            user_id: User ID
-            intent: Classified intent
-
-        Returns:
-            Conversation response
-        """
-        return self.budget_handler.handle(user_id, intent)
+        """Handle budget query."""
+        return self.budget_handler.handle(user_id, intent, financial_context)
 
     def _handle_goal_update(
-        self, user_id: UUID, intent: ConversationIntent
+        self,
+        user_id: UUID,
+        intent: ConversationIntent,
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationResponse:
-        """Handle goal update.
-
-        Args:
-            user_id: User ID
-            intent: Classified intent
-
-        Returns:
-            Conversation response
-        """
-        return self.goal_handler.handle(user_id, intent)
+        """Handle goal update."""
+        return self.goal_handler.handle(user_id, intent, financial_context)
 
     def _handle_log_expense(
         self,
         user_id: UUID,
         intent: ConversationIntent,
         conversation_history: List[ConversationMessage],
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationResponse:
-        """Handle expense logging.
-
-        Args:
-            user_id: User ID
-            intent: Classified intent
-            conversation_history: Recent messages
-
-        Returns:
-            Conversation response
-        """
-        return self.expense_handler.handle(user_id, intent, conversation_history)
+        """Handle expense logging."""
+        return self.expense_handler.handle(
+            user_id, intent, conversation_history, financial_context
+        )
 
     def _handle_budget_modification(
         self,
         user_id: UUID,
         intent: ConversationIntent,
         conversation_history: List[ConversationMessage],
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationResponse:
-        """Handle budget modification.
-
-        Args:
-            user_id: User ID
-            intent: Classified intent
-            conversation_history: Recent messages
-
-        Returns:
-            Conversation response
-        """
-        return self.budget_modifier.handle(user_id, intent, conversation_history)
+        """Handle budget modification."""
+        return self.budget_modifier.handle(
+            user_id, intent, conversation_history, financial_context
+        )
 
     def _handle_general_question(
         self,
         user_id: UUID,
         intent: ConversationIntent,
         conversation_history: List[ConversationMessage],
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> ConversationResponse:
-        """Handle general financial question.
-
-        Args:
-            user_id: User ID
-            intent: Classified intent
-            conversation_history: Recent messages
-
-        Returns:
-            Conversation response
-        """
-        return self.assistant.handle(user_id, intent, conversation_history)
+        """Handle general financial question."""
+        return self.assistant.handle(
+            user_id, intent, conversation_history, financial_context
+        )

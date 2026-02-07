@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from core.database.models import Goal
+from core.models.context import UserFinancialContext
 from core.models.conversation import ConversationIntent, ConversationResponse
 
 
@@ -21,12 +22,18 @@ class GoalUpdateHandler:
         """
         self.db = db
 
-    def handle(self, user_id: UUID, intent: ConversationIntent) -> ConversationResponse:
+    def handle(
+        self,
+        user_id: UUID,
+        intent: ConversationIntent,
+        financial_context: Optional[UserFinancialContext] = None,
+    ) -> ConversationResponse:
         """Process goal update and provide confirmation.
 
         Args:
             user_id: User ID
             intent: Classified intent with entities
+            financial_context: Pre-fetched financial context
 
         Returns:
             Conversation response with goal update confirmation
@@ -35,16 +42,16 @@ class GoalUpdateHandler:
         goal_name = intent.extracted_entities.get("goal_name")
         amount = intent.extracted_entities.get("amount")
 
+        goal_contexts = financial_context.active_goals if financial_context else []
+
         if not goal_name:
-            # Show available goals
-            goals = self._get_active_goals(user_id)
-            if not goals:
+            if not goal_contexts:
                 return ConversationResponse(
                     message="You don't have any active goals yet. Would you like to create one?",
                     requires_clarification=True,
                 )
 
-            goal_list = "\n".join([f"- {g.name}" for g in goals])
+            goal_list = "\n".join([f"- {g.goal_name}" for g in goal_contexts])
             return ConversationResponse(
                 message=f"Which goal would you like to update?\n\n{goal_list}",
                 requires_clarification=True,
@@ -57,12 +64,11 @@ class GoalUpdateHandler:
                 context={"goal_name": goal_name},
             )
 
-        # Find the goal
-        goal = self._find_goal_by_name(user_id, goal_name)
+        # Find the goal using context for name matching, then load ORM object for write
+        goal = self._find_goal_by_name(user_id, goal_name, goal_contexts)
 
         if not goal:
-            goals = self._get_active_goals(user_id)
-            goal_list = "\n".join([f"- {g.name}" for g in goals])
+            goal_list = "\n".join([f"- {g.goal_name}" for g in goal_contexts])
             return ConversationResponse(
                 message=f"I couldn't find a goal named '{goal_name}'. Your active goals are:\n\n{goal_list}",
                 requires_clarification=True,
@@ -91,43 +97,39 @@ class GoalUpdateHandler:
         else:
             return self._handle_goal_progress(goal, amount)
 
-    def _get_active_goals(self, user_id: UUID) -> list[Goal]:
-        """Get user's active goals.
-
-        Args:
-            user_id: User ID
-
-        Returns:
-            List of active goals
-        """
-        return (
-            self.db.query(Goal)
-            .filter(Goal.user_id == user_id, Goal.is_completed == False)
-            .order_by(Goal.created_at.desc())
-            .all()
-        )
-
-    def _find_goal_by_name(self, user_id: UUID, goal_name: str) -> Optional[Goal]:
-        """Find goal by name (case-insensitive partial match).
+    def _find_goal_by_name(
+        self, user_id: UUID, goal_name: str, goal_contexts: list
+    ) -> Optional[Goal]:
+        """Find goal by name using pre-fetched context, then load ORM object for write.
 
         Args:
             user_id: User ID
             goal_name: Goal name to search for
+            goal_contexts: Pre-fetched goal context list
 
         Returns:
-            Matching goal if found
+            Matching Goal ORM object if found
         """
-        goals = self._get_active_goals(user_id)
-
         goal_name_lower = goal_name.lower()
-        for goal in goals:
-            if (
-                goal_name_lower in goal.goal_name.lower()
-                or goal.goal_name.lower() in goal_name_lower
-            ):
-                return goal
+        matched_goal_id = None
 
-        return None
+        for g in goal_contexts:
+            if (
+                goal_name_lower in g.goal_name.lower()
+                or g.goal_name.lower() in goal_name_lower
+            ):
+                matched_goal_id = g.goal_id
+                break
+
+        if not matched_goal_id:
+            return None
+
+        # Load the ORM object by ID for the write operation
+        return (
+            self.db.query(Goal)
+            .filter(Goal.goal_id == matched_goal_id, Goal.user_id == user_id)
+            .first()
+        )
 
     def _handle_goal_completion(
         self, goal: Goal, amount_added: float

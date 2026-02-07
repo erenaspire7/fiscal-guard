@@ -32,7 +32,6 @@ Real-time purchase guidance powered by AI analysis.
 
 - **Smart Analysis**: Checks your budget, goals, spending patterns, and emotional triggers before you buy
 - **Adaptive Personas**: Choose your guide — Gentle, Balanced, or Financial Monk
-- **Mobile-First**: Catch impulse buys wherever they happen
 
 ### 📊 Command (Dashboard)
 
@@ -65,6 +64,7 @@ Traditional tracking meets AI-powered chat.
 - **Privacy-First**: Sensitive data never leaves trace logs
 
 ## 🏗️ Architecture
+
 **Multi-agent system with real-time observability and privacy-first design.**
 
 ## 🎯 Try It Live
