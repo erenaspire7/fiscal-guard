@@ -266,7 +266,8 @@ class DecisionService:
         # Update feedback fields
         decision.actual_purchase = feedback.actual_purchase
         decision.regret_level = feedback.regret_level
-        decision.user_feedback = feedback.feedback
+        if feedback.feedback is not None:
+            decision.user_feedback = feedback.feedback
 
         # If user actually made the purchase, record it as a budget item
         if feedback.actual_purchase and decision.category:
@@ -306,6 +307,51 @@ class DecisionService:
 
         return PurchaseDecisionDBModel.model_validate(decision)
 
+    @staticmethod
+    def _calculate_behavioral_score(decision) -> float:
+        """Calculate a behavioral score (0-10) reflecting user's financial behavior.
+
+        Unlike the raw AI score (which measures "is this a good purchase?"),
+        the behavioral score measures "did the user make a good financial decision?"
+
+        - Resisting a bad purchase (low AI score + didn't buy) = high score
+        - Following good advice (high AI score + bought + low regret) = high score
+        - Ignoring warnings (low AI score + bought + high regret) = low score
+        - No feedback yet = use raw AI score as default
+        """
+        ai_score = decision.score
+
+        if decision.actual_purchase is None:
+            return float(ai_score)
+
+        bought = decision.actual_purchase
+        regret = decision.regret_level
+
+        if not bought:
+            if ai_score <= 5:
+                # Resisted bad purchase — reward (ai_score=1 -> 9.0, ai_score=5 -> 7.0)
+                return 9.0 - (ai_score - 1) * 0.5
+            elif ai_score >= 7:
+                # Skipped a good purchase — slight penalty
+                return max(4.0, 8.0 - ai_score * 0.4)
+            else:
+                # Mid-range, ambiguous
+                return 6.0
+        else:
+            if regret is not None and regret >= 7:
+                # High regret = bad outcome regardless of AI advice
+                return max(1.0, 4.0 - (regret - 7) * 1.0)
+            elif regret is not None and regret <= 3:
+                # Low regret = good outcome
+                if ai_score >= 7:
+                    return float(ai_score)
+                else:
+                    # Ignored warning but happy — moderate
+                    return 6.0
+            else:
+                # Moderate regret or no regret data — keep AI score
+                return float(ai_score)
+
     def get_decision_stats(self, user_id: UUID) -> dict:
         """Get decision statistics for a user.
 
@@ -338,7 +384,9 @@ class DecisionService:
             }
 
         total = len(all_decisions)
-        avg_score = sum(d.score for d in all_decisions) / total
+        avg_score = (
+            sum(self._calculate_behavioral_score(d) for d in all_decisions) / total
+        )
         total_requested = sum(float(d.amount) for d in all_decisions)
 
         # Count by decision category
@@ -375,10 +423,12 @@ class DecisionService:
 
         impulse_control_growth = 0.0
         if recent_decisions and previous_decisions:
-            recent_avg = sum(d.score for d in recent_decisions) / len(recent_decisions)
-            previous_avg = sum(d.score for d in previous_decisions) / len(
-                previous_decisions
-            )
+            recent_avg = sum(
+                self._calculate_behavioral_score(d) for d in recent_decisions
+            ) / len(recent_decisions)
+            previous_avg = sum(
+                self._calculate_behavioral_score(d) for d in previous_decisions
+            ) / len(previous_decisions)
 
             if previous_avg > 0:
                 impulse_control_growth = (
@@ -391,13 +441,16 @@ class DecisionService:
             d for d in all_decisions if d.actual_purchase is not None
         ]
 
-        # Get chronological scores (scaled to 0-100) for decisions with feedback
-        weekly_scores = [int(d.score * 10) for d in decisions_with_feedback]
+        # Get chronological behavioral scores (scaled to 0-100) for decisions with feedback
+        weekly_scores = [
+            int(self._calculate_behavioral_score(d) * 10)
+            for d in decisions_with_feedback
+        ]
 
         # Build detailed trend data with item names and dates for graph display
         trend_data = [
             {
-                "score": int(d.score * 10),
+                "score": int(self._calculate_behavioral_score(d) * 10),
                 "item_name": d.item_name,
                 "date": d.created_at.strftime("%b %d"),
                 "amount": float(d.amount),
@@ -449,10 +502,10 @@ class DecisionService:
                 "budget_impact": None,
             }
 
-        # Calculate base score from decisions (0-10 scale)
-        avg_decision_score = sum(d.score for d in recent_decisions) / len(
-            recent_decisions
-        )
+        # Calculate base behavioral score from decisions (0-10 scale)
+        avg_decision_score = sum(
+            self._calculate_behavioral_score(d) for d in recent_decisions
+        ) / len(recent_decisions)
 
         # Get budget adherence analysis (0-100 scale)
         budget_analysis = self.budget_service.analyze_budgets_over_time(
@@ -483,7 +536,7 @@ class DecisionService:
 
         trend = [
             {
-                "score": d.score,  # Keep original 0-10 scale
+                "score": self._calculate_behavioral_score(d),  # Behavioral score (0-10)
                 "date": d.created_at.strftime("%b %d"),  # Format as "Jan 23"
                 "item_name": d.item_name,
             }
@@ -543,6 +596,9 @@ class DecisionService:
         """
         item_decisions: list[ItemDecisionResult] = []
 
+        # Create agent for cart analysis
+        agent = DecisionAgent(self.db)
+
         # Analyze each item individually
         for item in items:
             # Calculate total amount for this item
@@ -563,7 +619,7 @@ class DecisionService:
 
             # Use existing decision logic
             decision, clarification_question, related_decision_id = (
-                self.agent.analyze_purchase(user_id, decision_request)
+                agent.analyze_purchase(user_id, decision_request)
             )
 
             # Check if this is a duplicate of a recent decision
