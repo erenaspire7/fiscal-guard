@@ -174,7 +174,6 @@ export default function Dashboard() {
           body: JSON.stringify({
             actual_purchase: actualPurchase,
             regret_level: regretLevel,
-            feedback: null,
           }),
         },
       );
@@ -335,9 +334,7 @@ export default function Dashboard() {
                       {insightsData?.total_capital_retained.toLocaleString() ||
                         "0"}
                     </h3>
-                    <p className="text-xs text-gray-500 font-medium">
-                      So Far
-                    </p>
+                    <p className="text-xs text-gray-500 font-medium">So Far</p>
                   </div>
                   <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500">
                     <Zap className="w-6 h-6" fill="currentColor" />

@@ -62,9 +62,9 @@ const LandingPage = () => {
         </h1>
 
         <p className="text-gray-400 max-w-xl mx-auto text-lg mb-10 leading-relaxed relative z-10">
-          Fiscal Guard is an AI-powered financial decision assistant that
-          analyzes your budget, goals, and spending patterns before you buy.
-          Intervening at the moment of decision.
+          Fiscal Guard is an AI-powered financial assistant that analyzes your
+          budget, goals, and spending patterns before you buy. Intervening at
+          the moment of decision.
         </p>
 
         <Link

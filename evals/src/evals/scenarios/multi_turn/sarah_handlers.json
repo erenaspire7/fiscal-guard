@@ -30,8 +30,11 @@
           "input": {
             "message": "I spent $100 on groceries yesterday",
             "conversation_history": [
-              {"role": "user", "content": "Hi there!"},
-              {"role": "assistant", "content": "Hello! How can I help you today?"}
+              { "role": "user", "content": "Hi there!" },
+              {
+                "role": "assistant",
+                "content": "Hello! How can I help you today?"
+              }
             ]
           },
           "expected_output": {
@@ -52,10 +55,19 @@
           "input": {
             "message": "What's my grocery budget looking like now?",
             "conversation_history": [
-              {"role": "user", "content": "Hi there!"},
-              {"role": "assistant", "content": "Hello! How can I help you today?"},
-              {"role": "user", "content": "I spent $100 on groceries yesterday"},
-              {"role": "assistant", "content": "I've logged $100 for groceries..."}
+              { "role": "user", "content": "Hi there!" },
+              {
+                "role": "assistant",
+                "content": "Hello! How can I help you today?"
+              },
+              {
+                "role": "user",
+                "content": "I spent $100 on groceries yesterday"
+              },
+              {
+                "role": "assistant",
+                "content": "I've logged $100 for groceries..."
+              }
             ]
           },
           "expected_output": {
@@ -96,8 +108,14 @@
           "input": {
             "message": "I decided not to buy it after all",
             "conversation_history": [
-              {"role": "user", "content": "Should I buy this $85 dress on sale?"},
-              {"role": "assistant", "content": "Decision Score: 4/10 (Mild No)..."}
+              {
+                "role": "user",
+                "content": "Should I buy this $85 dress on sale?"
+              },
+              {
+                "role": "assistant",
+                "content": "Decision Score: 4/10 (Mild No)..."
+              }
             ]
           },
           "expected_output": {
@@ -111,10 +129,19 @@
           "input": {
             "message": "Can you increase my shopping budget by $50 for this month?",
             "conversation_history": [
-              {"role": "user", "content": "Should I buy this $85 dress on sale?"},
-              {"role": "assistant", "content": "Decision Score: 4/10..."},
-              {"role": "user", "content": "I decided not to buy it after all"},
-              {"role": "assistant", "content": "Good decision! Resisting impulse..."}
+              {
+                "role": "user",
+                "content": "Should I buy this $85 dress on sale?"
+              },
+              { "role": "assistant", "content": "Decision Score: 4/10..." },
+              {
+                "role": "user",
+                "content": "I decided not to buy it after all"
+              },
+              {
+                "role": "assistant",
+                "content": "Good decision! Resisting impulse..."
+              }
             ]
           },
           "expected_output": {
@@ -130,7 +157,12 @@
           }
         }
       ],
-      "tags": ["purchase_decision", "feedback", "budget_modification", "handler_chain"]
+      "tags": [
+        "purchase_decision",
+        "feedback",
+        "budget_modification",
+        "handler_chain"
+      ]
     },
     {
       "id": "sarah_general_question_goal_update",
@@ -158,8 +190,14 @@
           "input": {
             "message": "I want to add $500 to my emergency fund",
             "conversation_history": [
-              {"role": "user", "content": "How am I doing financially this month?"},
-              {"role": "assistant", "content": "You're doing well with your budget..."}
+              {
+                "role": "user",
+                "content": "How am I doing financially this month?"
+              },
+              {
+                "role": "assistant",
+                "content": "You're doing well with your budget..."
+              }
             ]
           },
           "expected_output": {
@@ -210,8 +248,14 @@
           "input": {
             "message": "Should I order another $50 of takeout tonight?",
             "conversation_history": [
-              {"role": "user", "content": "I spent $45 on takeout sushi last night"},
-              {"role": "assistant", "content": "I've logged $45 for dining..."}
+              {
+                "role": "user",
+                "content": "I spent $45 on takeout sushi last night"
+              },
+              {
+                "role": "assistant",
+                "content": "I've logged $45 for dining..."
+              }
             ]
           },
           "expected_output": {
@@ -221,7 +265,12 @@
           }
         }
       ],
-      "tags": ["expense_logging", "purchase_decision", "budget_awareness", "stateful"]
+      "tags": [
+        "expense_logging",
+        "purchase_decision",
+        "budget_awareness",
+        "stateful"
+      ]
     },
     {
       "id": "sarah_purchase_bought_it_feedback",
@@ -253,8 +302,14 @@
           "input": {
             "message": "I bought it anyway",
             "conversation_history": [
-              {"role": "user", "content": "Should I buy this $450 designer watch?"},
-              {"role": "assistant", "content": "Decision Score: 3/10 (Strong No)..."}
+              {
+                "role": "user",
+                "content": "Should I buy this $450 designer watch?"
+              },
+              {
+                "role": "assistant",
+                "content": "Decision Score: 3/10 (Strong No)..."
+              }
             ]
           },
           "expected_output": {
@@ -305,8 +360,8 @@
           "input": {
             "message": "Also logged $80 for gas",
             "conversation_history": [
-              {"role": "user", "content": "I spent $120 on groceries"},
-              {"role": "assistant", "content": "Logged $120..."}
+              { "role": "user", "content": "I spent $120 on groceries" },
+              { "role": "assistant", "content": "Logged $120..." }
             ]
           },
           "expected_output": {
@@ -327,10 +382,10 @@
           "input": {
             "message": "And $50 on a gym membership",
             "conversation_history": [
-              {"role": "user", "content": "I spent $120 on groceries"},
-              {"role": "assistant", "content": "Logged $120..."},
-              {"role": "user", "content": "Also logged $80 for gas"},
-              {"role": "assistant", "content": "Logged $80..."}
+              { "role": "user", "content": "I spent $120 on groceries" },
+              { "role": "assistant", "content": "Logged $120..." },
+              { "role": "user", "content": "Also logged $80 for gas" },
+              { "role": "assistant", "content": "Logged $80..." }
             ]
           },
           "expected_output": {
@@ -351,12 +406,12 @@
           "input": {
             "message": "How's my overall budget looking?",
             "conversation_history": [
-              {"role": "user", "content": "I spent $120 on groceries"},
-              {"role": "assistant", "content": "Logged..."},
-              {"role": "user", "content": "Also logged $80 for gas"},
-              {"role": "assistant", "content": "Logged..."},
-              {"role": "user", "content": "And $50 on a gym membership"},
-              {"role": "assistant", "content": "Logged..."}
+              { "role": "user", "content": "I spent $120 on groceries" },
+              { "role": "assistant", "content": "Logged..." },
+              { "role": "user", "content": "Also logged $80 for gas" },
+              { "role": "assistant", "content": "Logged..." },
+              { "role": "user", "content": "And $50 on a gym membership" },
+              { "role": "assistant", "content": "Logged..." }
             ]
           },
           "expected_output": {
@@ -366,6 +421,135 @@
         }
       ],
       "tags": ["expense_logging", "budget_query", "multi_category", "stateful"]
+    },
+    {
+      "id": "sarah_multi_expense_single_message_new_category",
+      "persona": "sarah",
+      "description": "Tests: Multi-expense in one message → Missing category → Add category → Re-log expenses",
+      "context": {
+        "month": "current"
+      },
+      "turns": [
+        {
+          "turn": 1,
+          "description": "Log multiple expenses without amounts (expense_handler asks for clarification)",
+          "input": {
+            "message": "I paid rent, utilities, and my phone bill today",
+            "conversation_history": []
+          },
+          "expected_output": {
+            "intent": "log_expense",
+            "response_contains": ["how much", "rent", "utilities", "phone"],
+            "requires_clarification": true
+          }
+        },
+        {
+          "turn": 2,
+          "description": "Provide amounts — triggers missing 'general' category",
+          "input": {
+            "message": "$500 on rent, $100 on utilities and a $50 on the phone bill",
+            "conversation_history": [
+              {
+                "role": "user",
+                "content": "I paid rent, utilities, and my phone bill today"
+              },
+              {
+                "role": "assistant",
+                "content": "How much did you spend on each? (rent, utilities, phone bill)"
+              }
+            ]
+          },
+          "expected_output": {
+            "intent": "log_expense",
+            "response_contains": ["general", "category", "add"],
+            "requires_clarification": true
+          }
+        },
+        {
+          "turn": 3,
+          "description": "User agrees to add new category (budget_modification_handler with operation=add)",
+          "input": {
+            "message": "Yes please",
+            "conversation_history": [
+              {
+                "role": "user",
+                "content": "I paid rent, utilities, and my phone bill today"
+              },
+              {
+                "role": "assistant",
+                "content": "How much did you spend on each? (rent, utilities, phone bill)"
+              },
+              {
+                "role": "user",
+                "content": "$500 on rent, $100 on utilities and a $50 on the phone bill"
+              },
+              {
+                "role": "assistant",
+                "content": "There's no 'general' category in your budget. Your current categories are: groceries, dining, shopping, entertainment, transport. Would you like me to add a 'general' category to your budget?"
+              }
+            ]
+          },
+          "expected_output": {
+            "intent": "budget_modification",
+            "response_contains": ["added", "general", "category"],
+            "state_changes": [
+              {
+                "field": "budget_categories.general",
+                "operation": "create",
+                "value": { "limit": 0, "spent": 0 }
+              }
+            ]
+          }
+        },
+        {
+          "turn": 4,
+          "description": "Re-log the expenses now that category exists",
+          "input": {
+            "message": "$500 on rent, $100 on utilities and $50 on the phone bill",
+            "conversation_history": [
+              {
+                "role": "user",
+                "content": "I paid rent, utilities, and my phone bill today"
+              },
+              {
+                "role": "assistant",
+                "content": "How much did you spend on each? (rent, utilities, phone bill)"
+              },
+              {
+                "role": "user",
+                "content": "$500 on rent, $100 on utilities and a $50 on the phone bill"
+              },
+              {
+                "role": "assistant",
+                "content": "There's no 'general' category in your budget. Would you like me to add a 'general' category?"
+              },
+              { "role": "user", "content": "Yes please" },
+              {
+                "role": "assistant",
+                "content": "Added general category to your budget."
+              }
+            ]
+          },
+          "expected_output": {
+            "intent": "log_expense",
+            "response_contains": ["500", "100", "50", "general"],
+            "state_changes": [
+              {
+                "field": "budget_categories.general.spent",
+                "operation": "+",
+                "value": 650.0
+              }
+            ]
+          }
+        }
+      ],
+      "tags": [
+        "multi_expense",
+        "new_category",
+        "budget_modification",
+        "clarification",
+        "stateful"
+      ]
     }
   ]
 }

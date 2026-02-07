@@ -716,3 +716,83 @@ class TestDecisionServiceIntegration:
         stats = decision_service.get_decision_stats(user_id)
         assert stats["total_decisions"] == 5
         assert stats["feedback_rate"] == 60.0  # 3 out of 5
+
+
+class TestBehavioralScore:
+    """Tests for _calculate_behavioral_score static method."""
+
+    @staticmethod
+    def _make_decision(score, actual_purchase=None, regret_level=None):
+        """Create a mock decision object."""
+        d = MagicMock()
+        d.score = score
+        d.actual_purchase = actual_purchase
+        d.regret_level = regret_level
+        return d
+
+    def test_no_feedback_returns_raw_score(self):
+        d = self._make_decision(score=3, actual_purchase=None)
+        assert DecisionService._calculate_behavioral_score(d) == 3.0
+
+    def test_no_feedback_high_score(self):
+        d = self._make_decision(score=9, actual_purchase=None)
+        assert DecisionService._calculate_behavioral_score(d) == 9.0
+
+    def test_low_score_not_bought_rewards_user(self):
+        """Resisting a bad purchase should give a high behavioral score."""
+        d = self._make_decision(score=3, actual_purchase=False)
+        result = DecisionService._calculate_behavioral_score(d)
+        assert result >= 7.0
+
+    def test_very_low_score_not_bought_highest_reward(self):
+        d = self._make_decision(score=1, actual_purchase=False)
+        assert DecisionService._calculate_behavioral_score(d) == 9.0
+
+    def test_borderline_low_score_not_bought(self):
+        d = self._make_decision(score=5, actual_purchase=False)
+        assert DecisionService._calculate_behavioral_score(d) == 7.0
+
+    def test_high_score_bought_low_regret_keeps_score(self):
+        """Following good advice with no regret keeps the high score."""
+        d = self._make_decision(score=8, actual_purchase=True, regret_level=2)
+        assert DecisionService._calculate_behavioral_score(d) == 8.0
+
+    def test_high_score_bought_high_regret_penalizes(self):
+        """Even a 'good' purchase that's regretted should score low."""
+        d = self._make_decision(score=8, actual_purchase=True, regret_level=9)
+        result = DecisionService._calculate_behavioral_score(d)
+        assert result <= 3.0
+
+    def test_low_score_bought_high_regret_very_low(self):
+        """Ignored warning + regret = worst behavioral outcome."""
+        d = self._make_decision(score=3, actual_purchase=True, regret_level=9)
+        result = DecisionService._calculate_behavioral_score(d)
+        assert result <= 3.0
+
+    def test_max_regret_floors_at_one(self):
+        d = self._make_decision(score=2, actual_purchase=True, regret_level=10)
+        result = DecisionService._calculate_behavioral_score(d)
+        assert result == 1.0
+
+    def test_high_score_not_bought_slight_penalty(self):
+        """Skipping a good purchase is a slight miss, not a disaster."""
+        d = self._make_decision(score=8, actual_purchase=False)
+        result = DecisionService._calculate_behavioral_score(d)
+        assert 4.0 <= result <= 6.0
+
+    def test_mid_score_not_bought_neutral(self):
+        d = self._make_decision(score=6, actual_purchase=False)
+        assert DecisionService._calculate_behavioral_score(d) == 6.0
+
+    def test_moderate_regret_keeps_ai_score(self):
+        d = self._make_decision(score=7, actual_purchase=True, regret_level=5)
+        assert DecisionService._calculate_behavioral_score(d) == 7.0
+
+    def test_bought_no_regret_data_keeps_ai_score(self):
+        d = self._make_decision(score=5, actual_purchase=True, regret_level=None)
+        assert DecisionService._calculate_behavioral_score(d) == 5.0
+
+    def test_low_score_bought_low_regret_moderate(self):
+        """Ignored AI warning but happy with purchase — moderate score."""
+        d = self._make_decision(score=3, actual_purchase=True, regret_level=2)
+        assert DecisionService._calculate_behavioral_score(d) == 6.0
