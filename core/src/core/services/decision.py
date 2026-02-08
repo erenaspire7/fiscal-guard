@@ -210,15 +210,9 @@ class DecisionService:
         if not decision:
             return None
 
-        # Update feedback fields
-        decision.actual_purchase = feedback.actual_purchase
-        decision.regret_level = feedback.regret_level
-        if feedback.feedback is not None:
-            decision.user_feedback = feedback.feedback
-
-        # If user actually made the purchase, record it as a budget item
+        # Query budget BEFORE modifying decision to avoid autoflush on dirty object
+        active_budget = None
         if feedback.actual_purchase and decision.category:
-            # Find the active budget (budget containing current date)
             active_budget = (
                 self.db.query(Budget)
                 .filter(
@@ -229,6 +223,14 @@ class DecisionService:
                 .first()
             )
 
+        # Update feedback fields
+        decision.actual_purchase = feedback.actual_purchase
+        decision.regret_level = feedback.regret_level
+        if feedback.feedback is not None:
+            decision.user_feedback = feedback.feedback
+
+        # If user actually made the purchase, record it as a budget item
+        if feedback.actual_purchase and decision.category:
             if active_budget and decision.category in active_budget.categories:
                 # Create budget item to track this purchase
                 budget_item_data = BudgetItemCreate(

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { env } from "@/config/env";
 
-interface AddProgressModalProps {
+interface UpdateProgressModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -21,14 +21,14 @@ interface AddProgressModalProps {
   goalName: string;
 }
 
-export default function AddProgressModal({
+export default function UpdateProgressModal({
   isOpen,
   onClose,
   onSuccess,
   token,
   goalId,
   goalName,
-}: AddProgressModalProps) {
+}: UpdateProgressModalProps) {
   const [amount, setAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -37,7 +37,7 @@ export default function AddProgressModal({
     if (!token || !amount) return;
 
     const amountValue = parseFloat(amount);
-    if (isNaN(amountValue) || amountValue <= 0) return;
+    if (isNaN(amountValue) || amountValue === 0) return;
 
     setIsSubmitting(true);
     try {
@@ -56,7 +56,7 @@ export default function AddProgressModal({
         setAmount("");
       }
     } catch (error) {
-      console.error("Failed to add progress:", error);
+      console.error("Failed to update progress:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -76,10 +76,10 @@ export default function AddProgressModal({
               <TrendingUp className="w-6 h-6 text-emerald-500" />
             </div>
             <DialogTitle className="text-2xl font-semibold tracking-tight text-white">
-              Add Progress
+              Update Progress
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-400">
-              Contributing to{" "}
+              Updating savings for{" "}
               <span className="text-emerald-500 font-semibold">{goalName}</span>
             </DialogDescription>
           </DialogHeader>
@@ -99,7 +99,7 @@ export default function AddProgressModal({
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
                   step="0.01"
-                  min="0"
+                  min={undefined}
                   required
                   autoFocus
                   className="w-full bg-[#010402] border-white/5 rounded-xl py-4 pl-10 pr-4 text-xl font-bold text-white placeholder:text-gray-500 shadow-inner focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
@@ -108,6 +108,11 @@ export default function AddProgressModal({
               {amount && parseFloat(amount) > 0 && (
                 <p className="text-xs text-emerald-500/60">
                   This will be added to your goal savings
+                </p>
+              )}
+              {amount && parseFloat(amount) < 0 && (
+                <p className="text-xs text-red-400/60">
+                  This will be deducted from your goal savings
                 </p>
               )}
             </div>
@@ -124,16 +129,16 @@ export default function AddProgressModal({
               </Button>
               <Button
                 type="submit"
-                disabled={!amount || isSubmitting || parseFloat(amount) <= 0}
+                disabled={!amount || isSubmitting || parseFloat(amount) === 0}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 px-6 rounded-xl transition-all shadow-lg shadow-emerald-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Adding...
+                    Updating...
                   </>
                 ) : (
-                  "Add Progress"
+                  "Update Progress"
                 )}
               </Button>
             </div>

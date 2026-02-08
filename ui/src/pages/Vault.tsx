@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AddGoalModal from "@/components/modals/AddGoalModal";
 import AddBudgetModal from "@/components/modals/AddBudgetModal";
 import DeleteConfirmationModal from "@/components/modals/DeleteConfirmationModal";
-import AddProgressModal from "@/components/modals/AddProgressModal";
+import UpdateProgressModal from "@/components/modals/UpdateProgressModal";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
@@ -129,7 +129,7 @@ export default function Vault() {
     }
   };
 
-  const handleAddProgress = (goalId: string, goalName: string) => {
+  const handleUpdateProgress = (goalId: string, goalName: string) => {
     setSelectedGoal({ id: goalId, name: goalName });
     setProgressModalOpen(true);
   };
@@ -624,12 +624,15 @@ export default function Vault() {
                               size="sm"
                               variant="outline"
                               onClick={() =>
-                                handleAddProgress(goal.goal_id, goal.goal_name)
+                                handleUpdateProgress(
+                                  goal.goal_id,
+                                  goal.goal_name,
+                                )
                               }
                               className="border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-500 hover:text-emerald-400 text-xs font-bold gap-2"
                             >
                               <Plus className="w-3 h-3" />
-                              Add Progress
+                              Update Progress
                             </Button>
                           </ButtonGroup>
                         )}
@@ -687,7 +690,7 @@ export default function Vault() {
         }? This action cannot be undone.`}
       />
 
-      <AddProgressModal
+      <UpdateProgressModal
         isOpen={progressModalOpen && selectedGoal !== null}
         onClose={handleProgressClose}
         onSuccess={refresh}

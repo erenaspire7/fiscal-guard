@@ -153,19 +153,8 @@ def create_feedback_tools(
             "payment_source": payment_source if purchased else None,
         }
 
-    @tool
-    def update_budget_for_purchase(category: str, amount: float) -> dict:
-        """Update budget category spending when a purchase was made from the budget.
-
-        Args:
-            category: The budget category the purchase falls under
-            amount: The purchase amount to add to spending
-
-        Returns:
-            Updated budget category status.
-        """
-        category_lower = category.lower()
-
+    def _apply_budget_update(category_lower: str, amount: float):
+        """Mutate budget in session without committing. Returns (result_dict, success)."""
         budget_ctx = financial_context.active_budget if financial_context else None
 
         if budget_ctx and category_lower in budget_ctx.categories:
@@ -188,8 +177,8 @@ def create_feedback_tools(
         if not active_budget or category_lower not in active_budget.categories:
             return {
                 "success": False,
-                "error": f"No active budget or category '{category}' not found.",
-            }
+                "error": f"No active budget or category '{category_lower}' not found.",
+            }, False
 
         categories_copy = active_budget.categories.copy()
         current_spent = categories_copy[category_lower].get("spent", 0)
@@ -199,9 +188,6 @@ def create_feedback_tools(
         active_budget.categories = categories_copy
         flag_modified(active_budget, "categories")
         active_budget.updated_at = datetime.utcnow()
-
-        db_session.commit()
-        db_session.refresh(active_budget)
 
         limit = categories_copy[category_lower]["limit"]
         remaining = limit - new_spent
@@ -213,20 +199,10 @@ def create_feedback_tools(
             "limit": limit,
             "remaining": remaining,
             "percentage_used": round((new_spent / limit * 100) if limit > 0 else 0, 1),
-        }
+        }, True
 
-    @tool
-    def deduct_from_goal(goal_name: str, amount: float) -> dict:
-        """Deduct an amount from a financial goal when a purchase was funded from goal savings.
-
-        Args:
-            goal_name: The name of the goal to deduct from (fuzzy matched)
-            amount: The amount to deduct in dollars
-
-        Returns:
-            Updated goal status after deduction.
-        """
-        goal_name_lower = goal_name.lower()
+    def _apply_goal_deduction(goal_name_lower: str, amount: float):
+        """Mutate goal in session without committing. Returns (result_dict, success)."""
         matching_goal = None
 
         goal_contexts = financial_context.active_goals if financial_context else []
@@ -243,7 +219,6 @@ def create_feedback_tools(
                 break
 
         if not matching_goal:
-            # Fallback to DB query
             goals = (
                 db_session.query(Goal)
                 .filter(Goal.user_id == user_uuid, Goal.is_completed == False)
@@ -260,15 +235,12 @@ def create_feedback_tools(
         if not matching_goal:
             return {
                 "success": False,
-                "error": f"Could not find a goal matching '{goal_name}'.",
-            }
+                "error": f"Could not find a goal matching '{goal_name_lower}'.",
+            }, False
 
         new_amount = max(0, float(matching_goal.current_amount) - amount)
         matching_goal.current_amount = new_amount
         matching_goal.updated_at = datetime.utcnow()
-
-        db_session.commit()
-        db_session.refresh(matching_goal)
 
         target = float(matching_goal.target_amount)
         remaining = target - new_amount
@@ -282,7 +254,39 @@ def create_feedback_tools(
             "target_amount": target,
             "remaining": remaining,
             "percentage_complete": round(percentage, 1),
-        }
+        }, True
+
+    @tool
+    def update_budget_for_purchase(category: str, amount: float) -> dict:
+        """Update budget category spending when a purchase was made from the budget.
+
+        Args:
+            category: The budget category the purchase falls under
+            amount: The purchase amount to add to spending
+
+        Returns:
+            Updated budget category status.
+        """
+        result, _ = _apply_budget_update(category.lower(), amount)
+        if result["success"]:
+            db_session.commit()
+        return result
+
+    @tool
+    def deduct_from_goal(goal_name: str, amount: float) -> dict:
+        """Deduct an amount from a financial goal when a purchase was funded from goal savings.
+
+        Args:
+            goal_name: The name of the goal to deduct from (fuzzy matched)
+            amount: The amount to deduct in dollars
+
+        Returns:
+            Updated goal status after deduction.
+        """
+        result, _ = _apply_goal_deduction(goal_name.lower(), amount)
+        if result["success"]:
+            db_session.commit()
+        return result
 
     @tool
     def record_purchase_with_budget_update(
@@ -341,8 +345,6 @@ def create_feedback_tools(
             if category_override:
                 decision.user_feedback += f" | Category changed from '{decision.category}' to '{target_category}'"
 
-        db_session.commit()
-
         result = {
             "success": True,
             "decision_id": decision_id,
@@ -354,13 +356,12 @@ def create_feedback_tools(
             "category_changed": category_override is not None,
         }
 
-        # If purchased, update budget
+        # If purchased, apply secondary mutations without intermediate commits
         if purchased:
             payment_src = payment_source or "budget"
 
             if payment_src == "budget":
-                # Update budget category spending
-                budget_result = update_budget_for_purchase(target_category, amount)
+                budget_result, _ = _apply_budget_update(target_category, amount)
                 if budget_result.get("success"):
                     result["budget_updated"] = True
                     result["category_spent_after"] = budget_result["spent"]
@@ -374,7 +375,7 @@ def create_feedback_tools(
                 result["note"] = "Paid from savings - budget not affected"
             else:
                 # Assume it's a goal name
-                goal_result = deduct_from_goal(payment_src, amount)
+                goal_result, _ = _apply_goal_deduction(payment_src, amount)
                 if goal_result.get("success"):
                     result["goal_deducted"] = True
                     result["goal_name"] = goal_result["goal_name"]
@@ -383,6 +384,8 @@ def create_feedback_tools(
                     result["goal_deducted"] = False
                     result["goal_error"] = goal_result.get("error")
 
+        # Single commit for all mutations
+        db_session.commit()
         return result
 
     return [

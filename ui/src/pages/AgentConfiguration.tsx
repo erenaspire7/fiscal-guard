@@ -249,7 +249,7 @@ export default function AgentConfiguration() {
           </section>
 
           {/* Right Column: Guardrail Rules */}
-          <section className="lg:col-span-2 space-y-6">
+          {/*<section className="lg:col-span-2 space-y-6">
             <div className="flex items-center gap-3 px-1">
               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
                 <Shield className="w-4 h-4 text-emerald-500" />
@@ -311,7 +311,7 @@ export default function AgentConfiguration() {
                 </div>
               </button>
             </div>
-          </section>
+          </section>*/}
         </div>
       </main>
 

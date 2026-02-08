@@ -250,9 +250,8 @@ class BudgetService:
             notes=item_data.notes,
             is_planned=item_data.is_planned,
         )
-        self.db.add(budget_item)
-
-        # Update budget category spending
+        # Update budget category spending before adding item to avoid
+        # SAWarning: Session.add() during flush (triggered by dirty budget state)
         categories_copy = budget.categories.copy()
         categories_copy[category]["spent"] = float(spent_after)
         budget.categories = categories_copy
@@ -262,6 +261,7 @@ class BudgetService:
         flag_modified(budget, "categories")
         budget.updated_at = datetime.utcnow()
 
+        self.db.add(budget_item)
         self.db.commit()
         self.db.refresh(budget_item)
         return budget_item
