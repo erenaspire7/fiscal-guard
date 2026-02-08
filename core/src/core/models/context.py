@@ -1,7 +1,7 @@
 """Shared context models for conversation processing.
 
 Built once per request in ConversationService, then passed through
-to the intent classifier and all handlers to eliminate redundant DB queries.
+to the graph orchestrator and all specialized agents to eliminate redundant DB queries.
 """
 
 from datetime import date, datetime

@@ -1,7 +1,8 @@
 {
   "name": "Sarah - Basic Purchase Decisions",
-  "description": "Core purchase decision scenarios for Sarah (Financial Monk, strictness 9/10). Tests budget awareness, impulse control, and persona adherence.",
-  "version": "1.0",
+  "description": "Core purchase decision scenarios for Sarah (Financial Monk, strictness 9/10). Tests budget awareness, impulse control, and persona adherence. V2 swarm-based architecture.",
+  "version": "2.0",
+  "type": "single_turn",
   "scenarios": [
     {
       "id": "sarah_watch_over_budget",
@@ -15,7 +16,6 @@
         "conversation_history": []
       },
       "expected_output": {
-        "intent": "purchase_decision",
         "score": 1,
         "decision_category": "strong_no",
         "reasoning_must_contain": ["budget", "shopping"],
@@ -41,7 +41,6 @@
         "conversation_history": []
       },
       "expected_output": {
-        "intent": "purchase_decision",
         "score": 9,
         "decision_category": "strong_yes",
         "reasoning_must_contain": ["essential", "groceries"],
@@ -64,7 +63,6 @@
         "conversation_history": []
       },
       "expected_output": {
-        "intent": "purchase_decision",
         "score": 4,
         "decision_category": "mild_no",
         "reasoning_must_contain": ["dining"],
@@ -88,7 +86,6 @@
         "conversation_history": []
       },
       "expected_output": {
-        "intent": "purchase_decision",
         "score": 6,
         "decision_category": "neutral",
         "reasoning_must_contain": ["essential", "work"],
@@ -111,7 +108,6 @@
         "conversation_history": []
       },
       "expected_output": {
-        "intent": "purchase_decision",
         "score": 4,
         "decision_category": "mild_no",
         "reasoning_must_contain": ["sale", "shopping"],
@@ -136,7 +132,6 @@
         "conversation_history": []
       },
       "expected_output": {
-        "intent": "purchase_decision",
         "score": 3,
         "decision_category": "strong_no",
         "reasoning_must_contain": ["subscription", "recurring"],
@@ -160,7 +155,6 @@
         "conversation_history": []
       },
       "expected_output": {
-        "intent": "purchase_decision",
         "score": 4,
         "decision_category": "mild_no",
         "reasoning_must_contain": ["health", "entertainment"],
@@ -184,7 +178,6 @@
         "conversation_history": []
       },
       "expected_output": {
-        "intent": "purchase_decision",
         "score": 1,
         "decision_category": "strong_no",
         "reasoning_must_contain": ["goal", "shopping"],
@@ -209,7 +202,6 @@
         "conversation_history": []
       },
       "expected_output": {
-        "intent": "purchase_decision",
         "score": 3,
         "decision_category": "strong_no",
         "reasoning_must_contain": ["entertainment"],
@@ -223,7 +215,7 @@
     {
       "id": "sarah_context_from_history",
       "persona": "sarah",
-      "description": "Tests that agent uses conversation history for context",
+      "description": "Tests that agent uses conversation history for context (purchase feedback)",
       "context": {
         "month": "current"
       },
@@ -241,13 +233,16 @@
         ]
       },
       "expected_output": {
-        "intent": "purchase_feedback",
-        "confidence": 0.8,
-        "extracted_entities": {
-          "purchased": true
-        }
+        "response_contains": ["watch", "450"],
+        "state_changes": [
+          {
+            "field": "budget_categories.shopping.spent",
+            "operation": "+",
+            "value": 450.0
+          }
+        ]
       },
-      "tags": ["feedback", "context_dependent", "intent_classification"]
+      "tags": ["feedback", "context_dependent", "swarm_handoff"]
     }
   ]
 }

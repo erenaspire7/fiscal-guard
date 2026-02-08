@@ -67,6 +67,8 @@ Traditional tracking meets AI-powered chat.
 
 **Multi-agent system with real-time observability and privacy-first design.**
 
+![Architecture Diagram](./diagrams/architecture.png)
+
 ## 🎯 Try It Live
 
 👉 **[Demo Link](https://fiscal-guard.vercel.app)**

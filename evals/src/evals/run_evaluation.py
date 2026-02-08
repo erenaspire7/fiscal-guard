@@ -11,7 +11,6 @@ from opik.evaluation import evaluate
 from evals.metrics import (
     BudgetMathCorrectness,
     DecisionCategoryAccuracy,
-    IntentAccuracy,
     ScoreAccuracy,
     StateChangeAccuracy,
 )
@@ -87,7 +86,6 @@ class EvaluationRunner:
             "decision_category_accuracy": DecisionCategoryAccuracy(),
             "budget_math_correctness": BudgetMathCorrectness(),
             "state_change_accuracy": StateChangeAccuracy(),
-            "intent_accuracy": IntentAccuracy(),
         }
 
         if metrics:
@@ -183,7 +181,6 @@ def main():
             "decision_category_accuracy",
             "budget_math_correctness",
             "state_change_accuracy",
-            "intent_accuracy",
         ],
         help="Metrics to use (default: all)",
     )

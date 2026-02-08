@@ -56,6 +56,9 @@ class DecisionService:
     ) -> PurchaseDecisionResponse:
         """Create a new purchase decision.
 
+        NOTE: This method is primarily used for cart analysis (batch processing multiple items).
+        For conversational decisions, use ConversationService with SwarmOrchestrator instead.
+
         The DecisionAgent automatically traces this flow via OpenTelemetry,
         including all tool calls and model interactions.
 
@@ -73,63 +76,7 @@ class DecisionService:
 
         # Use the AI agent to analyze the purchase
         # This is automatically traced via OpenTelemetry
-        decision, clarification_question, related_decision_id = agent.analyze_purchase(
-            user_id, request, financial_context
-        )
-
-        # If we need clarification, don't save yet - return response asking for confirmation
-        if clarification_question and not request.is_follow_up:
-            # Create a temporary decision ID for the response
-            from uuid import uuid4
-
-            temp_decision_id = uuid4()
-
-            return PurchaseDecisionResponse(
-                decision=decision,
-                decision_id=temp_decision_id,
-                requires_clarification=True,
-                clarification_question=clarification_question,
-                related_decision_id=related_decision_id,
-            )
-
-        # If this is a follow-up confirming the same item, update the existing decision
-        if request.is_follow_up and request.related_decision_id:
-            existing_decision = (
-                self.db.query(PurchaseDecisionDB)
-                .filter(
-                    PurchaseDecisionDB.decision_id == request.related_decision_id,
-                    PurchaseDecisionDB.user_id == user_id,
-                )
-                .first()
-            )
-
-            if existing_decision:
-                # Update the existing decision with new analysis
-                existing_decision.score = decision.score
-                existing_decision.decision_category = decision.decision_category.value
-                existing_decision.reasoning = decision.reasoning
-                existing_decision.analysis = decision.analysis.model_dump(mode="json")
-                existing_decision.alternatives = decision.alternatives
-                existing_decision.conditions = decision.conditions
-
-                # Update fields from request if they were refined
-                if request.item_name:
-                    existing_decision.item_name = request.item_name
-                if request.amount:
-                    existing_decision.amount = request.amount
-                if request.category:
-                    existing_decision.category = request.category.value
-                if request.reason:
-                    existing_decision.reason = request.reason
-                if request.urgency:
-                    existing_decision.urgency = request.urgency
-
-                self.db.commit()
-                self.db.refresh(existing_decision)
-
-                return PurchaseDecisionResponse(
-                    decision=decision, decision_id=existing_decision.decision_id
-                )
+        decision = agent.analyze_purchase(user_id, request, financial_context)
 
         # Save to database as a new decision
         # Use mode='json' to properly serialize Decimal fields
@@ -617,71 +564,25 @@ class DecisionService:
                 user_message=None,
             )
 
-            # Use existing decision logic
-            decision, clarification_question, related_decision_id = (
-                agent.analyze_purchase(user_id, decision_request)
+            # Analyze item using decision agent
+            decision = agent.analyze_purchase(user_id, decision_request)
+
+            # Save decision to database
+            db_decision = PurchaseDecisionDB(
+                user_id=user_id,
+                item_name=item.item_name,
+                amount=total_amount,
+                category=category.value,
+                reason=f"Cart item from {page_url}",
+                urgency=item.urgency_badge or "normal",
+                score=decision.score,
+                decision_category=decision.decision_category.value,
+                reasoning=decision.reasoning,
+                analysis=decision.analysis.model_dump(mode="json"),
+                alternatives=decision.alternatives,
+                conditions=decision.conditions,
             )
-
-            # Check if this is a duplicate of a recent decision
-            # If related_decision_id is set, we found a similar recent purchase
-            if related_decision_id and not decision_request.is_follow_up:
-                # Update existing decision instead of creating duplicate
-                existing_decision = (
-                    self.db.query(PurchaseDecisionDB)
-                    .filter(
-                        PurchaseDecisionDB.decision_id == related_decision_id,
-                        PurchaseDecisionDB.user_id == user_id,
-                    )
-                    .first()
-                )
-
-                if existing_decision:
-                    # Update the existing decision with new analysis
-                    existing_decision.score = decision.score
-                    existing_decision.decision_category = (
-                        decision.decision_category.value
-                    )
-                    existing_decision.reasoning = decision.reasoning
-                    existing_decision.analysis = decision.analysis.model_dump(
-                        mode="json"
-                    )
-                    existing_decision.alternatives = decision.alternatives
-                    existing_decision.conditions = decision.conditions
-                    # Don't add a new record, just update existing
-                else:
-                    # If we can't find the existing decision, create new one
-                    db_decision = PurchaseDecisionDB(
-                        user_id=user_id,
-                        item_name=item.item_name,
-                        amount=total_amount,
-                        category=category.value,
-                        reason=f"Cart item from {page_url}",
-                        urgency=item.urgency_badge or "normal",
-                        score=decision.score,
-                        decision_category=decision.decision_category.value,
-                        reasoning=decision.reasoning,
-                        analysis=decision.analysis.model_dump(mode="json"),
-                        alternatives=decision.alternatives,
-                        conditions=decision.conditions,
-                    )
-                    self.db.add(db_decision)
-            else:
-                # No duplicate found, save as new decision
-                db_decision = PurchaseDecisionDB(
-                    user_id=user_id,
-                    item_name=item.item_name,
-                    amount=total_amount,
-                    category=category.value,
-                    reason=f"Cart item from {page_url}",
-                    urgency=item.urgency_badge or "normal",
-                    score=decision.score,
-                    decision_category=decision.decision_category.value,
-                    reasoning=decision.reasoning,
-                    analysis=decision.analysis.model_dump(mode="json"),
-                    alternatives=decision.alternatives,
-                    conditions=decision.conditions,
-                )
-                self.db.add(db_decision)
+            self.db.add(db_decision)
 
             item_decisions.append(
                 ItemDecisionResult(

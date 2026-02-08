@@ -1,5 +1,6 @@
 """Generate Opik datasets from multi-turn scenario files."""
 
+import asyncio
 import json
 import os
 import sys
@@ -28,6 +29,7 @@ class MultiTurnDatasetGenerator:
         api_url: str = "http://localhost:8000",
         opik_workspace: Optional[str] = None,
         prompt_override: Optional[Dict[str, str]] = None,
+        max_concurrent: int = 5,
     ):
         """Initialize multi-turn dataset generator.
 
@@ -35,11 +37,13 @@ class MultiTurnDatasetGenerator:
             api_url: Base URL for Fiscal Guard API
             opik_workspace: Opik workspace name (optional)
             prompt_override: Optional dict with agent_type and prompt for testing
+            max_concurrent: Maximum number of concurrent API requests (default: 5)
         """
         self.api_client = FiscalGuardAPIClient(api_url)
         self.opik_client = Opik(workspace=opik_workspace)
         self.prompt_override = prompt_override
         self.session_id = None
+        self.max_concurrent = max_concurrent
 
         # Initialize database connection (same as API uses)
         database_url = os.getenv("DATABASE_URL") or settings.database_url
@@ -357,6 +361,95 @@ class MultiTurnDatasetGenerator:
 
         return float(current)
 
+    async def _run_scenario_async(
+        self,
+        scenario: MultiTurnScenario,
+        prompt_version: str,
+        internal_token: Optional[str],
+        index: int,
+        total: int,
+    ) -> Dict[str, Any]:
+        """Run a single scenario asynchronously.
+
+        Args:
+            scenario: Multi-turn scenario to run
+            prompt_version: Version of prompt being tested
+            internal_token: Optional internal API token
+            index: Scenario index (for logging)
+            total: Total scenarios (for logging)
+
+        Returns:
+            Dataset entry
+        """
+        print(f"\n   [{index}/{total}]")
+        try:
+            # Run in executor to avoid blocking
+            loop = asyncio.get_event_loop()
+            entry = await loop.run_in_executor(
+                None,
+                self.run_multi_turn_scenario,
+                scenario,
+                prompt_version,
+                internal_token,
+            )
+            return entry
+        except Exception as e:
+            print(f"    ❌ Failed: {e}")
+            # Return error entry
+            return {
+                "input": {
+                    "scenario_id": scenario.id,
+                    "persona": scenario.persona,
+                    "total_turns": len(scenario.turns),
+                },
+                "context": {
+                    "scenario_id": scenario.id,
+                    "persona": scenario.persona,
+                    "scenario_tags": scenario.tags,
+                    "scenario_description": scenario.description,
+                    "month": scenario.context.month,
+                },
+                "turns": [],
+                "metadata": {
+                    "prompt_version": prompt_version,
+                    "scenario_file": scenario.id.split("_")[0],
+                    "total_turns": len(scenario.turns),
+                    "successful_turns": 0,
+                    "error": str(e),
+                },
+            }
+
+    async def _generate_dataset_async(
+        self,
+        scenarios: List[MultiTurnScenario],
+        prompt_version: str,
+        internal_token: Optional[str],
+    ) -> List[Dict[str, Any]]:
+        """Generate dataset entries concurrently.
+
+        Args:
+            scenarios: List of scenarios to run
+            prompt_version: Prompt version
+            internal_token: Optional internal API token
+
+        Returns:
+            List of dataset entries
+        """
+        semaphore = asyncio.Semaphore(self.max_concurrent)
+
+        async def run_with_semaphore(scenario, index, total):
+            async with semaphore:
+                return await self._run_scenario_async(
+                    scenario, prompt_version, internal_token, index, total
+                )
+
+        tasks = [
+            run_with_semaphore(scenario, i + 1, len(scenarios))
+            for i, scenario in enumerate(scenarios)
+        ]
+
+        return await asyncio.gather(*tasks, return_exceptions=True)
+
     def generate_dataset(
         self,
         scenario_path: Path,
@@ -382,6 +475,7 @@ class MultiTurnDatasetGenerator:
         print(f"\n📊 Generating multi-turn dataset: {dataset_name}")
         print(f"   Scenario file: {scenario_path}")
         print(f"   Prompt version: {prompt_version}")
+        print(f"   Max concurrent requests: {self.max_concurrent}")
 
         # Load scenarios
         collection = self.load_scenario_file(scenario_path)
@@ -398,24 +492,59 @@ class MultiTurnDatasetGenerator:
         # Create auth client
         self.auth_client = AuthClient(self.api_client.api_url)
 
-        # Run each scenario
-        entries = []
-        for i, scenario in enumerate(collection.scenarios, 1):
-            print(f"\n   [{i}/{len(collection.scenarios)}]")
-            entry = self.run_multi_turn_scenario(
-                scenario, prompt_version, internal_token
+        # Run scenarios concurrently
+        print(f"\n   Running scenarios...")
+        entries = asyncio.run(
+            self._generate_dataset_async(
+                collection.scenarios, prompt_version, internal_token
             )
-            entries.append(entry)
+        )
+
+        # Filter out exceptions
+        valid_entries = []
+        for i, entry in enumerate(entries):
+            if isinstance(entry, Exception):
+                print(f"   ❌ Scenario {i + 1} failed with exception: {entry}")
+                # Create error entry
+                scenario = collection.scenarios[i]
+                valid_entries.append(
+                    {
+                        "input": {
+                            "scenario_id": scenario.id,
+                            "persona": scenario.persona,
+                            "total_turns": len(scenario.turns),
+                        },
+                        "context": {
+                            "scenario_id": scenario.id,
+                            "persona": scenario.persona,
+                            "scenario_tags": scenario.tags,
+                            "scenario_description": scenario.description,
+                            "month": scenario.context.month,
+                        },
+                        "turns": [],
+                        "metadata": {
+                            "prompt_version": prompt_version,
+                            "scenario_file": scenario.id.split("_")[0],
+                            "total_turns": len(scenario.turns),
+                            "successful_turns": 0,
+                            "error": str(entry),
+                        },
+                    }
+                )
+            else:
+                valid_entries.append(entry)
 
         # Insert into Opik dataset
-        print(f"\n   Inserting {len(entries)} entries into Opik dataset...")
-        dataset.insert(entries)
+        print(f"\n   Inserting {len(valid_entries)} entries into Opik dataset...")
+        dataset.insert(valid_entries)
 
         print(f"✅ Multi-turn dataset generated: {dataset_name}")
-        print(f"   Total scenarios: {len(entries)}")
-        print(f"   Total turns: {sum(e['metadata']['total_turns'] for e in entries)}")
+        print(f"   Total scenarios: {len(valid_entries)}")
         print(
-            f"   Failed turns: {sum(e['metadata']['total_turns'] - e['metadata']['successful_turns'] for e in entries)}"
+            f"   Total turns: {sum(e['metadata']['total_turns'] for e in valid_entries)}"
+        )
+        print(
+            f"   Failed turns: {sum(e['metadata']['total_turns'] - e['metadata']['successful_turns'] for e in valid_entries)}"
         )
 
         return dataset_name
@@ -472,6 +601,12 @@ def main():
         type=str,
         help="Internal API token (from INTERNAL_API_TOKEN env var)",
     )
+    parser.add_argument(
+        "--max-concurrent",
+        type=int,
+        default=5,
+        help="Maximum number of concurrent API requests (default: 5)",
+    )
 
     args = parser.parse_args()
 
@@ -499,6 +634,7 @@ def main():
         api_url=args.api_url,
         opik_workspace=args.opik_workspace,
         prompt_override=prompt_override,
+        max_concurrent=args.max_concurrent,
     )
 
     try:

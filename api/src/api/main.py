@@ -1,5 +1,8 @@
 """FastAPI application for Fiscal Guard."""
 
+import logging
+import sys
+
 from core.config import settings
 from core.observability.tracing import setup_tracing
 from fastapi import FastAPI
@@ -16,6 +19,17 @@ from api.routers import (
     internal,
     users,
 )
+
+# Configure logging to output to stdout/stderr
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+
+# Set specific loggers to DEBUG for detailed error tracking
+logging.getLogger("core.ai.agents.conversation_swarm").setLevel(logging.DEBUG)
+logging.getLogger("core.services.conversation").setLevel(logging.DEBUG)
 
 # Initialise Strands OTLP tracing (no-op when OPIK_TRACING_ENABLED=false)
 setup_tracing()

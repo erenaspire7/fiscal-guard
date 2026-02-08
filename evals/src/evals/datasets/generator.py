@@ -1,5 +1,6 @@
 """Generate Opik datasets from scenario files."""
 
+import asyncio
 import json
 import sys
 from pathlib import Path
@@ -20,16 +21,19 @@ class DatasetGenerator:
         self,
         api_url: str = "http://localhost:8000",
         opik_workspace: Optional[str] = None,
+        max_concurrent: int = 5,
     ):
         """Initialize dataset generator.
 
         Args:
             api_url: Base URL for Fiscal Guard API
             opik_workspace: Opik workspace name (optional)
+            max_concurrent: Maximum number of concurrent API requests (default: 5)
         """
         self.api_client = FiscalGuardAPIClient(api_url)
         self.auth_client = AuthClient(api_url)
         self.opik_client = Opik(workspace=opik_workspace)
+        self.max_concurrent = max_concurrent
 
         # Verify API is healthy
         if not self.api_client.health_check():
@@ -58,17 +62,28 @@ class DatasetGenerator:
 
         return ScenarioCollection(**data)
 
-    def run_scenario(self, scenario: Scenario, prompt_version: str) -> Dict[str, Any]:
+    def run_scenario(
+        self,
+        scenario: Scenario,
+        prompt_version: str,
+        index: int = None,
+        total: int = None,
+    ) -> Dict[str, Any]:
         """Run a single scenario against the API.
 
         Args:
             scenario: Scenario to run
             prompt_version: Version of prompt being tested
+            index: Optional scenario index (for logging)
+            total: Optional total scenarios (for logging)
 
         Returns:
             Dataset entry with input, expected, actual, and metadata
         """
-        print(f"  Running scenario: {scenario.id}")
+        if index and total:
+            print(f"  [{index}/{total}] Running scenario: {scenario.id}")
+        else:
+            print(f"  Running scenario: {scenario.id}")
 
         # Login as persona
         token = self.auth_client.login_as_persona(scenario.persona)
@@ -90,6 +105,7 @@ class DatasetGenerator:
             actual_output = response
             error = None
         except Exception as e:
+            print(f"    ❌ Error: {e}")
             actual_output = None
             error = str(e)
 
@@ -115,6 +131,86 @@ class DatasetGenerator:
         }
 
         return entry
+
+    async def _run_scenario_async(
+        self,
+        scenario: Scenario,
+        prompt_version: str,
+        index: int,
+        total: int,
+    ) -> Dict[str, Any]:
+        """Run a single scenario asynchronously.
+
+        Args:
+            scenario: Scenario to run
+            prompt_version: Version of prompt being tested
+            index: Scenario index (for logging)
+            total: Total scenarios (for logging)
+
+        Returns:
+            Dataset entry
+        """
+        try:
+            # Run in executor to avoid blocking
+            loop = asyncio.get_event_loop()
+            entry = await loop.run_in_executor(
+                None,
+                self.run_scenario,
+                scenario,
+                prompt_version,
+                index,
+                total,
+            )
+            return entry
+        except Exception as e:
+            print(f"  [{index}/{total}] ❌ Failed: {e}")
+            # Return error entry
+            return {
+                "input": scenario.input.model_dump(),
+                "context": {
+                    "persona": scenario.persona,
+                    "scenario_id": scenario.id,
+                    "scenario_tags": scenario.tags,
+                    "scenario_description": scenario.description,
+                    "month": scenario.context.month,
+                },
+                "expected_output": scenario.expected_output.model_dump(),
+                "actual_output": None,
+                "error": str(e),
+                "metadata": {
+                    "prompt_version": prompt_version,
+                    "scenario_file": scenario.id.split("_")[0],
+                },
+            }
+
+    async def _generate_dataset_async(
+        self,
+        scenarios: List[Scenario],
+        prompt_version: str,
+    ) -> List[Dict[str, Any]]:
+        """Generate dataset entries concurrently.
+
+        Args:
+            scenarios: List of scenarios to run
+            prompt_version: Prompt version
+
+        Returns:
+            List of dataset entries
+        """
+        semaphore = asyncio.Semaphore(self.max_concurrent)
+
+        async def run_with_semaphore(scenario, index, total):
+            async with semaphore:
+                return await self._run_scenario_async(
+                    scenario, prompt_version, index, total
+                )
+
+        tasks = [
+            run_with_semaphore(scenario, i + 1, len(scenarios))
+            for i, scenario in enumerate(scenarios)
+        ]
+
+        return await asyncio.gather(*tasks, return_exceptions=True)
 
     def generate_dataset(
         self,
@@ -142,6 +238,7 @@ class DatasetGenerator:
         print(f"\n📊 Generating dataset: {dataset_name}")
         print(f"   Scenario file: {scenario_path}")
         print(f"   Prompt version: {prompt_version}")
+        print(f"   Max concurrent requests: {self.max_concurrent}")
 
         # Load scenarios
         collection = self.load_scenario_file(scenario_path)
@@ -155,22 +252,50 @@ class DatasetGenerator:
         print(f"   Clearing existing entries...")
         dataset.clear()
 
-        # Run each scenario
-        entries = []
-        for i, scenario in enumerate(collection.scenarios, 1):
-            print(f"   [{i}/{len(collection.scenarios)}]", end=" ")
-            entry = self.run_scenario(scenario, prompt_version)
-            entries.append(entry)
+        # Run scenarios concurrently
+        print(f"\n   Running scenarios...")
+        entries = asyncio.run(
+            self._generate_dataset_async(collection.scenarios, prompt_version)
+        )
+
+        # Filter out exceptions
+        valid_entries = []
+        for i, entry in enumerate(entries):
+            if isinstance(entry, Exception):
+                print(f"   ❌ Scenario {i + 1} failed with exception: {entry}")
+                # Create error entry
+                scenario = collection.scenarios[i]
+                valid_entries.append(
+                    {
+                        "input": scenario.input.model_dump(),
+                        "context": {
+                            "persona": scenario.persona,
+                            "scenario_id": scenario.id,
+                            "scenario_tags": scenario.tags,
+                            "scenario_description": scenario.description,
+                            "month": scenario.context.month,
+                        },
+                        "expected_output": scenario.expected_output.model_dump(),
+                        "actual_output": None,
+                        "error": str(entry),
+                        "metadata": {
+                            "prompt_version": prompt_version,
+                            "scenario_file": scenario.id.split("_")[0],
+                        },
+                    }
+                )
+            else:
+                valid_entries.append(entry)
 
         # Insert into Opik dataset
         # This automatically creates a new version (v1, v2, v3, etc.)
-        print(f"\n   Inserting {len(entries)} entries into Opik dataset...")
+        print(f"\n   Inserting {len(valid_entries)} entries into Opik dataset...")
         print(f"   Note: Opik will automatically create a new version")
-        dataset.insert(entries)
+        dataset.insert(valid_entries)
 
         print(f"✅ Dataset generated: {dataset_name}")
-        print(f"   Total entries: {len(entries)}")
-        print(f"   Failures: {sum(1 for e in entries if e['error'] is not None)}")
+        print(f"   Total entries: {len(valid_entries)}")
+        print(f"   Failures: {sum(1 for e in valid_entries if e['error'] is not None)}")
 
         return dataset_name
 
@@ -210,6 +335,12 @@ def main():
         type=str,
         help="Opik workspace name (optional)",
     )
+    parser.add_argument(
+        "--max-concurrent",
+        type=int,
+        default=5,
+        help="Maximum number of concurrent API requests (default: 5)",
+    )
 
     args = parser.parse_args()
 
@@ -223,6 +354,7 @@ def main():
     generator = DatasetGenerator(
         api_url=args.api_url,
         opik_workspace=args.opik_workspace,
+        max_concurrent=args.max_concurrent,
     )
 
     try:

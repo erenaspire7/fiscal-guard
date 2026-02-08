@@ -12,8 +12,6 @@ from core.models.decision import (
     DecisionFeedback,
     PurchaseDecisionDB,
     PurchaseDecisionListResponse,
-    PurchaseDecisionRequest,
-    PurchaseDecisionResponse,
 )
 from core.observability.pii_redaction import create_trace_attributes
 from core.services.decision import DecisionService
@@ -45,28 +43,8 @@ class ScreenshotExtractionResponse(BaseModel):
 router = APIRouter(prefix="/decisions", tags=["decisions"])
 
 
-@router.post(
-    "", response_model=PurchaseDecisionResponse, status_code=status.HTTP_201_CREATED
-)
-def create_decision(
-    request: PurchaseDecisionRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Create a new purchase decision.
-
-    Analyzes the purchase request using AI and returns a recommendation.
-
-    Args:
-        request: Purchase decision request
-        db: Database session
-        current_user: Authenticated user
-
-    Returns:
-        Purchase decision with score and reasoning
-    """
-    service = DecisionService(db)
-    return service.create_decision(current_user.user_id, request)
+# NOTE: Direct decision creation endpoint removed - use /chat for conversational decisions
+# Cart analysis still uses DecisionAgent internally for batch processing efficiency
 
 
 @router.get("", response_model=PurchaseDecisionListResponse)

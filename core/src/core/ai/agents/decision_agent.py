@@ -87,7 +87,12 @@ class StructuredPurchaseDecision(BaseModel):
 
 
 class DecisionAgent:
-    """Handle purchase decision analysis using Strands AI with tools."""
+    """Handle purchase decision analysis using Strands AI with tools.
+
+    NOTE: This agent is primarily used for cart analysis (batch processing).
+    For conversational purchase decisions, use SwarmOrchestrator in conversation_swarm.py instead.
+    The swarm provides better context handling and multi-turn conversation support.
+    """
 
     def __init__(self, db_session: Session, session_id: Optional[str] = None):
         """Initialize decision agent.
@@ -100,14 +105,15 @@ class DecisionAgent:
         self.session_id = session_id
 
         # Initialize Gemini model
+        # Lower temperature for cart analysis - want consistent scoring across batch items
         model = GeminiModel(
             client_args={
                 "api_key": settings.google_api_key,
             },
             model_id=settings.strands_default_model,
             params={
-                "temperature": 0.7,
-                "max_output_tokens": 4096,
+                "temperature": 0.4,  # Lower for deterministic batch analysis
+                "max_output_tokens": 2048,  # Reduced - cart analysis needs concise output
                 "top_p": 0.9,
                 "top_k": 40,
             },
@@ -117,60 +123,34 @@ class DecisionAgent:
         self.model = model
         # Tools will be created per-request with user context
 
-        # Default system prompt (can be overridden for testing)
-        self._default_system_prompt = """You are an expert financial advisor helping users make smart purchase decisions through opportunity cost thinking.
+        # Default system prompt optimized for cart analysis (batch processing)
+        self._default_system_prompt = """You are a financial advisor analyzing shopping cart items for purchase decisions.
 
-Your role:
-1. Use the available tools to analyze the purchase comprehensively:
-   - check_budget: Verify budget impact for the category
-   - check_goals: See how this affects financial goals
-   - analyze_spending: Overall financial health assessment
-   - check_past_decisions: Learn from user's purchase history
-   - analyze_regrets: Identify patterns in past regrets
+ANALYZE EFFICIENTLY:
+1. Check budget impact: Use check_budget to verify if this fits the category limit
+2. Check goals: Use check_goals to see impact on savings/financial goals
+3. Assess overall health: Use analyze_spending for context
 
-2. ALWAYS perform opportunity cost analysis - this is critical:
-   - What is the user giving up by spending this money?
-   - What financial goals will be delayed or sacrificed?
-   - What alternative uses would provide more value?
-   - Frame the cost in relatable terms (e.g., "This equals X days of groceries" or "This delays your vacation goal by Y weeks")
+SCORING (1-10):
+- 1-3 (strong_no): Would harm financial health significantly
+- 4-5 (mild_no): Not recommended
+- 6 (neutral): Neither good nor bad
+- 7-8 (mild_yes): Reasonable purchase
+- 9-10 (strong_yes): Aligns with financial goals
 
-3. Provide a decision score from 1-10 where:
-   - 1-3: Strong No (strong_no) - would significantly harm financial health
-   - 4-5: Mild No (mild_no) - not recommended but not catastrophic
-   - 6: Neutral (neutral) - neither good nor bad
-   - 7-8: Mild Yes (mild_yes) - reasonable purchase
-   - 9-10: Strong Yes (strong_yes) - excellent decision
+PURCHASE TYPE:
+- essential: Basic needs
+- discretionary: Nice to have
+- investment: Future value
+- impulse: Unplanned/emotional
 
-4. Categorize the purchase type:
-   - essential: Necessary for basic needs
-   - discretionary: Nice to have but not necessary
-   - investment: Will provide future value
-   - impulse: Emotional or unplanned purchase
+PROVIDE:
+1. Concise reasoning (2-3 sentences max)
+2. Opportunity cost: What they're giving up (e.g., "2 weeks of groceries" or "delays vacation goal by 1 month")
+3. 2-3 concrete opportunity cost examples
+4. Brief alternatives (if score ≤ 5)
 
-5. Provide concise reasoning (keep it short and punchy) that considers:
-   - OPPORTUNITY COST (what are they giving up?)
-   - Budget impact (will it exceed category limits?)
-   - Goal impact (will it delay financial goals?)
-   - Overall financial health
-   - User's past behavior and patterns
-   - Regret patterns from similar purchases
-   - Value vs cost
-   - Urgency and necessity
-
-6. Provide concrete opportunity cost examples:
-   - Convert the purchase amount into relatable alternatives
-   - Reference specific goals from their profile when available
-   - Use tangible comparisons (meals, days of work, progress toward savings goals)
-
-7. Suggest alternatives when appropriate
-
-8. Provide conditions under which this purchase might make more sense
-
-9. Reference past patterns when relevant (e.g., "You've regretted similar purchases before")
-
-Be honest, practical, and empathetic. Help users understand the true cost of their decisions by making opportunity costs explicit and relatable.
-
-CRITICAL: Keep your reasoning and analysis extremely concise. Avoid fluff. Get straight to the point. ALWAYS include opportunity cost analysis."""
+Keep responses SHORT and DATA-DRIVEN. Focus on budget/goal impact and opportunity cost."""
 
         # Check for prompt override (for testing)
         self.system_prompt = self._get_system_prompt()
@@ -200,8 +180,11 @@ CRITICAL: Keep your reasoning and analysis extremely concise. Avoid fluff. Get s
         user_id: UUID,
         request: PurchaseDecisionRequest,
         financial_context: Optional[UserFinancialContext] = None,
-    ) -> tuple[PurchaseDecision, Optional[str], Optional[UUID]]:
+    ) -> PurchaseDecision:
         """Analyze a purchase decision request.
+
+        NOTE: Used for cart analysis (batch processing). Returns only the decision.
+        Clarification logic removed - not needed for cart items.
 
         Args:
             user_id: The user making the purchase request
@@ -271,32 +254,20 @@ CRITICAL: Keep your reasoning and analysis extremely concise. Avoid fluff. Get s
             trace_attributes=trace_attributes,
         )
 
-        # Build the prompt with purchase details
-        prompt = f"""Analyze this purchase decision:
+        # Build streamlined prompt for cart analysis
+        prompt = f"""CART ITEM ANALYSIS:
+- Item: {request.item_name}
+- Amount: ${request.amount}
+- Category: {request.category or "unspecified"}
+- Urgency: {request.urgency or "normal"}
 
-PURCHASE REQUEST:
-Item: {request.item_name}
-Amount: ${request.amount}
-Category: {request.category or "unspecified"}
-Reason: {request.reason or "not provided"}
-Urgency: {request.urgency or "not specified"}
+ANALYZE:
+1. Check budget: Does this fit within category limits?
+2. Check goals: Impact on savings/financial goals?
+3. Calculate opportunity cost: What are they giving up? Provide 2-3 concrete examples.
 
-INSTRUCTIONS:
-1. Use check_budget tool to analyze budget impact for the category
-2. Use check_goals tool to see how this affects the user's financial goals
-3. Use analyze_spending tool to understand overall financial health
-4. Use check_past_decisions tool to see if user has made similar purchases
-5. Use analyze_regrets tool to check if user has regret patterns in this category
-6. CRITICAL - Perform opportunity cost analysis:
-   - Based on the user's goals, budget, and spending patterns, what are they giving up?
-   - Provide concrete, relatable examples (e.g., "This equals 2 weeks of your grocery budget")
-   - Show how this impacts progress toward their specific goals
-   - Frame the tradeoff clearly: "This purchase means X instead of Y"
-7. Based on all tool results, patterns, AND opportunity costs, provide your decision
-8. Reference past behavior in your reasoning if patterns are found
-9. REMEMBER: You must act as a {persona} advisor with a strictness of {strictness}/10.
-
-Provide your complete analysis with a decision score, reasoning, opportunity cost analysis, and recommendations."""
+SCORING ({persona} advisor, strictness {strictness}/10):
+Provide score, reasoning (2-3 sentences), opportunity cost examples, and brief alternatives if needed."""
 
         # Call the agent (it will use tools automatically)
         # The response will be an AgentResult with JSON string output
@@ -332,59 +303,17 @@ Provide your complete analysis with a decision score, reasoning, opportunity cos
 
         structured_response = StructuredPurchaseDecision(**json_data)
 
-        # Check if we need clarification about a similar recent purchase
-        clarification_question = None
-        related_decision_id = None
-
-        if not request.is_follow_up and request.item_name:
-            from datetime import timedelta
-
-            twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
-            item_lower = request.item_name.lower()
-
-            # Use pre-fetched context if available
-            if financial_context and financial_context.recent_decisions:
-                for past in financial_context.recent_decisions:
-                    if past.created_at < twenty_four_hours_ago:
-                        continue
-                    past_item_lower = past.item_name.lower()
-                    if (
-                        item_lower in past_item_lower or past_item_lower in item_lower
-                    ) and len(item_lower) > 3:
-                        clarification_question = f"I see you were considering '{past.item_name}' for ${past.amount} earlier. Is this the same item, or something different?"
-                        related_decision_id = past.decision_id
-                        break
-            else:
-                # Fallback to DB query
-                from core.database.models import PurchaseDecision as PurchaseDecisionDB
-
-                recent_decisions = (
-                    self.db_session.query(PurchaseDecisionDB)
-                    .filter(
-                        PurchaseDecisionDB.user_id == user_id,
-                        PurchaseDecisionDB.created_at > twenty_four_hours_ago,
-                    )
-                    .order_by(PurchaseDecisionDB.created_at.desc())
-                    .limit(10)
-                    .all()
-                )
-
-                for past_decision in recent_decisions:
-                    past_item_lower = past_decision.item_name.lower()
-                    if (
-                        item_lower in past_item_lower or past_item_lower in item_lower
-                    ) and len(item_lower) > 3:
-                        clarification_question = f"I see you were considering '{past_decision.item_name}' for ${past_decision.amount} earlier. Is this the same item, or something different?"
-                        related_decision_id = past_decision.decision_id
-                        break
-
         # Convert structured response to our domain model
-        decision = self._convert_to_purchase_decision(structured_response)
+        decision = self._convert_to_purchase_decision(
+            structured_response, financial_context
+        )
 
-        return decision, clarification_question, related_decision_id
+        return decision
 
     def _convert_to_purchase_decision(
-        self, structured: StructuredPurchaseDecision
+        self,
+        structured: StructuredPurchaseDecision,
+        financial_context: Optional[UserFinancialContext] = None,
     ) -> PurchaseDecision:
         """Convert structured output to PurchaseDecision domain model.
 

@@ -1,8 +1,9 @@
 """Tools for decision analysis agent."""
 
-from datetime import date
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -736,10 +737,130 @@ def create_decision_tools(
             "recommendations": recommendations,
         }
 
+    @tool
+    def save_purchase_decision(
+        item_name: str,
+        amount: float,
+        category: str,
+        score: int,
+        decision_category: str,
+        reasoning: str,
+        reason: Optional[str] = None,
+        urgency: Optional[str] = None,
+        alternatives: Optional[list[str]] = None,
+        conditions: Optional[list[str]] = None,
+    ) -> dict:
+        """Save a purchase decision to the database after analyzing it.
+
+        IMPORTANT: Call this function AFTER you've analyzed the purchase and determined the score.
+        This persists the decision so the user can reference it later (e.g., "I bought that item").
+
+        Args:
+            item_name: Name of the item being considered
+            amount: Purchase amount in dollars
+            category: Budget category (groceries, dining, shopping, entertainment, transport, etc.)
+            score: Decision score from 1-10 (1=strong no, 10=strong yes)
+            decision_category: Classification (strong_no, mild_no, neutral, mild_yes, strong_yes)
+            reasoning: Your reasoning for the score
+            reason: User's reason for wanting to buy (optional)
+            urgency: Purchase urgency level (low, medium, high) (optional)
+            alternatives: List of alternative suggestions (optional)
+            conditions: List of conditions under which purchase makes sense (optional)
+
+        Returns:
+            Confirmation with decision_id for future reference
+        """
+        # Build analysis dict from current financial context
+        analysis = {}
+
+        # Add budget analysis if available
+        budget_result = check_budget(category, amount)
+        if budget_result.get("has_budget"):
+            analysis["budget_analysis"] = {
+                "category": category,
+                "current_spent": budget_result["current_spent"],
+                "limit": budget_result["limit"],
+                "remaining": budget_result["remaining"],
+                "percentage_used": budget_result["percentage_used"],
+                "would_exceed": budget_result["would_exceed"],
+                "impact_description": budget_result["impact_description"],
+            }
+
+        # Add goals analysis if available
+        goals_result = check_goals()
+        if goals_result.get("total_goals", 0) > 0:
+            analysis["affected_goals"] = [
+                {
+                    "goal_name": g["name"],
+                    "target_amount": g["target_amount"],
+                    "current_amount": g["current_amount"],
+                    "remaining": g["remaining"],
+                    "deadline": g["deadline"],
+                    "impact_description": f"${amount} represents {(amount / g['remaining'] * 100):.1f}% of remaining goal",
+                }
+                for g in goals_result.get("goals", [])
+                if g["remaining"] > 0
+            ]
+
+        # Add financial health
+        spending_result = analyze_spending()
+        analysis["financial_health_score"] = spending_result.get(
+            "financial_health_score", 50
+        )
+
+        # Determine purchase category
+        if urgency == "high" or category in ["groceries", "transport"]:
+            purchase_category = "essential"
+        elif score >= 7:
+            purchase_category = "investment"
+        elif score <= 4:
+            purchase_category = "impulse"
+        else:
+            purchase_category = "discretionary"
+
+        analysis["purchase_category"] = purchase_category
+
+        # Create decision record
+        decision = PurchaseDecision(
+            decision_id=uuid4(),
+            user_id=user_uuid,
+            item_name=item_name,
+            amount=Decimal(str(amount)),
+            category=category.lower(),
+            reason=reason or "User inquiry",
+            urgency=urgency or "medium",
+            score=score,
+            decision_category=decision_category,
+            reasoning=reasoning,
+            analysis=analysis,
+            alternatives=alternatives or [],
+            conditions=conditions or [],
+            actual_purchase=None,  # Will be set when user provides feedback
+            regret_level=None,
+            user_feedback=None,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        )
+
+        db_session.add(decision)
+        db_session.commit()
+        db_session.refresh(decision)
+
+        return {
+            "success": True,
+            "decision_id": str(decision.decision_id),
+            "item_name": item_name,
+            "amount": amount,
+            "score": score,
+            "decision_category": decision_category,
+            "message": f"Decision saved with ID: {decision.decision_id}",
+        }
+
     return [
         check_budget,
         check_goals,
         analyze_spending,
         check_past_decisions,
         analyze_regrets,
+        save_purchase_decision,
     ]

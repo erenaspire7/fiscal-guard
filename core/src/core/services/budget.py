@@ -54,6 +54,20 @@ class BudgetService:
             .first()
         )
 
+    def get_active_budget(self, user_id: UUID) -> Optional[Budget]:
+        """Get the currently active budget for a user (period contains today)."""
+        today = datetime.utcnow().date()
+        return (
+            self.db.query(Budget)
+            .filter(
+                Budget.user_id == user_id,
+                Budget.period_start <= today,
+                Budget.period_end >= today,
+            )
+            .order_by(Budget.created_at.desc())
+            .first()
+        )
+
     def list_budgets(
         self, user_id: UUID, skip: int = 0, limit: int = 100
     ) -> List[Budget]:

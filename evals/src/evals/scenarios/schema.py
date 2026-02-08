@@ -34,7 +34,6 @@ class BudgetAnalysisExpected(BaseModel):
 class ExpectedOutput(BaseModel):
     """Expected output from the agent."""
 
-    intent: Optional[str] = Field(None, description="Expected intent classification")
     score: Optional[int] = Field(None, description="Expected decision score (1-10)")
     decision_category: Optional[str] = Field(
         None, description="Expected decision category"
@@ -56,11 +55,17 @@ class ExpectedOutput(BaseModel):
     budget_analysis: Optional[BudgetAnalysisExpected] = Field(
         None, description="Expected budget analysis"
     )
-    extracted_entities: Optional[Dict[str, Any]] = Field(
-        None, description="Expected extracted entities (for intent classification)"
+    response_contains: List[str] = Field(
+        default_factory=list,
+        description="Keywords/phrases that must appear in response",
     )
-    confidence: Optional[float] = Field(
-        None, description="Minimum expected confidence (for intent classification)"
+    response_must_not_contain: List[str] = Field(
+        default_factory=list,
+        description="Keywords/phrases that must NOT appear in response",
+    )
+    state_changes: List["StateChange"] = Field(
+        default_factory=list,
+        description="Expected database state changes",
     )
 
 
@@ -94,15 +99,18 @@ class Scenario(BaseModel):
 class StateChange(BaseModel):
     """Expected state change in the database."""
 
-    field: str = Field(..., description="Field path (e.g., 'budget_categories.groceries.spent')")
-    operation: Literal["+", "-", "="] = Field(..., description="Operation: + (add), - (subtract), = (set)")
+    field: str = Field(
+        ..., description="Field path (e.g., 'budget_categories.groceries.spent')"
+    )
+    operation: Literal["+", "-", "="] = Field(
+        ..., description="Operation: + (add), - (subtract), = (set)"
+    )
     value: float = Field(..., description="Value for the operation")
 
 
 class TurnExpectedOutput(BaseModel):
     """Expected output for a single turn in a multi-turn scenario."""
 
-    intent: Optional[str] = Field(None, description="Expected intent classification")
     response_contains: List[str] = Field(
         default_factory=list,
         description="Keywords/phrases that must appear in response",
@@ -118,6 +126,10 @@ class TurnExpectedOutput(BaseModel):
     metadata_checks: Optional[Dict[str, Any]] = Field(
         None,
         description="Expected metadata fields (e.g., {'decision_id': 'not_null'})",
+    )
+    requires_clarification: Optional[bool] = Field(
+        None,
+        description="Whether the agent should ask for clarification",
     )
 
 

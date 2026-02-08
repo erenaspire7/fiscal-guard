@@ -31,7 +31,8 @@ def send_message(
     - Goal updates ("Add $500 to emergency fund")
     - General questions ("Am I doing well financially?")
 
-    The message is automatically classified and routed to the appropriate handler.
+    The message is automatically classified and routed to the appropriate handler
+    using the graph-based multi-agent architecture.
 
     Args:
         request: Conversation request with message and history
@@ -52,6 +53,8 @@ async def stream_message(
     current_user: User = Depends(get_current_user),
 ):
     """Stream a conversational message response.
+
+    Uses the graph-based multi-agent architecture with streaming support.
 
     Returns:
         NDJSON stream of response chunks

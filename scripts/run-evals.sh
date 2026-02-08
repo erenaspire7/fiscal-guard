@@ -10,6 +10,7 @@ KEEP_ALIVE=false
 MODE="all"  # all, single-turn, multi-turn, eval-only
 SKIP_GENERATION=false
 SKIP_EVALUATION=false
+MAX_CONCURRENT=5  # Default concurrent requests
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -44,6 +45,10 @@ while [[ $# -gt 0 ]]; do
         --generate-only)
             SKIP_EVALUATION=true
             shift
+            ;;
+        --max-concurrent)
+            MAX_CONCURRENT="$2"
+            shift 2
             ;;
         *)
             EVAL_SCENARIO="$1"
@@ -81,6 +86,7 @@ trap cleanup SIGINT SIGTERM EXIT
 
 echo "🧪 Starting Evaluation Environment..."
 echo "   Mode: $MODE"
+echo "   Max concurrent requests: $MAX_CONCURRENT"
 
 # Check if .env exists
 if [ ! -f .env ]; then
@@ -205,7 +211,8 @@ run_single_turn() {
             echo "   Step 1: Generating dataset..."
             uv run python -m evals.datasets.generator \
                 --scenario "src/evals/scenarios/purchase_decisions/${scenario}.json" \
-                --api-url http://localhost:8000
+                --api-url http://localhost:8000 \
+                --max-concurrent "$MAX_CONCURRENT"
         else
             echo "   Step 1: Skipping dataset generation (using existing data)"
         fi
@@ -231,7 +238,8 @@ run_single_turn() {
                     echo "   Step 1: Generating dataset..."
                     uv run python -m evals.datasets.generator \
                         --scenario "$scenario_file" \
-                        --api-url http://localhost:8000
+                        --api-url http://localhost:8000 \
+                        --max-concurrent "$MAX_CONCURRENT"
                 else
                     echo "   Step 1: Skipping dataset generation (using existing data)"
                 fi
@@ -269,7 +277,8 @@ run_multi_turn() {
             uv run python -m evals.datasets.multi_turn_generator \
                 --scenario "src/evals/scenarios/multi_turn/${scenario}.json" \
                 --api-url http://localhost:8000 \
-                --internal-token "$INTERNAL_API_TOKEN"
+                --internal-token "$INTERNAL_API_TOKEN" \
+                --max-concurrent "$MAX_CONCURRENT"
         else
             echo "   Step 1: Skipping dataset generation (using existing data)"
         fi
@@ -279,7 +288,7 @@ run_multi_turn() {
             echo "   Step 2: Running evaluation..."
             uv run python -m evals.run_evaluation \
                 --dataset "fiscal-guard-${scenario}-mt" \
-                --metrics state_change_accuracy intent_accuracy
+                --metrics state_change_accuracy
         else
             echo "   Step 2: Skipping evaluation (generate-only mode)"
         fi
@@ -297,7 +306,8 @@ run_multi_turn() {
                     uv run python -m evals.datasets.multi_turn_generator \
                         --scenario "$scenario_file" \
                         --api-url http://localhost:8000 \
-                        --internal-token "$INTERNAL_API_TOKEN"
+                        --internal-token "$INTERNAL_API_TOKEN" \
+                        --max-concurrent "$MAX_CONCURRENT"
                 else
                     echo "   Step 1: Skipping dataset generation (using existing data)"
                 fi
@@ -307,7 +317,7 @@ run_multi_turn() {
                     echo "   Step 2: Running evaluation..."
                     uv run python -m evals.run_evaluation \
                         --dataset "fiscal-guard-${scenario_name}-mt" \
-                        --metrics state_change_accuracy intent_accuracy
+                        --metrics state_change_accuracy
                 else
                     echo "   Step 2: Skipping evaluation (generate-only mode)"
                 fi
@@ -393,6 +403,8 @@ echo "   Eval existing datasets:  ./scripts/run-evals.sh --eval-only"
 echo "   Skip dataset generation: ./scripts/run-evals.sh --skip-generation"
 echo "   Keep API running:        ./scripts/run-evals.sh --keep-alive"
 echo "   Reset DB first:          ./scripts/run-evals.sh --reset-db"
+echo "   Custom concurrency:      ./scripts/run-evals.sh --max-concurrent 10"
+echo "   Debug (sequential):      ./scripts/run-evals.sh --max-concurrent 1"
 
 if [ "$KEEP_ALIVE" = false ]; then
     exit $EVAL_EXIT_CODE

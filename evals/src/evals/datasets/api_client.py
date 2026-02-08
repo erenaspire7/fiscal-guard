@@ -49,15 +49,34 @@ class FiscalGuardAPIClient:
         if session_id:
             payload["session_id"] = session_id
 
-        response = httpx.post(
-            f"{self.api_url}/chat/message",
-            headers=headers,
-            json=payload,
-            timeout=self.timeout,
-        )
+        try:
+            response = httpx.post(
+                f"{self.api_url}/chat/message",
+                headers=headers,
+                json=payload,
+                timeout=self.timeout,
+            )
 
-        response.raise_for_status()
-        return response.json()
+            response.raise_for_status()
+            result = response.json()
+
+            # Log if we got a generic error response
+            if (
+                isinstance(result, dict)
+                and result.get("message")
+                == "I encountered an error while processing your request. Please try again."
+            ):
+                print(f"    ⚠️  API returned generic error response")
+                print(f"    Full response: {result}")
+
+            return result
+
+        except httpx.HTTPStatusError as e:
+            print(f"    ❌ HTTP {e.response.status_code}: {e.response.text}")
+            raise
+        except httpx.RequestError as e:
+            print(f"    ❌ Request failed: {e}")
+            raise
 
     def set_prompt_override(
         self,

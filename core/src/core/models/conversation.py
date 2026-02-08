@@ -19,7 +19,7 @@ class ConversationMessage(BaseModel):
 class ConversationIntent(BaseModel):
     """Classified user intent from conversational message."""
 
-    intent: Literal[
+    primary_intent: Literal[
         "purchase_decision",
         "purchase_feedback",
         "budget_query",
@@ -28,18 +28,24 @@ class ConversationIntent(BaseModel):
         "small_talk",
         "log_expense",
         "budget_modification",
-    ]
-    confidence: float = Field(..., ge=0, le=1)
-    extracted_entities: dict = Field(
-        default_factory=dict,
-        description="Extracted entities like item_name, amount, category, goal_name, etc.",
+    ] = Field(..., description="Primary intent detected in the user's message")
+    additional_intents: list[str] = Field(
+        default_factory=list,
+        description="Additional intents detected in the same message (for multi-action requests)",
     )
-    references_previous: bool = Field(
+    confidence: float = Field(
+        ..., ge=0, le=1, description="Confidence score for the classification"
+    )
+    needs_clarification: bool = Field(
         default=False,
-        description="Whether message references a previous conversation/decision",
+        description="Whether the message requires clarification before processing",
     )
-    suggested_clarification: Optional[str] = Field(
-        None, description="Question to ask if intent is unclear"
+    clarification_question: Optional[str] = Field(
+        None, description="Question to ask if intent is unclear or confidence is low"
+    )
+    context_summary: str = Field(
+        default="",
+        description="Brief summary of what the user wants to accomplish (for handler guidance)",
     )
 
 
