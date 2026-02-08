@@ -39,7 +39,6 @@ import {
   ShoppingCart,
   Info,
   Zap,
-  Calendar,
   Smile,
   Frown,
   Meh,

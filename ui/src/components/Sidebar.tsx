@@ -2,7 +2,6 @@ import { type ElementType } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
-  PieChart,
   Wallet,
   Settings2,
   LogOut,
