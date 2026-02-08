@@ -11,8 +11,8 @@ import {
   Megaphone,
   Save,
   MessageSquare,
-  Shield,
-  ChevronRight,
+  // Shield,
+  // ChevronRight,
   Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
